@@ -1,58 +1,47 @@
 import { NextResponse } from 'next/server'
-import { compare } from 'bcrypt'
-import { sign } from 'jsonwebtoken'
 import { prisma } from '@/lib/db'
+import { compare } from 'bcryptjs'
+import { sign } from 'jsonwebtoken'
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json()
+    console.log("API Request: /api/auth/login");
 
-    // Find user
+    // Parse request body
+    const { email, password } = await req.json();
+    console.log("Received credentials:", email);
+
+    // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { email }
-    })
+      where: { email },
+    });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      )
+      console.log("User not found");
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Verify password
-    const isValid = await compare(password, user.password)
-
+    // Validate password
+    const isValid = await compare(password, user.password);
     if (!isValid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      )
+      console.log("Invalid password");
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Create token
-    const token = sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
-    )
+    // Generate JWT token
+    const token = sign({ id: user.id, email: user.email }, process.env.JWT_SECRET!, {
+      expiresIn: '1h',
+    });
 
-    const response = NextResponse.json({ success: true })
-    
-    // Set cookie
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    })
+    console.log("Generated token:", token);
 
-    return response
+    // Set cookie and return JSON response
+    const response = NextResponse.json({ success: true, token });
+    response.cookies.set('auth-token', token, { httpOnly: true, secure: true });
 
+    return response;
   } catch (error) {
-    console.error('Login error:', error)
-    return NextResponse.json(
-      { error: 'Login failed' },
-      { status: 500 }
-    )
+    console.error("Login error:", error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

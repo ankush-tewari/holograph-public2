@@ -1,0 +1,50 @@
+import { NextResponse } from 'next/server'
+import { verify } from 'jsonwebtoken'
+import { prisma } from '@/lib/db'
+import { cookies } from 'next/headers'
+
+export async function GET() {
+  try {
+    // Get the token from cookies
+    const cookieStore = cookies()
+    const token = cookieStore.get('auth-token')
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      )
+    }
+
+    // Verify the token
+    const decoded = verify(token.value, process.env.JWT_SECRET!) as {
+      id: string
+      email: string
+    }
+
+    // Get user data
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ user })
+  } catch (error) {
+    console.error('User fetch error:', error)
+    return NextResponse.json(
+      { error: 'Authentication failed' },
+      { status: 401 }
+    )
+  }
+}

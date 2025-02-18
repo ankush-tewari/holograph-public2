@@ -1,24 +1,32 @@
-// src/app/components/holograph/CreateHolograph.tsx
-'use client';
-
+// CreateHolograph.tsx
 import React, { useState } from 'react';
+
+interface Holograph {
+  id: string;
+  title: string;
+  lastModified: string;
+  owner?: string;
+}
 
 interface CreateHolographProps {
   userId: string;
-  onSuccess?: () => void;
+  onSuccess: (newHolograph: Holograph) => void;
+  onCancel?: () => void;
 }
 
-const CreateHolograph: React.FC<CreateHolographProps> = ({ userId, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    content: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
+const CreateHolograph: React.FC<CreateHolographProps> = ({ 
+  userId, 
+  onSuccess,
+  onCancel 
+}) => {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError('');
 
     try {
@@ -28,76 +36,87 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({ userId, onSuccess }) 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          principalId: userId
+          title,
+          content,
+          userId
         }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create holograph');
+        throw new Error('Failed to create holograph');
       }
 
-      setFormData({ title: '', content: '' });
-      if (onSuccess) {
-        onSuccess();
-      }
+      const newHolograph = await response.json();
+      onSuccess(newHolograph);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create holograph');
+      setError('Failed to create holograph. Please try again.');
+      console.error('Error creating holograph:', err);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">Create New Holograph</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Create New Holograph</h2>
       
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label 
+            htmlFor="title" 
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Title
           </label>
           <input
-            type="text"
             id="title"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
 
-        <div>
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="mb-6">
+          <label 
+            htmlFor="content" 
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Content
           </label>
           <textarea
             id="content"
-            value={formData.content}
-            onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-            rows={6}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg h-32 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="submit"
-            disabled={isLoading}
-            className={`px-4 py-2 rounded text-white 
-              ${isLoading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-500 hover:bg-blue-600'}`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+            disabled={isSubmitting}
           >
-            {isLoading ? 'Creating...' : 'Create Holograph'}
+            {isSubmitting ? 'Creating...' : 'Create Holograph'}
           </button>
         </div>
       </form>

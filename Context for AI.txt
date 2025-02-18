@@ -1,0 +1,36 @@
+Here's a concise architectural overview of the Holograph app:
+
+The Holograph app is a Next.js application that enables users to create and share holographs with fine-grained access control. Here's the key architecture:
+
+Data Model:
+- Users: Base entity for authentication and identification
+- Holographs: Main content entity
+- HolographPrincipals: Manages ownership (many-to-many relationship between Users and Holographs)
+- HolographDelegates: Manages viewing permissions (many-to-many relationship for delegated access)
+
+Key Relationships:
+- A Holograph can have multiple Principals (co-owners)
+- Each Principal can grant Delegate access to other users
+- Users can be both Principals and Delegates across different Holographs
+- Principals have full control over their Holographs
+- Delegates have view-only access to specific Holographs
+
+Technical Stack:
+- Frontend: Next.js with App Router
+- Database: PostgreSQL with Prisma ORM
+- Authentication: JWT-based auth system
+- API: Next.js API routes
+- Styling: Tailwind CSS
+
+Core Components:
+- CreateHolograph: Handles holograph creation
+- ManageHolographAccess: Manages principals and delegates
+- HolographDashboard: Main interface for viewing and managing holographs
+
+API Structure:
+- /api/holograph/create: Create new holographs
+- /api/holograph/principals: Manage principal access
+- /api/holograph/delegates: Manage delegate access
+- /api/auth/*: Authentication endpoints
+
+This architecture enables secure content sharing with granular access control, allowing users to collaborate while maintaining clear ownership and viewing permissions.

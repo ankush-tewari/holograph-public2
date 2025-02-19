@@ -35,14 +35,24 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
         
         // Fetch owned holographs
         const ownedResponse = await fetch('/api/holograph/principals');
-        const ownedData = await ownedResponse.json();
+        let ownedData = [];
+        if (ownedResponse.ok) {
+          try {
+            ownedData = await ownedResponse.json();
+          } catch (jsonError) {
+            console.error('Error parsing owned holographs:', jsonError);
+          }
+        }
         
         // Fetch delegated holographs
         const delegatedResponse = await fetch('/api/holograph/delegates');
-        const delegatedData = await delegatedResponse.json();
-
-        if (!ownedResponse.ok || !delegatedResponse.ok) {
-          throw new Error('Failed to fetch holographs');
+        let delegatedData = [];
+        if (delegatedResponse.ok) {
+          try {
+            delegatedData = await delegatedResponse.json();
+          } catch (jsonError) {
+            console.error('Error parsing delegated holographs:', jsonError);
+          }
         }
 
         setHolographs({

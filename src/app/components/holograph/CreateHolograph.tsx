@@ -20,7 +20,6 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
   onCancel 
 }) => {
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,33 +27,37 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
-
+  
     try {
+      console.log("🚀 Submitting form..."); // ✅ Confirm that function runs
+  
       const response = await fetch('/api/holograph/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          content,
-          userId
-        }),
+        credentials: 'include', // ✅ Ensures cookies are sent
+        body: JSON.stringify({ title }),
       });
-
+  
+      console.log("✅ Response received:", response); // ✅ Confirm request was sent
+  
       if (!response.ok) {
-        throw new Error('Failed to create holograph');
+        const errorData = await response.json();
+        console.log("❌ Server error 1:", errorData); // ✅ Log server response
+        throw new Error(`Failed to create holograph: ${errorData.error}`);
       }
-
+  
       const newHolograph = await response.json();
+      console.log("✅ Holograph created:", newHolograph); // ✅ Log success
       onSuccess(newHolograph);
-    } catch (err) {
-      setError('Failed to create holograph. Please try again.');
-      console.error('Error creating holograph:', err);
+    } catch (error: any) {
+      console.error("❌ Error creating holograph:", error);
+      setError(error.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  };  
 
   return (
     <div className="p-6">
@@ -80,22 +83,6 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div className="mb-6">
-          <label 
-            htmlFor="content" 
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Content
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg h-32 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>

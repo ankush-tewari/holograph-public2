@@ -17,14 +17,14 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      console.log("User not found");
+      console.log("❌ User not found");
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     // Validate password
     const isValid = await compare(password, user.password);
     if (!isValid) {
-      console.log("Invalid password");
+      console.log("❌ Invalid password");
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -33,15 +33,24 @@ export async function POST(req: Request) {
       expiresIn: '1h',
     });
 
-    console.log("Generated token:", token);
+    console.log("✅ Generated token:", token);
 
-    // Set cookie and return JSON response
-    const response = NextResponse.json({ success: true, token });
-    response.cookies.set('auth-token', token, { httpOnly: true, secure: true });
+    // Set cookie properly
+    const response = NextResponse.json({ success: true });
+
+    response.headers.append('Access-Control-Allow-Credentials', 'true');
+    response.headers.append('Access-Control-Allow-Origin', 'http://localhost:3000'); // Allow frontend in dev
+
+    response.cookies.set('auth-token', token, { 
+      httpOnly: true, 
+      secure: false, // Set to `true` in production (requires HTTPS)
+      sameSite: 'lax', // Ensures cookies are sent in cross-origin requests
+      path: '/', // Ensures cookie is available for all routes
+    });
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

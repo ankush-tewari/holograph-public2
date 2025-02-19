@@ -1,6 +1,6 @@
 // /src/app/api/holograph/delegates/route.ts
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';  // Updated import to use the existing db.ts
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     // Verify that the requesting user is a principal
-    const isPrincipal = await db.holographPrincipal.findUnique({
+    const isPrincipal = await prisma.holographPrincipal.findUnique({
       where: {
         holographId_userId: {
           holographId,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user is already a delegate
-    const existingDelegate = await db.holographDelegate.findUnique({
+    const existingDelegate = await prisma.holographDelegate.findUnique({
       where: {
         holographId_userId: {
           holographId,
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     // Add new delegate
-    const result = await db.holographDelegate.create({
+    const result = await prisma.holographDelegate.create({
       data: {
         holographId,
         userId: delegateId,
@@ -81,7 +81,7 @@ export async function DELETE(request: Request) {
     }
 
     // Verify that the requesting user is a principal
-    const isPrincipal = await db.holographPrincipal.findUnique({
+    const isPrincipal = await prisma.holographPrincipal.findUnique({
       where: {
         holographId_userId: {
           holographId,
@@ -98,7 +98,7 @@ export async function DELETE(request: Request) {
     }
 
     // Remove delegate
-    await db.holographDelegate.delete({
+    await prisma.holographDelegate.delete({
       where: {
         holographId_userId: {
           holographId,

@@ -19,13 +19,13 @@ model User {
 }
 
 model Holograph {
-  id         String               @id @default(uuid())
-  title      String
-  content    String
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
-  delegates  HolographDelegate[]
-  principals HolographPrincipal[]
+  id             String               @id @default(uuid())
+  title          String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  delegates      HolographDelegate[]
+  principals     HolographPrincipal[]
+  vitalDocuments VitalDocument[]      // New relation
 }
 
 model HolographPrincipal {
@@ -48,4 +48,16 @@ model HolographDelegate {
   user        User      @relation(fields: [userId], references: [id])
 
   @@unique([holographId, userId])
+}
+
+model VitalDocument {
+  id          String    @id @default(uuid())
+  holographId String
+  name        String    // Name of the document
+  type        String    // Will, Trust, Advanced Health Directive, or Other
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  @@index([holographId])
 }

@@ -1,6 +1,6 @@
 // /src/app/api/holograph/principals/route.ts
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';  // Updated import to use the existing db.ts
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user is already a principal
-    const existingPrincipal = await db.holographPrincipal.findUnique({
+    const existingPrincipal = await prisma.holographPrincipal.findUnique({
       where: {
         holographId_userId: {
           holographId,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Add new principal
-    const result = await db.holographPrincipal.create({
+    const result = await prisma.holographPrincipal.create({
       data: {
         holographId,
         userId,
@@ -63,7 +63,7 @@ export async function DELETE(request: Request) {
     }
 
     // Check if this is the last principal
-    const principalCount = await db.holographPrincipal.count({
+    const principalCount = await prisma.holographPrincipal.count({
       where: { holographId },
     });
 
@@ -75,7 +75,7 @@ export async function DELETE(request: Request) {
     }
 
     // Remove principal
-    await db.holographPrincipal.delete({
+    await prisma.holographPrincipal.delete({
       where: {
         holographId_userId: {
           holographId,

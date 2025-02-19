@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Share2, X } from 'lucide-react';
-import CreateHolograph from './holograph/CreateHolograph';
+import CreateHolograph from './holograph/CreateHolograph'; //testing auto change to holograph-public
 
 // Define types for our data
 interface Holograph {

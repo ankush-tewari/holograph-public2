@@ -1,5 +1,8 @@
+// src/app/components/HolographDashboard.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Share2, X } from 'lucide-react';
+import Link from 'next/link';
 import CreateHolograph from './holograph/CreateHolograph'; //testing auto change to holograph-public
 
 // Define types for our data
@@ -32,29 +35,35 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
     const fetchHolographs = async () => {
       try {
         setIsLoading(true);
-        
+    
         // Fetch owned holographs
-        const ownedResponse = await fetch('/api/holograph/principals');
+        const ownedResponse = await fetch(`/api/holograph/principals?userId=${userId}`);
         let ownedData = [];
         if (ownedResponse.ok) {
           try {
             ownedData = await ownedResponse.json();
+            console.log("Owned Holographs Response:", ownedData);
           } catch (jsonError) {
             console.error('Error parsing owned holographs:', jsonError);
           }
+        } else {
+          console.error("Failed to fetch owned holographs:", ownedResponse.status);
         }
-        
+    
         // Fetch delegated holographs
-        const delegatedResponse = await fetch('/api/holograph/delegates');
+        const delegatedResponse = await fetch(`/api/holograph/delegates?userId=${userId}`);
         let delegatedData = [];
         if (delegatedResponse.ok) {
           try {
             delegatedData = await delegatedResponse.json();
+            console.log("Delegated Holographs Response:", delegatedData);
           } catch (jsonError) {
             console.error('Error parsing delegated holographs:', jsonError);
           }
+        } else {
+          console.error("Failed to fetch delegated holographs:", delegatedResponse.status);
         }
-
+    
         setHolographs({
           owned: ownedData,
           delegated: delegatedData
@@ -65,7 +74,7 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
       } finally {
         setIsLoading(false);
       }
-    };
+    };        
 
     fetchHolographs();
   }, [userId]);
@@ -117,80 +126,69 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
           </div>
 
           <div className="w-full">
-            {/* Tab buttons */}
-            <div className="flex gap-4 border-b mb-6">
-              <button
-                onClick={() => setActiveTab('owned')}
-                className={`px-4 py-2 font-medium ${
-                  activeTab === 'owned'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                My Holographs
-              </button>
-              <button
-                onClick={() => setActiveTab('delegated')}
-                className={`px-4 py-2 font-medium ${
-                  activeTab === 'delegated'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Shared with Me
-              </button>
+  {/* Tab buttons */}
+  <div className="flex gap-4 border-b mb-6">
+    <button
+      onClick={() => setActiveTab('owned')}
+      className={`px-4 py-2 font-medium ${
+        activeTab === 'owned'
+          ? 'text-blue-600 border-b-2 border-blue-600'
+          : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      📜 My Holographs
+    </button>
+    <button
+      onClick={() => setActiveTab('delegated')}
+      className={`px-4 py-2 font-medium ${
+        activeTab === 'delegated'
+          ? 'text-green-600 border-b-2 border-green-600'
+          : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      🤝 Shared with Me
+    </button>
+  </div>
+
+  {/* Loading state */}
+  {isLoading ? (
+    <div className="flex justify-center items-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  ) : (
+    <>
+      {/* Owned Holographs */}
+      {activeTab === 'owned' && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {holographs.owned.map(holograph => (
+            <div key={holograph.id} className="bg-blue-50 rounded-lg border border-blue-300 p-4 hover:shadow-lg transition-shadow">
+              <h3 className="text-lg font-semibold text-blue-700">
+                <Link href={`/holographs/${holograph.id}`}>📜 {holograph.title}</Link>
+              </h3>
+              <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
             </div>
+          ))}
+        </div>
+      )}
 
-            {/* Loading state */}
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : (
-              <>
-                {/* Tab content */}
-                {activeTab === 'owned' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {holographs.owned.map(holograph => (
-                      <div 
-                        key={holograph.id} 
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-semibold">{holograph.title}</h3>
-                          <button className="p-2 hover:bg-gray-100 rounded-full">
-                            <Share2 size={20} className="text-gray-600" />
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          Last modified: {new Date(holograph.lastModified).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 'delegated' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {holographs.delegated.map(holograph => (
-                      <div 
-                        key={holograph.id} 
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow"
-                      >
-                        <h3 className="text-lg font-semibold mb-1">{holograph.title}</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Shared by {holograph.owner}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Last modified: {new Date(holograph.lastModified).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+      {/* Delegated Holographs */}
+      {activeTab === 'delegated' && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {holographs.delegated.map(holograph => (
+            <div key={holograph.id} className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow">
+              <h3 className="text-lg font-semibold text-green-700">
+                <Link href={`/holographs/${holograph.id}`}>🤝 {holograph.title}</Link>
+              </h3>
+              <p className="text-sm text-gray-600">Shared by {holograph.owner}</p>
+              <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )}
+</div>
+{/* remnant? */}
         </>
       )}
     </div>

@@ -2,6 +2,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';  // Updated import to use the existing db.ts
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID required' },
+        { status: 400 }
+      );
+    }
+
+    const ownedHolographs = await prisma.holograph.findMany({
+      where: {
+        principals: {
+          some: { userId: userId }
+        }
+      }
+    });
+
+    return NextResponse.json(ownedHolographs);
+  } catch (error) {
+    console.error('Error fetching owned holographs:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch owned holographs' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { holographId, userId } = await request.json();

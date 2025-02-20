@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id             String               @id @default(uuid())
-  email          String               @unique
-  password       String
-  name           String?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  delegateAccess HolographDelegate[]
-  principalOf    HolographPrincipal[]
+  id              String               @id @default(uuid())
+  email           String               @unique
+  password        String
+  name            String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  delegateAccess  HolographDelegate[]
+  principalOf     HolographPrincipal[]
+  invitationsSent Invitation[]         @relation("Inviter")
 }
 
 model Holograph {
@@ -25,7 +26,8 @@ model Holograph {
   updatedAt      DateTime             @updatedAt
   delegates      HolographDelegate[]
   principals     HolographPrincipal[]
-  vitalDocuments VitalDocument[]      // New relation
+  vitalDocuments VitalDocument[] // New relation
+  Invitation     Invitation[]
 }
 
 model HolographPrincipal {
@@ -53,11 +55,27 @@ model HolographDelegate {
 model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
-  name        String    // Name of the document
-  type        String    // Will, Trust, Advanced Health Directive, or Other
+  name        String // Name of the document
+  type        String // Will, Trust, Advanced Health Directive, or Other
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   holograph   Holograph @relation(fields: [holographId], references: [id])
 
   @@index([holographId])
+}
+
+model Invitation {
+  id           String   @id @default(uuid()) // Unique ID for the invitation
+  holographId  String // The Holograph being shared
+  inviterId    String // The user who sent the invite
+  inviteeEmail String // The email of the person invited
+  role         String // Either "Principal" or "Delegate"
+  status       String   @default("Pending") // Can be "Pending", "Accepted", or "Declined"
+  createdAt    DateTime @default(now()) // Timestamp of when the invite was created
+
+  // Relations
+  holograph Holograph @relation(fields: [holographId], references: [id])
+  inviter   User      @relation(fields: [inviterId], references: [id], name: "Inviter")
+
+  @@unique([holographId, inviteeEmail]) // Ensure one invitation per user per Holograph
 }

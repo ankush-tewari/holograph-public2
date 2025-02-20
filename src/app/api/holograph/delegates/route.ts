@@ -2,6 +2,49 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';  // Updated import to use the existing db.ts
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID required' },
+        { status: 400 }
+      );
+    }
+
+    const delegatedHolographs = await prisma.holograph.findMany({
+      where: {
+        delegates: {
+          some: { userId: userId }
+        }
+      },
+      include: {
+        principals: {
+          select: { userId: true } // Include principals to get owner info
+        }
+      }
+    });
+
+    // Transform response to include the owner's userId
+    const formattedHolographs = delegatedHolographs.map(holograph => ({
+      id: holograph.id,
+      title: holograph.title,
+      lastModified: holograph.updatedAt.toISOString(), // Fixing Invalid Date issue
+      owner: holograph.principals.length > 0 ? holograph.principals[0].userId : 'Unknown'
+    }));
+
+    return NextResponse.json(formattedHolographs);
+  } catch (error) {
+    console.error('Error fetching delegated holographs:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch delegated holographs' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { holographId, delegateId, principalId } = await request.json();

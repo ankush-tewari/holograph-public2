@@ -17,23 +17,53 @@ export async function GET(request: Request) {
     const delegatedHolographs = await prisma.holograph.findMany({
       where: {
         delegates: {
-          some: { userId: userId }
+          some: { userId: userId } // Finds holographs where user is a delegate
         }
       },
       include: {
-        principals: {
-          select: { userId: true } // Include principals to get owner info
-        }
+        principals: { select: { userId: true } }, // Fetching principals
       }
     });
 
     // Transform response to include the owner's userId
-    const formattedHolographs = delegatedHolographs.map(holograph => ({
-      id: holograph.id,
-      title: holograph.title,
-      lastModified: holograph.updatedAt.toISOString(), // Fixing Invalid Date issue
-      owner: holograph.principals.length > 0 ? holograph.principals[0].userId : 'Unknown'
-    }));
+    const formattedHolographs = await Promise.all(
+      delegatedHolographs.map(async (holograph) => {
+        const ownerId = holograph.principals.length > 0 ? holograph.principals[0].userId : null;
+
+        const owner = ownerId
+          ? await prisma.user.findUnique({
+              where: { id: ownerId },
+              select: { id: true, name: true },
+            })
+          : null;
+
+        return {
+          id: holograph.id,
+          title: holograph.title,
+          lastModified: holograph.updatedAt.toISOString(),
+          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User 7" } : null, // ✅ Fix: Ensure object format
+        };
+      })
+    );
+
+    // ✅ Fetch the first principal as the owner
+    const delegatedData = await Promise.all(
+      delegatedHolographs.map(async (holo) => {
+        const ownerId = holo.principals.length > 0 ? holo.principals[0].userId : null;
+
+        const owner = ownerId
+          ? await prisma.user.findUnique({
+              where: { id: ownerId },
+              select: { id: true, name: true },
+            })
+          : null;
+
+        return {
+          ...holo,
+          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User" } : null, // ✅ Return as object
+        };
+      })
+    );
 
     return NextResponse.json(formattedHolographs);
   } catch (error) {

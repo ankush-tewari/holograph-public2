@@ -10,12 +10,22 @@ interface Holograph {
   id: string;
   title: string;
   lastModified: string;
-  owner?: string;
+  owner?: { id: string; name: string | null };
 }
 
 interface DashboardProps {
   userId: string;
 }
+
+interface Invitation {
+  id: string;
+  holographId: string;
+  role: string;
+  inviterId: string;
+  holographTitle?: string;
+  inviterName?: string;
+}
+
 
 const HolographDashboard = ({ userId }: DashboardProps) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -27,8 +37,47 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
     owned: [],
     delegated: []
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+
+
+  const handleAcceptInvite = async (inviteId: string, holographId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${inviteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Accepted', holographId, userId }),
+      });
+  
+      if (response.ok) {
+        setInvitations(invitations.filter(invite => invite.id !== inviteId));
+      } else {
+        console.error('Failed to accept invitation');
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+    }
+  };
+  
+  const handleDeclineInvite = async (inviteId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${inviteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Declined' }),
+      });
+  
+      if (response.ok) {
+        setInvitations(invitations.filter(invite => invite.id !== inviteId));
+      } else {
+        console.error('Failed to decline invitation');
+      }
+    } catch (error) {
+      console.error('Error declining invitation:', error);
+    }
+  };
 
   // Fetch holographs when component mounts
   useEffect(() => {
@@ -63,11 +112,30 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
         } else {
           console.error("Failed to fetch delegated holographs:", delegatedResponse.status);
         }
-    
+        
+        console.log("📋 Owned Data Before State Update:", ownedData);
+        console.log("📋 Delegated Data Before State Update:", delegatedData);
+
         setHolographs({
-          owned: ownedData,
-          delegated: delegatedData
-        });
+          owned: ownedData.map((holo: Holograph) => ({
+            ...holo,
+            owner: !holo.owner
+              ? { id: "unknown", name: "Unknown User 1" } // ✅ Only fallback if owner is missing
+              : typeof holo.owner === "string"
+              ? { id: holo.owner, name: "Unknown User 2" }
+              : { id: holo.owner.id, name: holo.owner.name !== null ? holo.owner.name : "Unknown User 3" } // ✅ Preserve name if it exists
+          })),
+          delegated: delegatedData.map((holo: Holograph) => ({
+            ...holo,
+            owner: !holo.owner
+              ? { id: "unknown", name: "Unknown User 4" }
+              : typeof holo.owner === "string"
+              ? { id: holo.owner, name: "Unknown User 5" }
+              : { id: holo.owner.id, name: holo.owner.name !== null ? holo.owner.name : "Unknown User 6" } // ✅ Preserve name if it exists
+          }))
+        });        
+        
+        
       } catch (err) {
         setError('Failed to load holographs. Please try again later.');
         console.error('Error fetching holographs:', err);
@@ -76,15 +144,120 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
       }
     };        
 
+    const fetchInvitations = async () => {
+      console.log("🔍 Fetching invitations for logged-in userId:", userId); // Debugging log
+    
+      if (!userId) {
+        console.error("❌ Error: userId is undefined");
+        return;
+      }
+    
+      try {
+        const response = await fetch(`/api/invitations/user/${userId}`);
+        if (!response.ok) throw new Error("Failed to fetch invitations");
+    
+        let invitationsData = await response.json();
+        console.log("📩 Invitations Data:", invitationsData); // Debugging log
+    
+        // Fetch Holograph names and inviter names
+        const enrichedInvitations = await Promise.all(
+          invitationsData.map(async (invite: Invitation) => {
+            let holographTitle = "Unknown Holograph";
+            let inviterName = "Unknown User";
+    
+            try {
+              // ✅ Fetch Holograph details
+              console.log(`🔍 Fetching Holograph Title for ID: ${invite.holographId}`);
+              const holographResponse = await fetch(`/api/holograph/${invite.holographId}?userId=${userId}`);
+              if (holographResponse.ok) {
+                const holographData = await holographResponse.json();
+                holographTitle = holographData.title || "Unnamed Holograph";
+                console.log(`✅ Holograph Title Fetched: ${holographTitle}`);
+              } else {
+                console.error(`❌ Failed to fetch Holograph ${invite.holographId}:`, await holographResponse.text());
+              }
+            } catch (err) {
+              console.error(`❌ Error fetching Holograph ${invite.holographId}:`, err);
+            }
+    
+            try {
+              // ✅ Fetch Inviter details
+              console.log(`🔍 Fetching Inviter Name for ID: ${invite.inviterId}`);
+              if (invite.inviterId) {
+                const inviterResponse = await fetch(`/api/users/${invite.inviterId}`);
+                if (inviterResponse.ok) {
+                  const inviterData = await inviterResponse.json();
+                  inviterName = inviterData.name || "Unnamed User";
+                  console.log(`✅ Inviter Name Fetched: ${inviterName}`);
+                } else {
+                  console.error(`❌ Failed to fetch Inviter ${invite.inviterId}:`, await inviterResponse.text());
+                }
+              }
+            } catch (err) {
+              console.error(`❌ Error fetching inviter ${invite.inviterId}:`, err);
+            }
+    
+            return {
+              ...invite,
+              holographTitle,
+              inviterName,
+            };
+          })
+        );
+    
+        setInvitations(enrichedInvitations);
+      } catch (error) {
+        console.error("❌ Error fetching invitations:", error);
+      }
+    };    
+
+    const handleAcceptInvite = async (inviteId: string, holographId: string) => {
+      try {
+        const response = await fetch(`/api/invitations/${inviteId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Accepted', holographId, userId }),
+        });
+    
+        if (response.ok) {
+          setInvitations((prevInvites) => prevInvites.filter(invite => invite.id !== inviteId));
+        } else {
+          console.error('Failed to accept invitation');
+        }
+      } catch (error) {
+        console.error('Error accepting invitation:', error);
+      }
+    };
+    
+    const handleDeclineInvite = async (inviteId: string) => {
+      try {
+        const response = await fetch(`/api/invitations/${inviteId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Declined' }),
+        });
+    
+        if (response.ok) {
+          setInvitations((prevInvites) => prevInvites.filter(invite => invite.id !== inviteId));
+        } else {
+          console.error('Failed to decline invitation');
+        }
+      } catch (error) {
+        console.error('Error declining invitation:', error);
+      }
+    };
+    
     fetchHolographs();
+    fetchInvitations();
+
   }, [userId]);
 
   const handleCreateSuccess = async (newHolograph: Holograph) => {
-    setHolographs(prev => ({
-      ...prev,
-      owned: [...prev.owned, newHolograph]
-    }));
-    setShowCreateForm(false);
+    const ownerName = typeof newHolograph.owner === "string" 
+      ? "Unknown User" 
+      : newHolograph.owner?.name ?? "Unknown User";
+  
+    console.log(`Created new Holograph: ${newHolograph.title} by ${ownerName}`);
   };
 
   if (error) {
@@ -174,17 +347,50 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
       {/* Delegated Holographs */}
       {activeTab === 'delegated' && (
         <div className="grid gap-4 md:grid-cols-2">
-          {holographs.delegated.map(holograph => (
-            <div key={holograph.id} className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow">
-              <h3 className="text-lg font-semibold text-green-700">
-                <Link href={`/holographs/${holograph.id}`}>🤝 {holograph.title}</Link>
-              </h3>
-              <p className="text-sm text-gray-600">Shared by {holograph.owner}</p>
-              <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+          {holographs.delegated.map(holograph => {
+            console.log("📋 Holograph Data:", holograph); // ✅ Debugging log
+            
+            return (
+              <div key={holograph.id} className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow">
+                <h3 className="text-lg font-semibold text-green-700">
+                  <Link href={`/holographs/${holograph.id}`}>🤝 {holograph.title}</Link>
+                </h3>
+                <p className="text-sm text-gray-600">Shared by {holograph.owner?.name ?? "Unknown User"}</p>
+                <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pending Invitations Section */}
+      {invitations.length > 0 && (
+        <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold text-yellow-700 mb-2">Pending Invitations</h2>
+          {invitations.map((invite) => (
+            <div key={invite.id} className="flex justify-between items-center p-3 border-b">
+              <p className="text-gray-700">
+                Invitation to join <strong>{invite.holographTitle}</strong> by <strong>{invite.inviterName}</strong> as a <strong>{invite.role}</strong>
+              </p>
+              <div className="flex gap-2">
+                <button
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                  onClick={() => handleAcceptInvite(invite.id, invite.holographId)}
+                >
+                  Accept
+                </button>
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => handleDeclineInvite(invite.id)}
+                >
+                  Decline
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
     </>
   )}
 </div>

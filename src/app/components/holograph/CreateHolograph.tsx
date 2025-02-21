@@ -10,9 +10,10 @@ interface Holograph {
 
 interface CreateHolographProps {
   userId: string;
-  onSuccess: (newHolograph: Holograph) => void;
+  onSuccess: (newHolograph: Holograph) => Promise<void> | void; // ✅ Allow async function
   onCancel?: () => void;
 }
+
 
 const CreateHolograph: React.FC<CreateHolographProps> = ({ 
   userId, 

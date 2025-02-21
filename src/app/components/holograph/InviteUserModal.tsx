@@ -19,8 +19,18 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-
+  
     try {
+      // Fetch the logged-in user to get inviterId
+      const authResponse = await fetch('/api/auth/user');
+      const authData = await authResponse.json();
+  
+      if (!authResponse.ok || !authData.user || !authData.user.id) {
+        throw new Error('Failed to retrieve the inviter ID');
+      }
+  
+      const inviterId = authData.user.id; // ✅ Ensure inviterId is included
+  
       const response = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,14 +38,15 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
           holographId,
           inviteeEmail: email,
           role,
+          inviterId, // ✅ Ensure inviterId is in the request
         }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Failed to send invitation');
       }
-      
+  
       setSuccess(`Invitation sent successfully to ${email}`);
       setEmail('');
     } catch (err: any) {
@@ -44,6 +55,7 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">

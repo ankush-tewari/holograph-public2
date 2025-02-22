@@ -10,9 +10,10 @@ interface Holograph {
 
 interface CreateHolographProps {
   userId: string;
-  onSuccess: (newHolograph: Holograph) => Promise<void> | void; // ✅ Allow async function
+  onSuccess?: (newHolograph: Holograph) => void | Promise<void>; // ✅ Matches the function type
   onCancel?: () => void;
 }
+
 
 
 const CreateHolograph: React.FC<CreateHolographProps> = ({ 
@@ -24,41 +25,33 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
   
     try {
-      console.log("🚀 Submitting form..."); // ✅ Confirm that function runs
-  
       const response = await fetch('/api/holograph/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // ✅ Ensures cookies are sent
-        body: JSON.stringify({ title }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, userId }),
       });
   
-      console.log("✅ Response received:", response); // ✅ Confirm request was sent
-  
       if (!response.ok) {
-        const errorData = await response.json();
-        console.log("❌ Server error 1:", errorData); // ✅ Log server response
-        throw new Error(`Failed to create holograph: ${errorData.error}`);
+        console.error("❌ API error:", response.statusText);
+        return;
       }
   
-      const newHolograph = await response.json();
-      console.log("✅ Holograph created:", newHolograph); // ✅ Log success
-      onSuccess(newHolograph);
-    } catch (error: any) {
+      const newHolograph = await response.json(); // ✅ Read response JSON only once
+      console.log("✅ Holograph created:", newHolograph);
+  
+      if (onSuccess) {
+        console.log("✅ Calling onSuccess function...");
+        onSuccess(newHolograph);
+      }
+    } catch (error) {
       console.error("❌ Error creating holograph:", error);
-      setError(error.message);
-    } finally {
-      setIsSubmitting(false);
     }
-  };  
+  };
+    
 
   return (
     <div className="p-6">

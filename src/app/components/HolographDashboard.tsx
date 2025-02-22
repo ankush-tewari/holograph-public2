@@ -1,9 +1,11 @@
 // src/app/components/HolographDashboard.tsx
+"use client"; // ✅ Ensures `useRouter` works in Next.js App Router
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Share2, X } from 'lucide-react';
 import Link from 'next/link';
 import CreateHolograph from './holograph/CreateHolograph'; //testing auto change to holograph-public
+import { useRouter } from 'next/navigation'; // Import Next.js router
 
 // Define types for our data
 interface Holograph {
@@ -28,6 +30,7 @@ interface Invitation {
 
 
 const HolographDashboard = ({ userId }: DashboardProps) => {
+  const router = useRouter(); // Initialize router
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('owned');
   const [holographs, setHolographs] = useState<{
@@ -41,6 +44,7 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+
 
 
   const handleAcceptInvite = async (inviteId: string, holographId: string) => {
@@ -252,12 +256,13 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
 
   }, [userId]);
 
-  const handleCreateSuccess = async (newHolograph: Holograph) => {
-    const ownerName = typeof newHolograph.owner === "string" 
-      ? "Unknown User" 
-      : newHolograph.owner?.name ?? "Unknown User";
+  const handleCreateSuccess = async (newHolograph: Holograph): Promise<void> => {
+    console.log("🔍 handleCreateSuccess is being executed...");
+    console.log(`✅ Created new Holograph: ${newHolograph.title}`);
   
-    console.log(`Created new Holograph: ${newHolograph.title} by ${ownerName}`);
+    console.log("🚀 Redirecting to dashboard...");
+    router.push("/dashboard"); // ✅ Immediate redirect
+    router.refresh(); // ✅ Ensure UI updates after navigation
   };
 
   if (error) {

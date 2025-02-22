@@ -21,35 +21,49 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
     setSuccess(null);
   
     try {
-      // Fetch the logged-in user to get inviterId
+      // ✅ Fetch the logged-in user to get inviterId
       const authResponse = await fetch('/api/auth/user');
       const authData = await authResponse.json();
+  
+      console.log("🔍 Auth Data:", authData); // ✅ Log the auth data
   
       if (!authResponse.ok || !authData.user || !authData.user.id) {
         throw new Error('Failed to retrieve the inviter ID');
       }
   
-      const inviterId = authData.user.id; // ✅ Ensure inviterId is included
+      const inviterId = authData.user.id;
+  
+      const requestBody = {
+        holographId,
+        inviteeEmail: email,
+        role,
+        inviterId, // ✅ Ensure inviterId is included
+      };  
+  
+      console.log("📤 Sending Invitation API Request:", requestBody); // ✅ Debug log before sending
   
       const response = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          holographId,
-          inviteeEmail: email,
-          role,
-          inviterId, // ✅ Ensure inviterId is in the request
-        }),
+        body: JSON.stringify(requestBody),
       });
   
-      const data = await response.json();
+      console.log("📩 Raw Response:", response); // ✅ Log response
+  
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send invitation');
+        console.error("❌ API Error:", response.statusText);
+        setError(`Error: ${response.statusText}`);
+        setIsLoading(false);
+        return;
       }
+  
+      const data = await response.json();
+      console.log("✅ API Response Data:", data);
   
       setSuccess(`Invitation sent successfully to ${email}`);
       setEmail('');
     } catch (err: any) {
+      console.error("❌ Error inviting user:", err);
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsLoading(false);

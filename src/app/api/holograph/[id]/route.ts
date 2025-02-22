@@ -18,7 +18,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // ✅ Fetch Holograph with Principals & Delegates
     const holograph = await prisma.holograph.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,  // ✅ Ensure this is included
+        updatedAt: true,  // ✅ Ensure this is included
         principals: { select: { userId: true } },
         delegates: { select: { userId: true } },
       },

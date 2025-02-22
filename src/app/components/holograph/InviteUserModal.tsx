@@ -51,8 +51,27 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
       console.log("📩 Raw Response:", response); // ✅ Log response
   
       if (!response.ok) {
-        console.error("❌ API Error:", response.statusText);
-        setError(`Error: ${response.statusText}`);
+        const errorData = await response.json(); // Parse error response
+      
+        if (response.status === 400) {
+          if (errorData.error.includes("already a Delegate") && role === "Delegate") {
+            setError("This user is already a Delegate for this Holograph.");
+          } else if (errorData.error.includes("already a Principal") && role === "Principal") {
+            setError("This user is already a Principal for this Holograph.");
+          } else if (errorData.error.includes("already a Delegate") && role === "Principal") {
+            setError("This user is already a Delegate and cannot be assigned as a Principal.");
+          } else if (errorData.error.includes("already a Principal") && role === "Delegate") {
+            setError("This user is already a Principal and cannot be assigned as a Delegate.");
+          } else {
+            setError(errorData.error);
+          }
+        } else if (response.status === 404) {
+          setError("Email does not belong to a registered user, please try again.");
+          setEmail(""); // Clear the input field
+        } else {
+          setError(`Error: ${response.statusText}`);
+        }
+      
         setIsLoading(false);
         return;
       }

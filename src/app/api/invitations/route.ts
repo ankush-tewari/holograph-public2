@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     // ✅ Ensure `inviteeEmail` exists
     const invitee = await prisma.user.findUnique({
       where: { email: inviteeEmail },
-      select: { id: true },
+      select: { id: true, email: true },
     });
 
     if (!invitee) {
@@ -52,6 +52,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found, please try again' }, { status: 404 });
     }
 
+    // ✅ Check if the user is already a Delegate for this Holograph
+    const existingDelegate = await prisma.holographDelegate.findFirst({
+      where: { holographId, userId: invitee.id },
+    });
+
+    // ✅ Check if the user is already a Principal for this Holograph
+    const existingPrincipal = await prisma.holographPrincipal.findFirst({
+      where: { holographId, userId: invitee.id },
+    });
+
+    // 🚨 Enforce the Business Rule 🚨
+    // ❌ Case 1: User is ALREADY a Delegate and being invited AGAIN as a Delegate
+    if (existingDelegate && role === "Delegate") {
+      console.error(`❌ User ${inviteeEmail} is already a Delegate for Holograph ${holographId}`);
+      return NextResponse.json({ error: "This user is already a Delegate for this Holograph." }, { status: 400 });
+    }
+
+    // ❌ Case 2: User is ALREADY a Principal and being invited AGAIN as a Principal
+    if (existingPrincipal && role === "Principal") {
+      console.error(`❌ User ${inviteeEmail} is already a Principal for Holograph ${holographId}`);
+      return NextResponse.json({ error: "This user is already a Principal for this Holograph." }, { status: 400 });
+    }
+
+    // ❌ Case 3: User is ALREADY a Delegate and is being invited as a Principal
+    if (existingDelegate && role === "Principal") {
+      console.error(`❌ User ${inviteeEmail} is already a Delegate and cannot be assigned as a Principal for Holograph ${holographId}`);
+      return NextResponse.json({ error: "This user is already a Delegate and cannot be assigned as a Principal." }, { status: 400 });
+    }
+
+    // ❌ Case 4: User is ALREADY a Principal and is being invited as a Delegate
+    if (existingPrincipal && role === "Delegate") {
+      console.error(`❌ User ${inviteeEmail} is already a Principal and cannot be assigned as a Delegate for Holograph ${holographId}`);
+      return NextResponse.json({ error: "This user is already a Principal and cannot be assigned as a Delegate." }, { status: 400 });
+    }
+
+    // ✅ Check if there is already a pending invitation for this user in this Holograph
+    const existingInvitation = await prisma.invitation.findFirst({
+      where: {
+        holographId,
+        inviteeEmail,
+        status: "Pending", // Only check if the invitation is still pending
+      },
+    });
+
+    // ❌ Case 5: there is already a pending invitation for this user in this Holograph
+    if (existingInvitation) {
+      console.error(`❌ User ${inviteeEmail} already has a pending invitation for Holograph ${holographId}`);
+      return NextResponse.json({ error: "This user already has a pending invitation for this Holograph." }, { status: 400 });
+    }
+
+
+    
     console.log("✅ Final Data Before Prisma Query:", {
       holographId,
       inviterId,

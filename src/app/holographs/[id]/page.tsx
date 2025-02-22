@@ -61,6 +61,7 @@ const HolographDetailPage = () => {
   }, [params, router]);
   
   
+  console.log("Holograph Data 2:", holograph);
 
   if (isLoading) return <p>Loading...</p>;
   if (!isAuthorized) return <p className="text-red-500">{error}</p>;

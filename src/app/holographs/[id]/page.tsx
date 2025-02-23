@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import InviteUserModal from '../../components/holograph/InviteUserModal';
+import Link from 'next/link';
 
 interface Holograph {
   id: string;
@@ -12,7 +13,7 @@ interface Holograph {
   updatedAt: string;
 }
 
-const HolographDetailPage = () => {
+  const HolographDetailPage = () => {
   const params = useParams();
   const router = useRouter();
   const [holograph, setHolograph] = useState<Holograph | null>(null);
@@ -60,8 +61,6 @@ const HolographDetailPage = () => {
     }
   }, [params, router]);
   
-  
-  console.log("Holograph Data 2:", holograph);
 
   if (isLoading) return <p>Loading...</p>;
   if (!isAuthorized) return <p className="text-red-500">{error}</p>;
@@ -102,7 +101,17 @@ const HolographDetailPage = () => {
           onClose={() => setShowInviteModal(false)}
         />
       )}
+      {/* ✅ New "Vital Documents" Section */}
+      <div className="mt-6 border-t pt-4">
+        <Link href={`/holographs/${holograph.id}/vital-documents`}>
+          <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
+            Vital Documents
+          </h2>
+        </Link>
+        <p className="text-gray-600">Manage all essential documents like wills, trusts, and health directives.</p>
+      </div>
     </div>
+    
   );
 };
 

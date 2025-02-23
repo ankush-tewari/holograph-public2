@@ -55,14 +55,17 @@ model HolographDelegate {
 model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
-  name        String // Name of the document
-  type        String // Will, Trust, Advanced Health Directive, or Other
+  name        String    // Name of the document
+  type        String    // Will, Trust, Advanced Health Directive, or Other
+  filePath    String    // Path or URL to the uploaded file
+  uploadedBy  String    // User ID of the uploader
+  notes       String?   @db.Text // ✅ Add this as a new column with long text support
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  holograph   Holograph @relation(fields: [holographId], references: [id])
 
-  @@index([holographId])
+  holograph   Holograph @relation(fields: [holographId], references: [id])
 }
+
 
 model Invitation {
   id           String   @id @default(uuid()) // Unique ID for the invitation

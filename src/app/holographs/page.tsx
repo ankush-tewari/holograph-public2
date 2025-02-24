@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import CreateHolograph from '../components/holograph/CreateHolograph';
-import ManageHolographAccess from '../components/holograph/ManageHolographAccess';
+import CreateHolograph from '../_components/holograph/CreateHolograph';
+import ManageHolographAccess from '../_components/holograph/ManageHolographAccess';
 
 interface User {
   id: string;

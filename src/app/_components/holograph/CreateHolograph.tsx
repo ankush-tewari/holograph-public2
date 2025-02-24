@@ -1,4 +1,7 @@
-// CreateHolograph.tsx
+// /src/app/_components/holograph/CreateHolograph.tsx
+
+"use client";
+
 import React, { useState } from 'react';
 
 interface Holograph {

@@ -2,7 +2,7 @@
 import NextAuth from 'next-auth';
 
 // ✅ Try absolute import first (Preferred)
-// import { authOptions } from '@/lib/auth';
+ //import { authOptions } from '@/lib/auth';
 
 // ✅ If absolute import fails, uncomment and use relative import:
 import { authOptions } from '../../../../lib/auth';

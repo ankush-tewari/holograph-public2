@@ -3,8 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import InviteUserModal from '../../components/holograph/InviteUserModal';
+import InviteUserModal from '../../_components/holograph/InviteUserModal';
 import Link from 'next/link';
+import type { Session } from "next-auth"; // ✅ Correct import // debug session
 
 interface Holograph {
   id: string;
@@ -22,6 +23,8 @@ interface Holograph {
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
+  
+  const [session, setSession] = useState<Session | null>(null); // ✅ Define state with correct type // debugging session
 
   useEffect(() => {
     const fetchHolograph = async () => {
@@ -109,6 +112,8 @@ interface Holograph {
           </h2>
         </Link>
         <p className="text-gray-600">Manage all essential documents like wills, trusts, and health directives.</p>
+        {/* ✅ Debug: Show session details on the page */}
+        <pre className="bg-gray-100 p-2">Session={JSON.stringify(session, null, 2)}</pre>
       </div>
     </div>
     

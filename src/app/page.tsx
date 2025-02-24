@@ -1,3 +1,5 @@
+"use client" //2-24 5:06 am delete maybe
+
 import Image from "next/image";
 
 export default function Home() {

@@ -1,27 +1,29 @@
+// /src/app/api/auth/user/route.ts
+
 import { NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
 import { prisma } from '@/lib/db'
 import { cookies } from 'next/headers'
+import jwt from "jsonwebtoken";
 
 export async function GET() {
   try {
     console.log("API Request: /api/auth/user");
 
-    // ✅ Await cookies() before accessing values
-    const cookieStore = cookies();
-    const token = await cookieStore.get('auth-token');
+    // ✅ Correct way to get cookies in Next.js App Router
+    const cookieStore = await cookies(); // ✅ Do NOT use `await`
+    const tokenCookie = cookieStore.get("auth-token"); // ✅ Correct usage
 
-    console.log("Token found:", token);
+    if (!tokenCookie) {
+      console.error("❌ No auth token found");
+      return NextResponse.json({ error: "No auth token found" }, { status: 401 });
+  }
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
+    console.log("Token found:", tokenCookie);
+
 
     // Verify the token
-    const decoded = verify(token.value, process.env.JWT_SECRET!) as {
+    const decoded = verify(tokenCookie.value, process.env.JWT_SECRET!) as {
       id: string;
       email: string;
     };

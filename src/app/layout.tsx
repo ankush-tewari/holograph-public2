@@ -1,7 +1,12 @@
+// /src/app/layout.tsx - layout page
+
+
 import { cookies } from 'next/headers'
 import { verify } from 'jsonwebtoken'
 import { prisma } from '@/lib/db'
-import Navbar from './components/layout/navbar.tsx'
+import Navbar from './_components/layout/navbar';
+import { SessionProvider } from "next-auth/react";
+
 
 async function getUser() {
   const cookieStore = await cookies()

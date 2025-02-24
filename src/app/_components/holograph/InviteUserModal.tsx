@@ -1,4 +1,4 @@
-// /src/components/holograph/InviteUserModal.tsx
+// /src/app/components/holograph/InviteUserModal.tsx
 'use client';
 
 import { useState } from 'react';

@@ -7,6 +7,13 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name?: string;
+      accessToken?: string; // ✅ Make accessToken optional
     }
+  }
+  interface User {
+    id: string;
+    email: string;
+    name?: string;
+    accessToken?: string; // ✅ Make accessToken optional
   }
 }

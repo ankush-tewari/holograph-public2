@@ -1,4 +1,5 @@
-// src/app/components/HolographDashboard.tsx
+// src/app/_components/HolographDashboard.tsx - this is the main user dashboard
+
 "use client"; // ✅ Ensures `useRouter` works in Next.js App Router
 
 import React, { useState, useEffect } from 'react';
@@ -8,6 +9,12 @@ import CreateHolograph from './holograph/CreateHolograph'; //testing auto change
 import { useRouter } from 'next/navigation'; // Import Next.js router
 
 // Define types for our data
+interface User {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
 interface Holograph {
   id: string;
   title: string;
@@ -16,7 +23,7 @@ interface Holograph {
 }
 
 interface DashboardProps {
-  userId: string;
+  userId?: string; // ✅ Optional, since we'll fetch it manually
 }
 
 interface Invitation {
@@ -31,6 +38,7 @@ interface Invitation {
 
 const HolographDashboard = ({ userId }: DashboardProps) => {
   const router = useRouter(); // Initialize router
+  const [user, setUser] = useState<User | null>(null); // ✅ Define `user` state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('owned');
   const [holographs, setHolographs] = useState<{
@@ -46,215 +54,74 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
 
-
-  const handleAcceptInvite = async (inviteId: string, holographId: string) => {
-    try {
-      const response = await fetch(`/api/invitations/${inviteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Accepted', holographId, userId }),
-      });
-  
-      if (response.ok) {
-        setInvitations(invitations.filter(invite => invite.id !== inviteId));
-      } else {
-        console.error('Failed to accept invitation');
-      }
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-    }
-  };
-  
-  const handleDeclineInvite = async (inviteId: string) => {
-    try {
-      const response = await fetch(`/api/invitations/${inviteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Declined' }),
-      });
-  
-      if (response.ok) {
-        setInvitations(invitations.filter(invite => invite.id !== inviteId));
-      } else {
-        console.error('Failed to decline invitation');
-      }
-    } catch (error) {
-      console.error('Error declining invitation:', error);
-    }
-  };
-
-  // Fetch holographs when component mounts
+  // ✅ Fetch user data (Runs once when component mounts)
   useEffect(() => {
+    async function loadUserData() {
+      try {
+        const res = await fetch("/api/auth/user", { credentials: "include" });
+        if (!res.ok) throw new Error("Not authenticated");
+
+        const data = await res.json();
+        setUser(data.user);
+      } catch (error) {
+        console.error("❌ Failed to fetch user session:", error);
+        router.push("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (!userId) {
+      loadUserData();
+    }
+  }, [userId, router]); // ✅ Properly closes `useEffect`
+
+  // ✅ Fetch Holographs & Invitations AFTER userId is set
+  useEffect(() => {
+    if (!userId) return; // ✅ Prevent running if userId is not ready
+
     const fetchHolographs = async () => {
       try {
         setIsLoading(true);
-    
-        // Fetch owned holographs
         const ownedResponse = await fetch(`/api/holograph/principals?userId=${userId}`);
-        let ownedData = [];
-        if (ownedResponse.ok) {
-          try {
-            ownedData = await ownedResponse.json();
-            console.log("Owned Holographs Response:", ownedData);
-          } catch (jsonError) {
-            console.error('Error parsing owned holographs:', jsonError);
-          }
-        } else {
-          console.error("Failed to fetch owned holographs:", ownedResponse.status);
-        }
-    
-        // Fetch delegated holographs
+        let ownedData = ownedResponse.ok ? await ownedResponse.json() : [];
         const delegatedResponse = await fetch(`/api/holograph/delegates?userId=${userId}`);
-        let delegatedData = [];
-        if (delegatedResponse.ok) {
-          try {
-            delegatedData = await delegatedResponse.json();
-            console.log("Delegated Holographs Response:", delegatedData);
-          } catch (jsonError) {
-            console.error('Error parsing delegated holographs:', jsonError);
-          }
-        } else {
-          console.error("Failed to fetch delegated holographs:", delegatedResponse.status);
-        }
-        
-        console.log("📋 Owned Data Before State Update:", ownedData);
-        console.log("📋 Delegated Data Before State Update:", delegatedData);
+        let delegatedData = delegatedResponse.ok ? await delegatedResponse.json() : [];
 
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
             ...holo,
-            owner: !holo.owner
-              ? { id: "unknown", name: "Unknown User 1" } // ✅ Only fallback if owner is missing
-              : typeof holo.owner === "string"
-              ? { id: holo.owner, name: "Unknown User 2" }
-              : { id: holo.owner.id, name: holo.owner.name !== null ? holo.owner.name : "Unknown User 3" } // ✅ Preserve name if it exists
+            owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
-            owner: !holo.owner
-              ? { id: "unknown", name: "Unknown User 4" }
-              : typeof holo.owner === "string"
-              ? { id: holo.owner, name: "Unknown User 5" }
-              : { id: holo.owner.id, name: holo.owner.name !== null ? holo.owner.name : "Unknown User 6" } // ✅ Preserve name if it exists
-          }))
-        });        
-        
-        
+            owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
+          })),
+        });
       } catch (err) {
-        setError('Failed to load holographs. Please try again later.');
-        console.error('Error fetching holographs:', err);
+        setError("Failed to load holographs. Please try again later.");
+        console.error("Error fetching holographs:", err);
       } finally {
         setIsLoading(false);
       }
-    };        
+    };
 
     const fetchInvitations = async () => {
-      console.log("🔍 Fetching invitations for logged-in userId:", userId); // Debugging log
-    
-      if (!userId) {
-        console.error("❌ Error: userId is undefined");
-        return;
-      }
-    
+      console.log("🔍 Fetching invitations for user:", userId);
       try {
         const response = await fetch(`/api/invitations/user/${userId}`);
         if (!response.ok) throw new Error("Failed to fetch invitations");
-    
+
         let invitationsData = await response.json();
-        console.log("📩 Invitations Data:", invitationsData); // Debugging log
-    
-        // Fetch Holograph names and inviter names
-        const enrichedInvitations = await Promise.all(
-          invitationsData.map(async (invite: Invitation) => {
-            let holographTitle = "Unknown Holograph";
-            let inviterName = "Unknown User";
-    
-            try {
-              // ✅ Fetch Holograph details
-              console.log(`🔍 Fetching Holograph Title for ID: ${invite.holographId}`);
-              const holographResponse = await fetch(`/api/holograph/${invite.holographId}?userId=${userId}`);
-              if (holographResponse.ok) {
-                const holographData = await holographResponse.json();
-                holographTitle = holographData.title || "Unnamed Holograph";
-                console.log(`✅ Holograph Title Fetched: ${holographTitle}`);
-              } else {
-                console.error(`❌ Failed to fetch Holograph ${invite.holographId}:`, await holographResponse.text());
-              }
-            } catch (err) {
-              console.error(`❌ Error fetching Holograph ${invite.holographId}:`, err);
-            }
-    
-            try {
-              // ✅ Fetch Inviter details
-              console.log(`🔍 Fetching Inviter Name for ID: ${invite.inviterId}`);
-              if (invite.inviterId) {
-                const inviterResponse = await fetch(`/api/users/${invite.inviterId}`);
-                if (inviterResponse.ok) {
-                  const inviterData = await inviterResponse.json();
-                  inviterName = inviterData.name || "Unnamed User";
-                  console.log(`✅ Inviter Name Fetched: ${inviterName}`);
-                } else {
-                  console.error(`❌ Failed to fetch Inviter ${invite.inviterId}:`, await inviterResponse.text());
-                }
-              }
-            } catch (err) {
-              console.error(`❌ Error fetching inviter ${invite.inviterId}:`, err);
-            }
-    
-            return {
-              ...invite,
-              holographTitle,
-              inviterName,
-            };
-          })
-        );
-    
-        setInvitations(enrichedInvitations);
+        setInvitations(invitationsData);
       } catch (error) {
         console.error("❌ Error fetching invitations:", error);
       }
-    };    
+    };
 
-    const handleAcceptInvite = async (inviteId: string, holographId: string) => {
-      try {
-        const response = await fetch(`/api/invitations/${inviteId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Accepted', holographId, userId }),
-        });
-    
-        if (response.ok) {
-          setInvitations((prevInvites) => prevInvites.filter(invite => invite.id !== inviteId));
-        } else {
-          console.error('Failed to accept invitation');
-        }
-      } catch (error) {
-        console.error('Error accepting invitation:', error);
-      }
-    };
-    
-    const handleDeclineInvite = async (inviteId: string) => {
-      try {
-        const response = await fetch(`/api/invitations/${inviteId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Declined' }),
-        });
-    
-        if (response.ok) {
-          setInvitations((prevInvites) => prevInvites.filter(invite => invite.id !== inviteId));
-        } else {
-          console.error('Failed to decline invitation');
-        }
-      } catch (error) {
-        console.error('Error declining invitation:', error);
-      }
-    };
-    
     fetchHolographs();
     fetchInvitations();
-
-  }, [userId]);
+  }, [userId]); // ✅ This now correctly belongs to its own `useEffect`
 
   const handleCreateSuccess = async (newHolograph: Holograph): Promise<void> => {
     console.log("🔍 handleCreateSuccess is being executed...");
@@ -301,6 +168,11 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
               <Plus size={20} />
               Create New
             </button>
+
+           {/* Remove or update session debug info if not using session */}
+           {/*} <pre className="bg-gray-100 p-2">User ID: {user?.id}</pre> */}
+
+
           </div>
 
           <div className="w-full">
@@ -346,6 +218,11 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
               <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
             </div>
           ))}
+
+          {/* ✅ Debug: Show session details on the page */}
+        {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre> */}
+        {/* Remove or update session debug info if not using session */}
+        <pre className="bg-gray-100 p-2">User ID: src/app/_components/HolographDashboard.tsx {userId}</pre>
         </div>
       )}
 

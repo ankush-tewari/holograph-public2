@@ -1,11 +1,10 @@
-// /src/app/holographs/[id]/page.tsx - Holograph Detail Page
+// /src/app/holographs/[id]/page.tsx - Holograph Dashboard/Landing Page.  this shows all the components of the dashboard.
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import InviteUserModal from '../../_components/holograph/InviteUserModal';
 import Link from 'next/link';
-import type { Session } from "next-auth"; // ✅ Correct import // debug session
 
 interface Holograph {
   id: string;
@@ -14,7 +13,7 @@ interface Holograph {
   updatedAt: string;
 }
 
-  const HolographDetailPage = () => {
+const HolographDetailPage = () => {
   const params = useParams();
   const router = useRouter();
   const [holograph, setHolograph] = useState<Holograph | null>(null);
@@ -23,47 +22,60 @@ interface Holograph {
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
-  
-  const [session, setSession] = useState<Session | null>(null); // ✅ Define state with correct type // debugging session
+  const [userId, setUserId] = useState<string | null>(null); // ✅ Store userId
+
+  useEffect(() => {
+    const fetchUserSession = async () => {
+      try {
+        console.log("🚀 Fetching user session in Holograph Landing Page...");
+        const authResponse = await fetch(`/api/auth/user`);
+        if (!authResponse.ok) throw new Error("Not authenticated");
+
+        const authData = await authResponse.json();
+        console.log("🔍 Auth Data:", authData);
+
+        if (!authData.user || !authData.user.id) {
+          throw new Error("User ID missing");
+        }
+
+        setUserId(authData.user.id);
+        console.log("✅ Retrieved User ID:", authData.user.id);
+      } catch (error) {
+        console.error("❌ Error fetching user session:", error);
+        setError("Authentication error. Please log in again.");
+        router.push("/login");
+      }
+    };
+
+    fetchUserSession();
+  }, [router]);
 
   useEffect(() => {
     const fetchHolograph = async () => {
       try {
-        // Fetch the logged-in user
-        const authResponse = await fetch(`/api/auth/user`);
-        const authData = await authResponse.json();
-  
-        if (!authResponse.ok || !authData.user || !authData.user.id) {
-          console.error('Error: Failed to retrieve user ID', authData);
-          setError('Authentication error. Please log in again.');
-          return;
-        }
-  
-        const userId = authData.user.id; // ✅ Correctly extract user ID
-  
-        // Fetch the Holograph details
+        if (!params.id || !userId) return;
+
+        console.log(`🚀 Fetching Holograph Details for ID: ${params.id} and User ID: ${userId}`);
         const response = await fetch(`/api/holograph/${params.id}?userId=${userId}`);
-        if (!response.ok) {
-          throw new Error('Unauthorized or Holograph not found');
-        }
-  
+
+        if (!response.ok) throw new Error("Unauthorized or Holograph not found");
+
         const data = await response.json();
+        console.log("✅ Holograph Data:", data);
+
         setHolograph(data);
         setIsAuthorized(true);
       } catch (err) {
-        console.error('Error fetching Holograph:', err);
-        setError('You are not authorized to view this Holograph');
-        setTimeout(() => router.push('/holographs'), 3000);
+        console.error("❌ Error fetching Holograph:", err);
+        setError("You are not authorized to view this Holograph");
+        setTimeout(() => router.push("/holographs"), 3000);
       } finally {
         setIsLoading(false);
       }
     };
-  
-    if (params.id) {
-      fetchHolograph();
-    }
-  }, [params, router]);
-  
+
+    if (userId) fetchHolograph();
+  }, [params.id, userId]);
 
   if (isLoading) return <p>Loading...</p>;
   if (!isAuthorized) return <p className="text-red-500">{error}</p>;
@@ -89,14 +101,14 @@ interface Holograph {
           Add Delegate
         </button>
       </div>
-      
+
       <button
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         onClick={() => router.push('/dashboard')}
       >
         Back to Dashboard
       </button>
-      
+
       {showInviteModal && inviteRole && (
         <InviteUserModal
           holographId={holograph.id}
@@ -104,19 +116,21 @@ interface Holograph {
           onClose={() => setShowInviteModal(false)}
         />
       )}
-      {/* ✅ New "Vital Documents" Section */}
+
+      {/* ✅ Pass userId in the URL only if it's available */}
       <div className="mt-6 border-t pt-4">
-        <Link href={`/holographs/${holograph.id}/vital-documents`}>
-          <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
-            Vital Documents
-          </h2>
-        </Link>
+        {userId ? (
+          <Link href={`/holographs/${holograph.id}/vital-documents?userId=${encodeURIComponent(userId)}`}>
+            <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
+              Vital Documents
+            </h2>
+          </Link>
+        ) : (
+          <p className="text-red-500">Loading user info...</p>
+        )}
         <p className="text-gray-600">Manage all essential documents like wills, trusts, and health directives.</p>
-        {/* ✅ Debug: Show session details on the page */}
-        <pre className="bg-gray-100 p-2">Session={JSON.stringify(session, null, 2)}</pre>
       </div>
     </div>
-    
   );
 };
 

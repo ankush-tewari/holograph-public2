@@ -1,3 +1,4 @@
+// /src/app/api/debug-session/route.ts
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
@@ -10,7 +11,7 @@ export async function GET() {
         console.log("🔍 Debug: `getServerSession()` returned:", session);
 
         // ✅ Check if NextAuth is reading the token
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const tokenCookie = cookieStore.get("auth-token"); // ✅ Try getting token manually
 
         if (!tokenCookie) {

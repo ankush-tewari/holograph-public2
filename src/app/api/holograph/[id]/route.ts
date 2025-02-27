@@ -3,12 +3,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: { id: string } }) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    console.log(`🔍 Fetching Holograph ${params.id} for user ${userId}`);
+    // ✅ Await params before using it
+    const { id: holographId } = await context.params; 
+
+    console.log(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
 
     if (!userId) {
       console.error("❌ User ID is missing in the request");
@@ -17,7 +20,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     // ✅ Fetch Holograph with Principals & Delegates
     const holograph = await prisma.holograph.findUnique({
-      where: { id: params.id },
+      where: { id: holographId },
       select: {
         id: true,
         title: true,
@@ -29,7 +32,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
 
     if (!holograph) {
-      console.error(`❌ Holograph ${params.id} not found`);
+      console.error(`❌ Holograph ${holographId} not found`);
       return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
     }
 
@@ -52,7 +55,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       holograph.delegates.some(d => d.userId === userId);
 
     if (isAuthorized) {
-      console.log(`✅ User ${userId} is authorized to view full Holograph ${params.id}`);
+      console.log(`✅ User ${userId} is authorized to view full Holograph ${holographId}`);
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title,
@@ -68,18 +71,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    console.log(`🔍 Checking invitation for ${user.email} to Holograph ${params.id}`);
+    console.log(`🔍 Checking invitation for ${user.email} to Holograph ${holographId}`);
 
     const invitation = await prisma.invitation.findFirst({
       where: {
-        holographId: params.id,
+        holographId: holographId,
         inviteeEmail: user.email,
         status: "Pending",
       },
     });
 
     if (invitation) {
-      console.log(`🔹 User ${userId} has an invitation to Holograph ${params.id}. Returning limited data.`);
+      console.log(`🔹 User ${userId} has an invitation to Holograph ${holographId}. Returning limited data.`);
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title, // Only return the title if invited

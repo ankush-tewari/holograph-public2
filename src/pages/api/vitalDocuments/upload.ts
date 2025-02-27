@@ -1,4 +1,4 @@
-// /src/pages/api/vitalDocuments/upload.ts 
+// /src/pages/api/vital-documents/upload.ts 
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingForm } from 'formidable';
@@ -67,8 +67,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       console.log("🔄 Uploading file to Google Cloud Storage...");
 
-      const gcsFileName = `uploads/${Date.now()}-${file.originalFilename}`;
-      const fileUrl = await uploadFileToGCS(file, gcsFileName);
+      const section = searchParams.get("section") || "vital-documents"; // Default to 'vital-documents' if not provided
+      const gcsFileName = `${holographId}/${section}/${Date.now()}-${file.originalFilename}`;
+      const fileUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
 
       console.log("✅ File uploaded successfully:", gcsFileName);
 

@@ -62,9 +62,11 @@ model VitalDocument {
   notes       String?   @db.Text // ✅ Add this as a new column with long text support
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  @@unique([holographId, filePath])  // Enforce uniqueness within each Holograph
 }
+
 
 
 model Invitation {

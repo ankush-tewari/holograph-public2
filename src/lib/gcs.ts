@@ -1,5 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
+import { Readable } from 'stream';
+
 
 // ✅ Ensure environment variables are correctly set
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -74,16 +76,31 @@ export async function uploadFileToGCS(file: any, gcsFileName: string): Promise<s
       console.error('❌ No file provided for upload.');
       return reject('No file provided');
     }
-
+    
+    console.log("Received file:", file);
     console.log('🟢 Starting file upload:', gcsFileName);
     const fileUpload = bucket.file(gcsFileName);
 
-    fs.createReadStream(file.filepath)
+    let readStream;
+
+    // If the file has a stream method, it's a Web File (from a browser FormData)
+    if (typeof file.stream === 'function') {
+      // Convert the Web ReadableStream to a Node.js Readable stream
+      readStream = Readable.fromWeb(file.stream());
+    } else if (file.filepath) {
+      // Fallback for a server-side file with a filepath property
+      readStream = fs.createReadStream(file.filepath);
+    } else {
+      console.error("❌ File does not have a readable stream or filepath");
+      return reject("File does not have a readable stream or filepath");
+    }
+
+    readStream
       .pipe(
         fileUpload.createWriteStream({
           resumable: false,
           public: false,
-          metadata: { contentType: file.mimetype },
+          metadata: { contentType: file.type },
         })
       )
       .on('error', (err) => {
@@ -92,7 +109,9 @@ export async function uploadFileToGCS(file: any, gcsFileName: string): Promise<s
       })
       .on('finish', async () => {
         console.log('✅ File successfully uploaded to GCS:', gcsFileName);
-        resolve(gcsFileName); // ✅ Return only the object name
+        // Construct the full public URL for the uploaded file.
+        const publicUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
+        resolve(publicUrl);
       });
   });
 }

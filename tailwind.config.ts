@@ -1,3 +1,5 @@
+// tailwindconfig.js
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -13,6 +15,9 @@ export default {
         foreground: "var(--foreground)",
       },
     },
+  },
+  corePlugins: {
+    preflight: false, // Add this section to disable the CSS reset
   },
   plugins: [],
 } satisfies Config;

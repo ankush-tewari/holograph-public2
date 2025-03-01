@@ -1,6 +1,6 @@
 // /src/app/layout.tsx - layout page
 
-
+import './globals.css' // Add this import at the top
 import { cookies } from 'next/headers'
 import { verify } from 'jsonwebtoken'
 import { prisma } from '@/lib/db'

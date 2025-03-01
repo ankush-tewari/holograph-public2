@@ -1,0 +1,47 @@
+holograph
+├─ src
+│  ├─ app
+│  │  ├─ api
+│  │  │  ├─ auth
+│  │  │  │  ├─ login (route.ts)
+│  │  │  │  ├─ logout (route.ts)
+│  │  │  │  ├─ register (route.ts)
+│  │  │  ├─ holograph
+│  │  │  │  ├─ [id] (route.ts)
+│  │  │  │  ├─ create (route.ts)
+│  │  │  │  ├─ principals (route.ts)
+│  │  │  │  ├─ delegates (route.ts)
+│  │  │  ├─ invitations
+│  │  │  │  ├─ [id] (route.ts)
+│  │  │  │  ├─ user/[userId] (route.ts)
+│  │  │  ├─ vital-documents
+│  │  │  │  ├─ [id] (route.ts)
+│  │  │  │  ├─ download.ts
+│  │  │  │  ├─ route.ts (handles document CRUD)
+│  │  ├─ components
+│  │  │  ├─ HolographDashboard.tsx
+│  │  │  ├─ holograph
+│  │  │  │  ├─ CreateHolograph.tsx
+│  │  │  │  ├─ ManageHolographAccess.tsx
+│  │  │  ├─ layout
+│  │  │  │  └─ navbar.tsx
+│  │  │  ├─ vital-documents
+│  │  │  │  └─ VitalDocumentModal.tsx
+│  │  ├─ dashboard
+│  │  │  ├─ page.tsx
+│  │  ├─ holographs
+│  │  │  ├─ [id] (page.tsx)
+│  │  │  ├─ [id]/vital-documents (page.tsx)
+│  ├─ lib
+│  │  ├─ db.ts (Prisma DB connection)
+│  │  ├─ gcs.ts (Google Cloud Storage integration)
+│  ├─ prisma
+│  │  ├─ schema.prisma (Database schema)
+│  ├─ public
+│  ├─ styles
+│  ├─ utils
+│  ├─ pages
+│  ├─ tsconfig.json
+│  ├─ tailwind.config.ts
+│  ├─ next.config.ts
+└── package.json

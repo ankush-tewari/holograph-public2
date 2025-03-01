@@ -101,6 +101,7 @@ export default function VitalDocumentsPage() {
   }, [documents]);
 
   const openModal = (document: Document | null) => {
+    console.log("🟢 openModal triggered! Document:", document); // ✅ Debug log
     if (document) {
       setSelectedDocument({ 
         ...document, 
@@ -111,6 +112,7 @@ export default function VitalDocumentsPage() {
       setSelectedDocument(null);
     }
     setIsModalOpen(true);
+    console.log("🟢 isModalOpen set to TRUE"); // ✅ Debug log
   };
   
 
@@ -130,18 +132,42 @@ export default function VitalDocumentsPage() {
     }
   };
 
+  // Function to refresh documents so users can see what was just changed (added, edited, etc)
+const refreshDocuments = async () => {
+  try {
+    setIsLoading(true);
+    console.log(`🔄 Refreshing Vital Documents for Holograph ${holographId}`);
+    
+    const response = await axios.get(`/api/vital-documents?holographId=${holographId}`, {
+      withCredentials: true,
+    });
+
+    if (response.data.length > 0) {
+      console.log("✅ Retrieved Documents:", response.data);
+      setDocuments(response.data);
+    } else {
+      console.warn("⚠️ No documents found.");
+    }
+  } catch (error) {
+    console.error("❌ Error loading documents:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold">Vital Documents</h1>
       <p className="text-gray-600">Manage your important documents securely.</p>
 
-      <button onClick={() => setIsModalOpen(true)}>Upload Document</button>
+      <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => openModal(null)}>Add new Vital Document</button>
       {isModalOpen && (
         <VitalDocumentModal 
-          userId={userId || "UNKNOWN_USER"} // ✅ Ensure `userId` is passed
+          userId={userId || "UNKNOWN_USER"}
           document={selectedDocument}
           holographId={holographId} 
           onClose={closeModal}
+          onSuccess={refreshDocuments} // Add this line
         />
       )}
 

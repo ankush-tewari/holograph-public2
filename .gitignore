@@ -24,7 +24,7 @@
 .DS_Store
 *.pem
 tmp/ 
-For AI/
+'For AI'/
 
 # debug
 npm-debug.log*

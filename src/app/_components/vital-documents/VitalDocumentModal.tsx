@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { createPortal } from "react-dom";
 import React from "react"; // ✅ Ensure React is imported
+import { DOCUMENT_TYPES } from "../../../config/documentType";
+
 
 interface VitalDocument {
   id: string;
@@ -29,6 +31,8 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
 
   const [mounted, setMounted] = useState(false); 
   // Only run on client-side after component mounts
+
+  const sectionKey = "vitalDocuments"; //for the contents of the Vital Document Type drop-down list
   
   useEffect(() => {
     console.log("🔍 Modal component mounted, isModalOpen:", true);
@@ -108,7 +112,7 @@ const modalContent = (
   <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
 
     <h2 className="text-xl font-semibold">
-      {document ? "Edit Document" : "Upload New Document"}
+      {docData ? "Edit Document" : "Add Document"}
     </h2>
     <input
       type="text"
@@ -116,12 +120,15 @@ const modalContent = (
       value={formData.name}
       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
     />
-    <input
-      type="text"
-      placeholder="Type"
+    <select
       value={formData.type}
       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-    />
+      className="mt-2 mb-4 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+    >
+      {DOCUMENT_TYPES[sectionKey].map((option) => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
+    </select>
     <textarea
       placeholder="Notes"
       value={formData.notes || ""}

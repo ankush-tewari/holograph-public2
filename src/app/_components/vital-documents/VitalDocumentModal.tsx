@@ -2,8 +2,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { createPortal } from "react-dom";
+import React from "react"; // ✅ Ensure React is imported
 
 interface VitalDocument {
   id: string;
@@ -18,15 +20,31 @@ interface VitalDocumentModalProps {
   document?: VitalDocument | null;
   holographId: string;
   onClose: () => void;
+  onSuccess: () => void;  // adding to make sure page refreshes when changes to vital document are made
 }
 
-export default function VitalDocumentModal({ userId, document, holographId, onClose }: VitalDocumentModalProps) {
+export default function VitalDocumentModal({ userId, document: docData, holographId, onClose, onSuccess }: 
+  VitalDocumentModalProps) { // adding onClose and onSuccess handlers  
+  console.log("🟢 VitalDocumentModal is rendering!"); // ✅ Debug log added
+
+  const [mounted, setMounted] = useState(false); 
+  // Only run on client-side after component mounts
+  
+  useEffect(() => {
+    console.log("🔍 Modal component mounted, isModalOpen:", true);
+    setMounted(true);
+    return () => {
+      console.log("🔍 Modal component unmounting");
+      setMounted(false);
+    };
+  }, []);
+  
   const [formData, setFormData] = useState({
-    name: document?.name || "",
-    type: document?.type || "",
-    notes: document?.notes || "",
+    name: docData?.name || "",
+    type: docData?.type || "",
+    notes: docData?.notes || "",
     file: null as File | null,
-    filePath: document?.filePath || "",  // ✅ Ensure existing file path is included
+    filePath: docData?.filePath || "",  // ✅ Ensure existing file path is included
   });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +57,7 @@ export default function VitalDocumentModal({ userId, document, holographId, onCl
   };
 
   const handleSubmit = async () => {
-    if (!formData.file && !formData.existingFilePath) { // ✅ Ensure either a new file or existing file is provided
+    if (!formData.file && !formData.filePath) { // ✅ Ensure either a new file or existing file is provided
       console.error("❌ No file selected or existing file path missing");
       return;
     }
@@ -52,10 +70,12 @@ export default function VitalDocumentModal({ userId, document, holographId, onCl
   
     // ✅ If a new file is selected, send it
     if (formData.file) {
-      formDataToSend.append("file", formData.file);
-    } else {
+      // We know formData.file is not null at this point, so it's safe to use
+      const fileToUpload: File = formData.file;
+      formDataToSend.append("file", fileToUpload);
+    } else if (formData.filePath) {
       // ✅ Otherwise, send the existing file path
-      formDataToSend.append("existingFilePath", formData.existingFilePath);
+      formDataToSend.append("existingFilePath", formData.filePath);
     }
   
     if (userId) {
@@ -71,54 +91,71 @@ export default function VitalDocumentModal({ userId, document, holographId, onCl
       await axios.post(`/api/vital-documents`, formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      if (onSuccess) {  // Add this check
+        onSuccess();
+      }
       onClose();
     } catch (error) {
       console.error("❌ Error uploading document:", error);
     }
   };
   
+
+// Create modal content
+// Create modal content with explicit styling
+const modalContent = (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+  <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+
+    <h2 className="text-xl font-semibold">
+      {document ? "Edit Document" : "Upload New Document"}
+    </h2>
+    <input
+      type="text"
+      placeholder="Name"
+      value={formData.name}
+      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+    />
+    <input
+      type="text"
+      placeholder="Type"
+      value={formData.type}
+      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+    />
+    <textarea
+      placeholder="Notes"
+      value={formData.notes || ""}
+      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+    />
+    <input 
+      type="file" 
+      onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+    />
+    {!formData.file && formData.filePath && (
+      <p className="text-gray-600">Existing file: {formData.filePath.split('/').pop()}</p>
+    )}
+    <button
+      onClick={handleSubmit}
+      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+    >
+      {document ? "Update" : "Upload"}
+    </button>
+    <button onClick={onClose} className="ml-2 px-4 py-2 bg-gray-500 text-white rounded">
+      Cancel
+    </button>
+  </div>
+</div>
+);
   
+  // Only render on client-side with portal
+  if (!mounted) {
+    return null;
+  }
   
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded shadow-lg">
-        <h2 className="text-xl font-semibold">
-          {document ? "Edit Document" : "Upload New Document"}
-        </h2>
-        <input
-          type="text"
-          placeholder="Name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Type"
-          value={formData.type}
-          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-        />
-        <textarea
-          placeholder="Notes"
-          value={formData.notes || ""}
-          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-        />
-        <input 
-          type="file" 
-          onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
-        />
-        {!formData.file && formData.filePath && (
-          <p className="text-gray-600">Existing file: {formData.filePath.split('/').pop()}</p>
-        )}
-        <button
-          onClick={handleSubmit}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          {document ? "Update" : "Upload"}
-        </button>
-        <button onClick={onClose} className="ml-2 px-4 py-2 bg-gray-500 text-white rounded">
-          Cancel
-        </button>
-      </div>
-    </div>
+  // Use createPortal to render the modal outside of its parent DOM hierarchy
+  console.log("Creating portal for modal", { mounted, modalContent });
+  return createPortal(
+    modalContent,
+    document.body
   );
 }

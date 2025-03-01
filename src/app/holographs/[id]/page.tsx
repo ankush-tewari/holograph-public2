@@ -47,7 +47,7 @@ const HolographDetailPage = () => {
       }
     };
 
-    fetchUserSession();
+    fetchUserSession(); 
   }, [router]);
 
   useEffect(() => {

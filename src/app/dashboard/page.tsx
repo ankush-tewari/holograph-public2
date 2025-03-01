@@ -55,8 +55,9 @@ export default function Dashboard() {
           <p className="text-gray-600">Email: {user?.email}</p>
         </div>
 
-        {/* Remove or update session debug info if not using session */}
+        {/* Remove or update session debug info if not using session 
         <pre className="bg-gray-100 p-2">User ID: /src/app/dashboard/page.tsx {user?.id}</pre>
+        */}
 
         {/* ✅ Debug: Show session details on the page */}
         {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre>*/}

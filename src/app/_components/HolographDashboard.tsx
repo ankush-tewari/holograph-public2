@@ -9,6 +9,7 @@ import CreateHolograph from './holograph/CreateHolograph';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useHolograph } from '../../hooks/useHolograph';
+import { format } from "date-fns";
 
 // Define types for our data
 interface User {
@@ -20,7 +21,7 @@ interface User {
 interface Holograph {
   id: string;
   title: string;
-  lastModified: string;
+  updatedAt: string;
   owner?: { id: string; name: string | null };
 }
 
@@ -93,13 +94,23 @@ const HolographDashboard = () => {
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
             ...holo,
+            lastModified: holo.updatedAt, // ✅ Ensure lastModified is assigned from updatedAt
             owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
+            lastModified: holo.updatedAt, // ✅ Ensure lastModified is assigned from updatedAt
             owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
           })),
         });
+
+        if (holographs.owned.length > 0 || holographs.delegated.length > 0) {
+          console.log("📡 Owned Holographs:", holographs.owned);
+          console.log("📡 Delegated Holographs:", holographs.delegated);
+      
+          holographs.owned.forEach(holo => console.log(`📅 Owned Holograph - ${holo.title}:`, holo.updatedAt));
+          holographs.delegated.forEach(holo => console.log(`📅 Delegated Holograph - ${holo.title}:`, holo.updatedAt));
+        }
       } catch (err) {
         console.error("❌ Error fetching holographs:", err);
         setError("Failed to load holographs. Please try again later.");
@@ -194,6 +205,9 @@ const HolographDashboard = () => {
     );
   }
 
+  
+
+
   return (
     <div className="p-4 max-w-6xl mx-auto">
       {showCreateForm ? (
@@ -274,7 +288,9 @@ const HolographDashboard = () => {
                         <h3 className="text-lg font-semibold text-blue-700">
                           📜 {holograph.title}
                         </h3>
-                        <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-600">
+                          Last modified: {holograph.updatedAt ? format(new Date(holograph.updatedAt), "MMM d, yyyy") : "Unknown"}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -293,7 +309,9 @@ const HolographDashboard = () => {
                           🤝 {holograph.title}
                         </h3>
                         <p className="text-sm text-gray-600">Shared by {holograph.owner?.name ?? "Unknown User"}</p>
-                        <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-600">
+                          Last modified: {holograph.updatedAt ? format(new Date(holograph.updatedAt), "MMM d, yyyy") : "Unknown"}
+                        </p>
                       </div>
                     ))}
                   </div>

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import InviteUserModal from '../../_components/holograph/InviteUserModal';
 import Link from 'next/link';
 import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
+import { debugLog } from "../../../utils/debug";
 
 interface Holograph {
   id: string;
@@ -29,7 +30,7 @@ const HolographDetailPage = () => {
   // Set the holograph ID in the session when this page loads or when it changes
   useEffect(() => {
     if (params.id && currentHolographId !== params.id) {
-      console.log(`🔄 Setting currentHolographId to ${params.id}`);
+      debugLog(`🔄 Setting currentHolographId to ${params.id}`);
       setCurrentHolographId(params.id as string);
     }
   }, [params.id, currentHolographId, setCurrentHolographId]);
@@ -46,14 +47,14 @@ const HolographDetailPage = () => {
       try {
         if (!params.id || !userId) return;
 
-        console.log(`🚀 Fetching Holograph Details for ID: ${params.id}`);
+        debugLog(`🚀 Fetching Holograph Details for ID: ${params.id}`);
         // Now using session-based authentication - no need to pass userId in URL
         const response = await fetch(`/api/holograph/${params.id}`);
 
         if (!response.ok) throw new Error("Unauthorized or Holograph not found");
 
         const data = await response.json();
-        console.log("✅ Holograph Data:", data);
+        debugLog("✅ Holograph Data:", data);
 
         setHolograph(data);
         setIsAuthorized(true);

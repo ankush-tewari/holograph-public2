@@ -1,6 +1,7 @@
 "use client" //2-24 5:06 am delete maybe
 
 import Image from "next/image";
+import { debugLog } from "../utils/debug";
 
 export default function Home() {
   return (

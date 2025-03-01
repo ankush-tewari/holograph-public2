@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
 import { prisma } from '@/lib/db'
+import { debugLog } from "../../../../utils/debug";
 
 export async function POST(req: Request) {
   try {

@@ -4,20 +4,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../../lib/auth';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../../../utils/debug";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
-    console.log("🔍 Fetching invitations for userId:", params.userId);
+    debugLog("🔍 Fetching invitations for userId:", params.userId);
 
     // Get authenticated user from session
     const session = await getServerSession(authOptions);
-    console.log("🔍 Session in API route:", session);
+    debugLog("🔍 Session in API route:", session);
     
     if (!session || !session.user || !session.user.id) {
-      console.log("❌ No authenticated user found in session");
+      debugLog("❌ No authenticated user found in session");
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -26,8 +27,8 @@ export async function GET(
     
     // Security check: Make sure the authenticated user is only accessing their own invitations
     if (authenticatedUserId !== requestedUserId) {
-      console.log("⚠️ Security warning: User attempted to access another user's invitations");
-      console.log("Authenticated user:", authenticatedUserId, "Requested user:", requestedUserId);
+      debugLog("⚠️ Security warning: User attempted to access another user's invitations");
+      debugLog("Authenticated user:", authenticatedUserId, "Requested user:", requestedUserId);
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
     }
 
@@ -75,7 +76,7 @@ export async function GET(
       inviterName: invitation.inviter.name,
     }));
 
-    console.log(`✅ Found ${invitations.length} invitations for user ${user.email}`);
+    debugLog(`✅ Found ${invitations.length} invitations for user ${user.email}`);
     
     return NextResponse.json(formattedInvitations);
   } catch (error) {

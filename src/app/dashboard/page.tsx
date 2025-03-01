@@ -6,6 +6,7 @@ import React from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import HolographDashboard from '../_components/HolographDashboard'
+import { debugLog } from "../../utils/debug";
 
 interface User {
   id: string

@@ -4,6 +4,7 @@ import './globals.css'
 import Navbar from './_components/layout/navbar';
 import { Providers } from './providers';
 import SessionDebugger from './_components/SessionDebug';
+import { debugLog } from "../utils/debug";
 
 export default function RootLayout({
   children,

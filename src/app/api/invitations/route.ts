@@ -1,17 +1,18 @@
 // /src/app/api/invitations/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../utils/debug";
 
 // POST: Send an invitation
 export async function POST(request: Request) {
   try {
-    console.log("🚀 /api/invitations endpoint hit!"); 
+    debugLog("🚀 /api/invitations endpoint hit!"); 
 
     const body = await request.json();
-    console.log("📩 Raw API Request Data:", body);
+    debugLog("📩 Raw API Request Data:", body);
 
     const { holographId, inviterId, inviteeEmail, role } = body;
-    console.log("📩 Parsed API Request Data:", { holographId, inviterId, inviteeEmail, role });
+    debugLog("📩 Parsed API Request Data:", { holographId, inviterId, inviteeEmail, role });
 
     // ✅ Validate required fields
     if (!holographId || !inviterId || !inviteeEmail || !role) {
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
 
 
     
-    console.log("✅ Final Data Before Prisma Query:", {
+    debugLog("✅ Final Data Before Prisma Query:", {
       holographId,
       inviterId,
       inviteeEmail,
@@ -120,14 +121,14 @@ export async function POST(request: Request) {
       status: "Pending",
     };
 
-    console.log("📩 Sending data to Prisma:", invitationData);
+    debugLog("📩 Sending data to Prisma:", invitationData);
 
     // ✅ Create the invitation
     const invitation = await prisma.invitation.create({
       data: invitationData,
     });
 
-    console.log("✅ Invitation Created:", invitation);
+    debugLog("✅ Invitation Created:", invitation);
     return NextResponse.json({ success: true, invitation });
 
   } catch (error: any) {
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
       where: { inviteeEmail: user.email }
     });
 
-    console.log(`✅ Retrieved ${invitations.length} invitations for ${user.email}`);
+    debugLog(`✅ Retrieved ${invitations.length} invitations for ${user.email}`);
     return NextResponse.json(invitations);
   } catch (error: any) {
     console.error("❌ Error fetching invitations:", error);
@@ -175,7 +176,7 @@ export async function PATCH(request: Request) {
   try {
     const { id, status } = await request.json();
 
-    console.log(`📩 Updating Invitation ID: ${id} with status: ${status}`);
+    debugLog(`📩 Updating Invitation ID: ${id} with status: ${status}`);
 
     if (!id || !['Accepted', 'Declined'].includes(status)) {
       console.error("❌ Invalid request data");
@@ -202,7 +203,7 @@ export async function PATCH(request: Request) {
         }
       });
 
-      console.log(`✅ User ${invitee.email} added as Principal to Holograph ${updatedInvitation.holographId}`);
+      debugLog(`✅ User ${invitee.email} added as Principal to Holograph ${updatedInvitation.holographId}`);
     }
 
     return NextResponse.json(updatedInvitation);

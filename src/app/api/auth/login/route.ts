@@ -4,27 +4,28 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs"; // ✅ Use consistent bcrypt import
 import jwt from "jsonwebtoken"; // ✅ Ensure jsonwebtoken is imported
+import { debugLog } from "../../../../utils/debug";
 
 export async function POST(req: Request) {
   try {
-    console.log("API Request: /api/auth/login");
+    debugLog("API Request: /api/auth/login");
 
     // ✅ Parse request body
     const { email, password } = await req.json();
-    console.log("🔍 Received credentials:", email);
+    debugLog("🔍 Received credentials:", email);
 
     // ✅ Check if user exists
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user || !user.password) {
-      console.log("❌ User not found or missing password");
+      debugLog("❌ User not found or missing password");
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     // ✅ Validate password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-      console.log("❌ Invalid password");
+      debugLog("❌ Invalid password");
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
@@ -35,8 +36,8 @@ export async function POST(req: Request) {
       { expiresIn: "7d" } // ✅ 7-day expiration
     );
 
-    console.log("🔑 JWT Created With NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET);
-    console.log("✅ Generated token:", token);
+    debugLog("🔑 JWT Created With NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET);
+    debugLog("✅ Generated token:", token);
 
     // ✅ Set HTTP-only Secure Cookie
     const response = NextResponse.json({ success: true });

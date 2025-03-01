@@ -3,6 +3,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { debugLog } from "../../utils/debug";
 
 export default function SessionDebugger() {
   const { data: session, status } = useSession();
@@ -10,10 +11,10 @@ export default function SessionDebugger() {
   const [serverSession, setServerSession] = useState(null);
 
   useEffect(() => {
-    console.log("=== SESSION DEBUGGER ===");
-    console.log("Status:", status);
-    console.log("Session:", session);
-    console.log("======================");
+    debugLog("=== SESSION DEBUGGER ===");
+    debugLog("Status:", status);
+    debugLog("Session:", session);
+    debugLog("======================");
 
     // Also check server-side session
     const checkServerSession = async () => {
@@ -21,7 +22,7 @@ export default function SessionDebugger() {
         const response = await fetch('/api/debug-session');
         if (response.ok) {
           const data = await response.json();
-          console.log("Server session:", data.session);
+          debugLog("Server session:", data.session);
           setServerSession(data.session);
         }
       } catch (error) {

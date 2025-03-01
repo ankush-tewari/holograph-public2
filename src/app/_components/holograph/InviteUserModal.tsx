@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { debugLog } from "../../../utils/debug";
 
 interface InviteUserModalProps {
   holographId: string;
@@ -25,7 +26,7 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
       const authResponse = await fetch('/api/auth/user');
       const authData = await authResponse.json();
   
-      console.log("🔍 Auth Data:", authData); // ✅ Log the auth data
+      debugLog("🔍 Auth Data:", authData); // ✅ Log the auth data
   
       if (!authResponse.ok || !authData.user || !authData.user.id) {
         throw new Error('Failed to retrieve the inviter ID');
@@ -40,7 +41,7 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
         inviterId, // ✅ Ensure inviterId is included
       };  
   
-      console.log("📤 Sending Invitation API Request:", requestBody); // ✅ Debug log before sending
+      debugLog("📤 Sending Invitation API Request:", requestBody); // ✅ Debug log before sending
   
       const response = await fetch('/api/invitations', {
         method: 'POST',
@@ -48,7 +49,7 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
         body: JSON.stringify(requestBody),
       });
   
-      console.log("📩 Raw Response:", response); // ✅ Log response
+      debugLog("📩 Raw Response:", response); // ✅ Log response
   
       if (!response.ok) {
         const errorData = await response.json(); // Parse error response
@@ -77,7 +78,7 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
       }
   
       const data = await response.json();
-      console.log("✅ API Response Data:", data);
+      debugLog("✅ API Response Data:", data);
   
       setSuccess(`Invitation sent successfully to ${email}`);
       setEmail('');

@@ -2,6 +2,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { debugLog } from "../../utils/debug";
 
 export default function AuthTest() {
   const { data: session, status } = useSession();

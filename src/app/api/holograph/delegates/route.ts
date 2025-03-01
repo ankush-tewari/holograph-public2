@@ -3,21 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../../utils/debug";
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("🔍 API Route: Getting holographs where user is a delegate");
+    debugLog("🔍 API Route: Getting holographs where user is a delegate");
     
     // Get authenticated user from session
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user || !session.user.id) {
-      console.log("❌ No authenticated user found in session");
+      debugLog("❌ No authenticated user found in session");
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const userId = session.user.id;
-    console.log("✅ User ID from session:", userId);
+    debugLog("✅ User ID from session:", userId);
 
     const delegatedHolographs = await prisma.holograph.findMany({
       where: {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    console.log("✅ Returning", formattedHolographs.length, "delegated holographs");
+    debugLog("✅ Returning", formattedHolographs.length, "delegated holographs");
     return NextResponse.json(formattedHolographs);
   } catch (error) {
     console.error('Error fetching delegated holographs:', error);

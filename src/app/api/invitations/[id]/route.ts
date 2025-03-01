@@ -1,6 +1,7 @@
 // /src/app/api/invitations/[id]/route.ts - Accept or Decline an Invitation
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../../utils/debug";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {

@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useHolograph } from '../../hooks/useHolograph';
 import { format } from "date-fns";
+import { debugLog } from "../../utils/debug";
 
 // Define types for our data
 interface User {
@@ -55,14 +56,15 @@ const HolographDashboard = () => {
 
   // Log session status for debugging
   useEffect(() => {
-    console.log("🔍 Auth Status:", status);
-    console.log("🔍 Session:", session);
+    debugLog("🔍 Auth Status: debuglog",status);
+    debugLog("🔍 Session: debuglog", session);
+
   }, [status, session]);
 
   // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
-      console.log("⚠️ User not authenticated, redirecting to login");
+      debugLog("⚠️ User not authenticated, redirecting to login");
       router.push('/login');
     }
   }, [status, router]);
@@ -72,12 +74,12 @@ const HolographDashboard = () => {
     if (status !== 'authenticated' || !session?.user?.id) return;
 
     const userId = session.user.id;
-    console.log("✅ User authenticated with ID:", userId);
+    debugLog("✅ User authenticated with ID:", userId);
 
     const fetchHolographs = async () => {
       try {
         setIsLoading(true);
-        console.log("🔍 Fetching holographs for user:", userId);
+        debugLog("🔍 Fetching holographs for user:", userId);
         
         const ownedResponse = await fetch(`/api/holograph/principals`);
         const delegatedResponse = await fetch(`/api/holograph/delegates`);
@@ -89,7 +91,7 @@ const HolographDashboard = () => {
         let ownedData = await ownedResponse.json();
         let delegatedData = await delegatedResponse.json();
 
-        console.log("✅ Fetched data - Owned:", ownedData.length, "Delegated:", delegatedData.length);
+        debugLog("✅ Fetched data - Owned:", ownedData.length, "Delegated:", delegatedData.length);
 
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
@@ -105,11 +107,11 @@ const HolographDashboard = () => {
         });
 
         if (holographs.owned.length > 0 || holographs.delegated.length > 0) {
-          console.log("📡 Owned Holographs:", holographs.owned);
-          console.log("📡 Delegated Holographs:", holographs.delegated);
+          debugLog("📡 Owned Holographs:", holographs.owned);
+          debugLog("📡 Delegated Holographs:", holographs.delegated);
       
-          holographs.owned.forEach(holo => console.log(`📅 Owned Holograph - ${holo.title}:`, holo.updatedAt));
-          holographs.delegated.forEach(holo => console.log(`📅 Delegated Holograph - ${holo.title}:`, holo.updatedAt));
+          holographs.owned.forEach(holo => debugLog(`📅 Owned Holograph - ${holo.title}:`, holo.updatedAt));
+          holographs.delegated.forEach(holo => debugLog(`📅 Delegated Holograph - ${holo.title}:`, holo.updatedAt));
         }
       } catch (err) {
         console.error("❌ Error fetching holographs:", err);
@@ -120,13 +122,13 @@ const HolographDashboard = () => {
     };
 
     const fetchInvitations = async () => {
-      console.log("🔍 Fetching invitations for user:", userId);
+      debugLog("🔍 Fetching invitations for user:", userId);
       try {
         const response = await fetch(`/api/invitations/user/${userId}`);
         if (!response.ok) throw new Error("Failed to fetch invitations");
 
         let invitationsData = await response.json();
-        console.log("✅ Fetched invitations:", invitationsData.length);
+        debugLog("✅ Fetched invitations:", invitationsData.length);
         setInvitations(invitationsData);
       } catch (error) {
         console.error("❌ Error fetching invitations:", error);
@@ -138,10 +140,10 @@ const HolographDashboard = () => {
   }, [status, session, router]);
 
   const handleCreateSuccess = async (newHolograph: Holograph): Promise<void> => {
-    console.log("🔍 handleCreateSuccess is being executed...");
-    console.log(`✅ Created new Holograph: ${newHolograph.title}`);
+    debugLog("🔍 handleCreateSuccess is being executed...");
+    debugLog(`✅ Created new Holograph: ${newHolograph.title}`);
   
-    console.log("🚀 Redirecting to dashboard...");
+    debugLog("🚀 Redirecting to dashboard...");
     router.push("/dashboard");
     router.refresh();
   };
@@ -188,7 +190,7 @@ const HolographDashboard = () => {
 
   // Handle clicking on a holograph - update the current holograph ID in the session
   const handleHolographClick = async (holographId: string) => {
-    console.log("🔍 Clicking on holograph:", holographId);
+    debugLog("🔍 Clicking on holograph:", holographId);
     
     // Set the current holograph ID in the session
     await setCurrentHolographId(holographId);

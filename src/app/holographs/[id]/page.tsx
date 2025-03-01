@@ -1,10 +1,11 @@
-// /src/app/holographs/[id]/page.tsx - Holograph Dashboard/Landing Page.  this shows all the components of the dashboard.
+// /src/app/holographs/[id]/page.tsx - Holograph Dashboard/Landing Page
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import InviteUserModal from '../../_components/holograph/InviteUserModal';
 import Link from 'next/link';
+import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
 
 interface Holograph {
   id: string;
@@ -16,47 +17,38 @@ interface Holograph {
 const HolographDetailPage = () => {
   const params = useParams();
   const router = useRouter();
+  const { currentHolographId, setCurrentHolographId, userId, isAuthenticated, isLoading: isSessionLoading } = useHolograph();
+  
   const [holograph, setHolograph] = useState<Holograph | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
-  const [userId, setUserId] = useState<string | null>(null); // ✅ Store userId
 
+  // Set the holograph ID in the session when this page loads or when it changes
   useEffect(() => {
-    const fetchUserSession = async () => {
-      try {
-        console.log("🚀 Fetching user session in Holograph Landing Page...");
-        const authResponse = await fetch(`/api/auth/user`);
-        if (!authResponse.ok) throw new Error("Not authenticated");
+    if (params.id && currentHolographId !== params.id) {
+      console.log(`🔄 Setting currentHolographId to ${params.id}`);
+      setCurrentHolographId(params.id as string);
+    }
+  }, [params.id, currentHolographId, setCurrentHolographId]);
 
-        const authData = await authResponse.json();
-        console.log("🔍 Auth Data:", authData);
-
-        if (!authData.user || !authData.user.id) {
-          throw new Error("User ID missing");
-        }
-
-        setUserId(authData.user.id);
-        console.log("✅ Retrieved User ID:", authData.user.id);
-      } catch (error) {
-        console.error("❌ Error fetching user session:", error);
-        setError("Authentication error. Please log in again.");
-        router.push("/login");
-      }
-    };
-
-    fetchUserSession(); 
-  }, [router]);
+  // Check authentication
+  useEffect(() => {
+    if (!isSessionLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isSessionLoading, isAuthenticated, router]);
 
   useEffect(() => {
     const fetchHolograph = async () => {
       try {
         if (!params.id || !userId) return;
 
-        console.log(`🚀 Fetching Holograph Details for ID: ${params.id} and User ID: ${userId}`);
-        const response = await fetch(`/api/holograph/${params.id}?userId=${userId}`);
+        console.log(`🚀 Fetching Holograph Details for ID: ${params.id}`);
+        // Now using session-based authentication - no need to pass userId in URL
+        const response = await fetch(`/api/holograph/${params.id}`);
 
         if (!response.ok) throw new Error("Unauthorized or Holograph not found");
 
@@ -75,9 +67,10 @@ const HolographDetailPage = () => {
     };
 
     if (userId) fetchHolograph();
-  }, [params.id, userId]);
+  }, [params.id, userId, router]);
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isSessionLoading || isLoading) return <p>Loading...</p>;
+  if (!isAuthenticated) return <p>Please log in</p>;
   if (!isAuthorized) return <p className="text-red-500">{error}</p>;
   if (!holograph) return <p>No Holograph found.</p>;
 
@@ -117,17 +110,13 @@ const HolographDetailPage = () => {
         />
       )}
 
-      {/* ✅ Pass userId in the URL only if it's available */}
+      {/* Link without URL parameters - using session to pass userId */}
       <div className="mt-6 border-t pt-4">
-        {userId ? (
-          <Link href={`/holographs/${holograph.id}/vital-documents?userId=${encodeURIComponent(userId)}`}>
-            <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
-              Vital Documents
-            </h2>
-          </Link>
-        ) : (
-          <p className="text-red-500">Loading user info...</p>
-        )}
+        <Link href={`/holographs/${holograph.id}/vital-documents`}>
+          <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
+            Vital Documents
+          </h2>
+        </Link>
         <p className="text-gray-600">Manage all essential documents like wills, trusts, and health directives.</p>
       </div>
     </div>

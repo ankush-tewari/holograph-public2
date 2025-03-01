@@ -1,18 +1,23 @@
 // /src/app/api/holograph/delegates/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';  // Updated import to use the existing db.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import { prisma } from '@/lib/db';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID required' },
-        { status: 400 }
-      );
+    console.log("🔍 API Route: Getting holographs where user is a delegate");
+    
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user || !session.user.id) {
+      console.log("❌ No authenticated user found in session");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const userId = session.user.id;
+    console.log("✅ User ID from session:", userId);
 
     const delegatedHolographs = await prisma.holograph.findMany({
       where: {
@@ -41,30 +46,12 @@ export async function GET(request: Request) {
           id: holograph.id,
           title: holograph.title,
           lastModified: holograph.updatedAt.toISOString(),
-          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User 7" } : null, // ✅ Fix: Ensure object format
+          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User" } : null,
         };
       })
     );
 
-    // ✅ Fetch the first principal as the owner
-    const delegatedData = await Promise.all(
-      delegatedHolographs.map(async (holo) => {
-        const ownerId = holo.principals.length > 0 ? holo.principals[0].userId : null;
-
-        const owner = ownerId
-          ? await prisma.user.findUnique({
-              where: { id: ownerId },
-              select: { id: true, name: true },
-            })
-          : null;
-
-        return {
-          ...holo,
-          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User" } : null, // ✅ Return as object
-        };
-      })
-    );
-
+    console.log("✅ Returning", formattedHolographs.length, "delegated holographs");
     return NextResponse.json(formattedHolographs);
   } catch (error) {
     console.error('Error fetching delegated holographs:', error);
@@ -75,24 +62,33 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { holographId, delegateId, principalId } = await request.json();
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const authenticatedUserId = session.user.id;
+    
+    const { holographId, delegateId } = await request.json();
 
     // Validate input
-    if (!holographId || !delegateId || !principalId) {
+    if (!holographId || !delegateId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Verify that the requesting user is a principal
+    // Verify that the authenticated user is a principal
     const isPrincipal = await prisma.holographPrincipal.findUnique({
       where: {
         holographId_userId: {
           holographId,
-          userId: principalId,
+          userId: authenticatedUserId,
         },
       },
     });
@@ -139,26 +135,34 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const authenticatedUserId = session.user.id;
+    
     const { searchParams } = new URL(request.url);
     const holographId = searchParams.get('holographId');
     const delegateId = searchParams.get('delegateId');
-    const principalId = searchParams.get('principalId');
 
-    if (!holographId || !delegateId || !principalId) {
+    if (!holographId || !delegateId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Verify that the requesting user is a principal
+    // Verify that the authenticated user is a principal
     const isPrincipal = await prisma.holographPrincipal.findUnique({
       where: {
         holographId_userId: {
           holographId,
-          userId: principalId,
+          userId: authenticatedUserId,
         },
       },
     });

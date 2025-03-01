@@ -1,52 +1,43 @@
 // /src/app/api/auth/user/route.ts
 
-import { NextResponse } from 'next/server'
-import { verify } from 'jsonwebtoken'
-import { prisma } from '@/lib/db'
-import { cookies } from 'next/headers'
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 export async function GET() {
   try {
     console.log("API Request: /api/auth/user");
-
-    // ✅ Correct way to get cookies in Next.js App Router
-    const cookieStore = await cookies(); // ✅ Do NOT use `await`
-    const tokenCookie = cookieStore.get("auth-token"); // ✅ Correct usage
-
-    if (!tokenCookie) {
-      console.error("❌ No auth token found");
-      return NextResponse.json({ error: "No auth token found" }, { status: 401 });
-  }
-
-    console.log("Token found:", tokenCookie);
-
-
-    // Verify the token
-    const decoded = verify(tokenCookie.value, process.env.JWT_SECRET!) as {
-      id: string;
-      email: string;
-    };
-
-    console.log("Decoded token:", decoded);
-
-    // Fetch user from database
+    
+    // Get session using NextAuth
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
+      console.error("❌ No authenticated session found");
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    
+    console.log("Session found:", session.user);
+    
+    // Fetch user from database using the session user ID
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: session.user.id },
       select: {
         id: true,
         email: true,
         name: true,
       },
     });
-
+    
     if (!user) {
+      console.error("❌ User not found in database:", session.user.id);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
-
+    
+    console.log("✅ User found:", user.id);
     return NextResponse.json({ user });
   } catch (error) {
     console.error('User fetch error:', error);

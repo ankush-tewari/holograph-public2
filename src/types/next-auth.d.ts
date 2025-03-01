@@ -7,13 +7,24 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name?: string;
-      accessToken?: string; // ✅ Make accessToken optional
+      accessToken?: string; // Optional access token
+      currentHolographId?: string; // For storing the current holograph
     }
   }
   interface User {
     id: string;
     email: string;
     name?: string;
-    accessToken?: string; // ✅ Make accessToken optional
+    accessToken?: string; // Optional access token
+  }
+}
+
+// This is necessary to add holographId to the JWT token
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string;
+    email?: string;
+    accessToken?: string;
+    currentHolographId?: string;
   }
 }

@@ -1,21 +1,42 @@
 // /src/app/api/invitations/user/[userId]/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../lib/auth';
 import { prisma } from '@/lib/db';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { userId: string } } // ✅ Correct way to destructure `params`
+  request: NextRequest,
+  { params }: { params: { userId: string } }
 ) {
   try {
     console.log("🔍 Fetching invitations for userId:", params.userId);
+
+    // Get authenticated user from session
+    const session = await getServerSession(authOptions);
+    console.log("🔍 Session in API route:", session);
+    
+    if (!session || !session.user || !session.user.id) {
+      console.log("❌ No authenticated user found in session");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const authenticatedUserId = session.user.id;
+    const requestedUserId = params.userId;
+    
+    // Security check: Make sure the authenticated user is only accessing their own invitations
+    if (authenticatedUserId !== requestedUserId) {
+      console.log("⚠️ Security warning: User attempted to access another user's invitations");
+      console.log("Authenticated user:", authenticatedUserId, "Requested user:", requestedUserId);
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+    }
 
     if (!params.userId) {
       console.error("❌ Error: userId is missing in request");
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
-    // ✅ Validate user existence
+    // Validate user existence
     const user = await prisma.user.findUnique({ where: { id: params.userId } });
 
     if (!user) {
@@ -23,17 +44,40 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // ✅ Fetch pending invitations for the user
+    // Fetch pending invitations for the user
     const invitations = await prisma.invitation.findMany({
       where: {
         inviteeEmail: user.email,
         status: 'Pending',
       },
+      include: {
+        holograph: {
+          select: {
+            title: true,
+          }
+        },
+        inviter: {
+          select: {
+            name: true,
+          }
+        }
+      }
     });
 
-    console.log(`✅ Found ${invitations.length} invitations for user ${user.email}:`, invitations);
+    // Format the invitations to include holograph title and inviter name
+    const formattedInvitations = invitations.map(invitation => ({
+      id: invitation.id,
+      holographId: invitation.holographId,
+      inviterId: invitation.inviterId,
+      role: invitation.role,
+      status: invitation.status,
+      holographTitle: invitation.holograph.title,
+      inviterName: invitation.inviter.name,
+    }));
+
+    console.log(`✅ Found ${invitations.length} invitations for user ${user.email}`);
     
-    return NextResponse.json(invitations);
+    return NextResponse.json(formattedInvitations);
   } catch (error) {
     console.error('❌ Error fetching invitations:', error);
     return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });

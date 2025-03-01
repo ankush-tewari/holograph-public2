@@ -1,22 +1,35 @@
 // src/app/api/holograph/[id]/route.ts
 
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
+    // Get session using NextAuth
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
+      console.error("❌ No authenticated session found");
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    
+    // Keep existing URL params logic for backward compatibility
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const queryUserId = searchParams.get('userId');
+    
+    // Log both session user and query user if different
+    if (queryUserId && queryUserId !== userId) {
+      console.log(`⚠️ Note: Query userId (${queryUserId}) differs from session userId (${userId}). Using session userId.`);
+    }
 
     // ✅ Await params before using it
     const { id: holographId } = await context.params; 
 
     console.log(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
-
-    if (!userId) {
-      console.error("❌ User ID is missing in the request");
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
-    }
 
     // ✅ Fetch Holograph with Principals & Delegates
     const holograph = await prisma.holograph.findUnique({

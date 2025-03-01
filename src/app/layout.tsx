@@ -1,41 +1,9 @@
 // /src/app/layout.tsx - layout page
 
-import './globals.css' // Add this import at the top
-import { cookies } from 'next/headers'
-import { verify } from 'jsonwebtoken'
-import { prisma } from '@/lib/db'
+import './globals.css'
 import Navbar from './_components/layout/navbar';
-import { SessionProvider } from "next-auth/react";
-
-
-async function getUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')
-
-  if (!token) {
-    return null
-  }
-
-  try {
-    const decoded = verify(token.value, process.env.JWT_SECRET!) as {
-      id: string
-      email: string
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
-    })
-
-    return user
-  } catch {
-    return null
-  }
-}
+import { Providers } from './providers';
+import SessionDebugger from './_components/SessionDebug';
 
 export default function RootLayout({
   children,
@@ -45,8 +13,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        {children}
+        <Providers>
+          <SessionDebugger />
+          <Navbar />
+          {children}
+        </Providers>
       </body>
     </html>
   )

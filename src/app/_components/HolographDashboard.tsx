@@ -229,11 +229,11 @@ const HolographDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Optional: Session debug info (remove in production) */}
+          {/* Optional: Session debug info (remove in production) 
           <div className="bg-gray-100 p-3 rounded text-xs mb-4">
             <p><strong>Auth Status:</strong> {status}</p>
             <p><strong>User ID:</strong> {session?.user?.id || 'Not available'}</p>
-          </div>
+          </div> */}
 
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Holographs</h1>

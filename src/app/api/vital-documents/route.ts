@@ -1,4 +1,4 @@
-// /src/app/api/vital-documents/route.ts
+// /src/app/api/vital-documents/route.ts GET and POST Methods
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -28,6 +28,9 @@ export async function GET(req: Request) {
 
     const documents = await prisma.vitalDocument.findMany({
       where: { holographId },
+      orderBy: {
+        createdAt: "asc", // ✅ Sorts in ascending order (oldest first)
+      },
     });
 
     console.log("✅ Retrieved documents:", documents);

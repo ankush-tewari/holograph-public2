@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation"; // ✅ Use `useSearchParams`
 import axios from "axios";
 import VitalDocumentModal from "../../../_components/vital-documents/VitalDocumentModal";
+import { DOCUMENT_TYPES } from "../../../../config/documentType";
 
 interface Document {
   id: string;
@@ -160,7 +161,7 @@ const refreshDocuments = async () => {
       <h1 className="text-2xl font-bold">Vital Documents</h1>
       <p className="text-gray-600">Manage your important documents securely.</p>
 
-      <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => openModal(null)}>Add new Vital Document</button>
+      <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => openModal(null)}>Add New Vital Document</button>
       {isModalOpen && (
         <VitalDocumentModal 
           userId={userId || "UNKNOWN_USER"}
@@ -193,7 +194,8 @@ const refreshDocuments = async () => {
                   >
                     {doc.name}
                   </a>{" "}
-                  - {doc.type}
+                  - {DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}
+
                   {doc.notes && <p className="text-gray-600 italic">Notes: {doc.notes}</p>}
                 </div>
                 <div>

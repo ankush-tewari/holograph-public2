@@ -56,7 +56,7 @@ model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
   name        String    // Name of the document
-  type        String    // Will, Trust, Advanced Health Directive, or Other
+  type        String    // Stores "will", "trust", "ahd", "other" 
   filePath    String    // Path or URL to the uploaded file
   uploadedBy  String    // User ID of the uploader
   notes       String?   @db.Text // ✅ Add this as a new column with long text support

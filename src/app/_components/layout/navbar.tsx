@@ -1,53 +1,34 @@
+// /src/app/_components/layout/navbar.tsx
+
 'use client'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-
-interface User {
-  name: string | null
-  email: string
-}
+import { useSession, signOut } from 'next-auth/react'
 
 export default function Navbar() {
-  const [user, setUser] = useState<User | null>(null)
   const pathname = usePathname()
   const router = useRouter()
-
-  useEffect(() => {
-    // Fetch user data whenever the pathname changes
-    async function loadUser() {
-      try {
-        const res = await fetch('/api/auth/user')
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
-        } else {
-          setUser(null)
-        }
-      } catch (error) {
-        setUser(null)
-      }
-    }
-    
-    loadUser()
-  }, [pathname]) // Re-run when pathname changes
+  const { data: session, status } = useSession()
+  
+  // Log session data for debugging
+  React.useEffect(() => {
+    console.log("Navbar - Session Status:", status);
+    console.log("Navbar - Session Data:", session);
+  }, [session, status]);
 
   const handleLogout = async () => {
     try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST'
-      })
-
-      if (!res.ok) {
-        throw new Error('Logout failed')
-      }
-
-      setUser(null)
-      router.push('/login')
+      // Use NextAuth's signOut instead of custom API
+      await signOut({ redirect: false });
+      router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('Logout error:', error);
     }
   }
+
+  // Determine if user is authenticated
+  const isAuthenticated = status === 'authenticated' && session?.user;
 
   return (
     <nav className="bg-white shadow">
@@ -60,7 +41,7 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center">
-            {user ? (
+            {isAuthenticated ? (
               <>
                 <Link 
                   href="/dashboard" 
@@ -83,7 +64,7 @@ export default function Navbar() {
                   Documents
                 </Link>
                 <div className="ml-4 px-3 py-2 text-sm text-gray-500">
-                  {user.name || user.email}
+                  {session?.user?.name || session?.user?.email}
                 </div>
                 <button
                   onClick={handleLogout}

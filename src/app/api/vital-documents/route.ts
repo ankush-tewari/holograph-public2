@@ -150,6 +150,10 @@ export async function POST(req: Request) {
     // ✅ Normalize file path
     const normalizedFilePath = newFilePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
 
+    //debugging for type
+    console.log("RAW type field:", fields.type);
+    console.log("Parsed type:", type);
+    
     if (isNewDocument) {
       // ✅ Create a new document
       console.log("🆕 Creating a new document...");

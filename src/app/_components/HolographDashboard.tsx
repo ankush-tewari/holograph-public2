@@ -1,12 +1,14 @@
 // src/app/_components/HolographDashboard.tsx - this is the main user dashboard
 
-"use client"; // ✅ Ensures `useRouter` works in Next.js App Router
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Share2, X } from 'lucide-react';
 import Link from 'next/link';
-import CreateHolograph from './holograph/CreateHolograph'; //testing auto change to holograph-public
-import { useRouter } from 'next/navigation'; // Import Next.js router
+import CreateHolograph from './holograph/CreateHolograph';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useHolograph } from '../../hooks/useHolograph';
 
 // Define types for our data
 interface User {
@@ -22,10 +24,6 @@ interface Holograph {
   owner?: { id: string; name: string | null };
 }
 
-interface DashboardProps {
-  userId?: string; // ✅ Optional, since we'll fetch it manually
-}
-
 interface Invitation {
   id: string;
   holographId: string;
@@ -35,10 +33,11 @@ interface Invitation {
   inviterName?: string;
 }
 
-
-const HolographDashboard = ({ userId }: DashboardProps) => {
-  const router = useRouter(); // Initialize router
-  const [user, setUser] = useState<User | null>(null); // ✅ Define `user` state
+const HolographDashboard = () => {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { setCurrentHolographId } = useHolograph();
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('owned');
   const [holographs, setHolographs] = useState<{
@@ -53,40 +52,43 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
   const [error, setError] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
-
-  // ✅ Fetch user data (Runs once when component mounts)
+  // Log session status for debugging
   useEffect(() => {
-    async function loadUserData() {
-      try {
-        const res = await fetch("/api/auth/user", { credentials: "include" });
-        if (!res.ok) throw new Error("Not authenticated");
+    console.log("🔍 Auth Status:", status);
+    console.log("🔍 Session:", session);
+  }, [status, session]);
 
-        const data = await res.json();
-        setUser(data.user);
-      } catch (error) {
-        console.error("❌ Failed to fetch user session:", error);
-        router.push("/login");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    if (!userId) {
-      loadUserData();
-    }
-  }, [userId, router]); // ✅ Properly closes `useEffect`
-
-  // ✅ Fetch Holographs & Invitations AFTER userId is set
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!userId) return; // ✅ Prevent running if userId is not ready
+    if (status === 'unauthenticated') {
+      console.log("⚠️ User not authenticated, redirecting to login");
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  // Fetch Holographs & Invitations after authentication
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user?.id) return;
+
+    const userId = session.user.id;
+    console.log("✅ User authenticated with ID:", userId);
 
     const fetchHolographs = async () => {
       try {
         setIsLoading(true);
-        const ownedResponse = await fetch(`/api/holograph/principals?userId=${userId}`);
-        let ownedData = ownedResponse.ok ? await ownedResponse.json() : [];
-        const delegatedResponse = await fetch(`/api/holograph/delegates?userId=${userId}`);
-        let delegatedData = delegatedResponse.ok ? await delegatedResponse.json() : [];
+        console.log("🔍 Fetching holographs for user:", userId);
+        
+        const ownedResponse = await fetch(`/api/holograph/principals`);
+        const delegatedResponse = await fetch(`/api/holograph/delegates`);
+        
+        if (!ownedResponse.ok || !delegatedResponse.ok) {
+          throw new Error("Failed to fetch holographs");
+        }
+        
+        let ownedData = await ownedResponse.json();
+        let delegatedData = await delegatedResponse.json();
+
+        console.log("✅ Fetched data - Owned:", ownedData.length, "Delegated:", delegatedData.length);
 
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
@@ -99,8 +101,8 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
           })),
         });
       } catch (err) {
+        console.error("❌ Error fetching holographs:", err);
         setError("Failed to load holographs. Please try again later.");
-        console.error("Error fetching holographs:", err);
       } finally {
         setIsLoading(false);
       }
@@ -113,6 +115,7 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
         if (!response.ok) throw new Error("Failed to fetch invitations");
 
         let invitationsData = await response.json();
+        console.log("✅ Fetched invitations:", invitationsData.length);
         setInvitations(invitationsData);
       } catch (error) {
         console.error("❌ Error fetching invitations:", error);
@@ -121,15 +124,66 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
 
     fetchHolographs();
     fetchInvitations();
-  }, [userId]); // ✅ This now correctly belongs to its own `useEffect`
+  }, [status, session, router]);
 
   const handleCreateSuccess = async (newHolograph: Holograph): Promise<void> => {
     console.log("🔍 handleCreateSuccess is being executed...");
     console.log(`✅ Created new Holograph: ${newHolograph.title}`);
   
     console.log("🚀 Redirecting to dashboard...");
-    router.push("/dashboard"); // ✅ Immediate redirect
-    router.refresh(); // ✅ Ensure UI updates after navigation
+    router.push("/dashboard");
+    router.refresh();
+  };
+
+  // Handle accepting invitation
+  const handleAcceptInvite = async (inviteId: string, holographId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${inviteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'Accepted' }),
+      });
+
+      if (response.ok) {
+        setInvitations(prev => prev.filter(invite => invite.id !== inviteId));
+        // Refresh the holographs list
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+    }
+  };
+
+  // Handle declining invitation
+  const handleDeclineInvite = async (inviteId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${inviteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'Declined' }),
+      });
+
+      if (response.ok) {
+        setInvitations(prev => prev.filter(invite => invite.id !== inviteId));
+      }
+    } catch (error) {
+      console.error('Error declining invitation:', error);
+    }
+  };
+
+  // Handle clicking on a holograph - update the current holograph ID in the session
+  const handleHolographClick = async (holographId: string) => {
+    console.log("🔍 Clicking on holograph:", holographId);
+    
+    // Set the current holograph ID in the session
+    await setCurrentHolographId(holographId);
+    
+    // Navigate to the holograph page
+    router.push(`/holographs/${holographId}`);
   };
 
   if (error) {
@@ -152,13 +206,19 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
               <X size={20} />
             </button>
             <CreateHolograph 
-              userId={userId}
+              userId={session?.user?.id}
               onSuccess={handleCreateSuccess}
             />
           </div>
         </div>
       ) : (
         <>
+          {/* Optional: Session debug info (remove in production) */}
+          <div className="bg-gray-100 p-3 rounded text-xs mb-4">
+            <p><strong>Auth Status:</strong> {status}</p>
+            <p><strong>User ID:</strong> {session?.user?.id || 'Not available'}</p>
+          </div>
+
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Holographs</h1>
             <button 
@@ -168,115 +228,107 @@ const HolographDashboard = ({ userId }: DashboardProps) => {
               <Plus size={20} />
               Create New
             </button>
-
-           {/* Remove or update session debug info if not using session */}
-           {/*} <pre className="bg-gray-100 p-2">User ID: {user?.id}</pre> */}
-
-
           </div>
 
           <div className="w-full">
-  {/* Tab buttons */}
-  <div className="flex gap-4 border-b mb-6">
-    <button
-      onClick={() => setActiveTab('owned')}
-      className={`px-4 py-2 font-medium ${
-        activeTab === 'owned'
-          ? 'text-blue-600 border-b-2 border-blue-600'
-          : 'text-gray-500 hover:text-gray-700'
-      }`}
-    >
-      📜 My Holographs
-    </button>
-    <button
-      onClick={() => setActiveTab('delegated')}
-      className={`px-4 py-2 font-medium ${
-        activeTab === 'delegated'
-          ? 'text-green-600 border-b-2 border-green-600'
-          : 'text-gray-500 hover:text-gray-700'
-      }`}
-    >
-      🤝 Shared with Me
-    </button>
-  </div>
-
-  {/* Loading state */}
-  {isLoading ? (
-    <div className="flex justify-center items-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-  ) : (
-    <>
-      {/* Owned Holographs */}
-      {activeTab === 'owned' && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {holographs.owned.map(holograph => (
-            <div key={holograph.id} className="bg-blue-50 rounded-lg border border-blue-300 p-4 hover:shadow-lg transition-shadow">
-              <h3 className="text-lg font-semibold text-blue-700">
-                <Link href={`/holographs/${holograph.id}`}>📜 {holograph.title}</Link>
-              </h3>
-              <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+            {/* Tab buttons */}
+            <div className="flex gap-4 border-b mb-6">
+              <button
+                onClick={() => setActiveTab('owned')}
+                className={`px-4 py-2 font-medium ${
+                  activeTab === 'owned'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                📜 My Holographs
+              </button>
+              <button
+                onClick={() => setActiveTab('delegated')}
+                className={`px-4 py-2 font-medium ${
+                  activeTab === 'delegated'
+                    ? 'text-green-600 border-b-2 border-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                🤝 Shared with Me
+              </button>
             </div>
-          ))}
 
-          {/* ✅ Debug: Show session details on the page */}
-        {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre> */}
-        {/* Remove or update session debug info if not using session */}
-        <pre className="bg-gray-100 p-2">User ID: src/app/_components/HolographDashboard.tsx {userId}</pre>
-        </div>
-      )}
-
-      {/* Delegated Holographs */}
-      {activeTab === 'delegated' && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {holographs.delegated.map(holograph => {
-            console.log("📋 Holograph Data:", holograph); // ✅ Debugging log
-            
-            return (
-              <div key={holograph.id} className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow">
-                <h3 className="text-lg font-semibold text-green-700">
-                  <Link href={`/holographs/${holograph.id}`}>🤝 {holograph.title}</Link>
-                </h3>
-                <p className="text-sm text-gray-600">Shared by {holograph.owner?.name ?? "Unknown User"}</p>
-                <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+            {/* Loading state */}
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ) : (
+              <>
+                {/* Owned Holographs */}
+                {activeTab === 'owned' && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {holographs.owned.map(holograph => (
+                      <div 
+                        key={holograph.id} 
+                        className="bg-blue-50 rounded-lg border border-blue-300 p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                        onClick={() => handleHolographClick(holograph.id)}
+                      >
+                        <h3 className="text-lg font-semibold text-blue-700">
+                          📜 {holograph.title}
+                        </h3>
+                        <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-      {/* Pending Invitations Section */}
-      {invitations.length > 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg mb-6">
-          <h2 className="text-xl font-semibold text-yellow-700 mb-2">Pending Invitations</h2>
-          {invitations.map((invite) => (
-            <div key={invite.id} className="flex justify-between items-center p-3 border-b">
-              <p className="text-gray-700">
-                Invitation to join <strong>{invite.holographTitle}</strong> by <strong>{invite.inviterName}</strong> as a <strong>{invite.role}</strong>
-              </p>
-              <div className="flex gap-2">
-                <button
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                  onClick={() => handleAcceptInvite(invite.id, invite.holographId)}
-                >
-                  Accept
-                </button>
-                <button
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  onClick={() => handleDeclineInvite(invite.id)}
-                >
-                  Decline
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                {/* Delegated Holographs */}
+                {activeTab === 'delegated' && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {holographs.delegated.map(holograph => (
+                      <div 
+                        key={holograph.id} 
+                        className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                        onClick={() => handleHolographClick(holograph.id)}
+                      >
+                        <h3 className="text-lg font-semibold text-green-700">
+                          🤝 {holograph.title}
+                        </h3>
+                        <p className="text-sm text-gray-600">Shared by {holograph.owner?.name ?? "Unknown User"}</p>
+                        <p className="text-sm text-gray-600">Last modified: {new Date(holograph.lastModified).toLocaleDateString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-    </>
-  )}
-</div>
-{/* remnant? */}
+                {/* Pending Invitations Section */}
+                {invitations.length > 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg mb-6 mt-6">
+                    <h2 className="text-xl font-semibold text-yellow-700 mb-2">Pending Invitations</h2>
+                    {invitations.map((invite) => (
+                      <div key={invite.id} className="flex justify-between items-center p-3 border-b">
+                        <p className="text-gray-700">
+                          Invitation to join <strong>{invite.holographTitle}</strong> by <strong>{invite.inviterName}</strong> as a <strong>{invite.role}</strong>
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                            onClick={() => handleAcceptInvite(invite.id, invite.holographId)}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                            onClick={() => handleDeclineInvite(invite.id)}
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </>
       )}
     </div>

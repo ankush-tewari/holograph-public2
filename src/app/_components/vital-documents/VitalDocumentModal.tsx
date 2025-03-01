@@ -45,7 +45,7 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   
   const [formData, setFormData] = useState({
     name: docData?.name || "",
-    type: docData?.type || "",
+    type: docData?.type || DOCUMENT_TYPES.vitalDocuments[0].value, // Set default to first option
     notes: docData?.notes || "",
     file: null as File | null,
     filePath: docData?.filePath || "",  // ✅ Ensure existing file path is included
@@ -62,6 +62,22 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
 
   const handleSubmit = async () => {
     if (!formData.file && !formData.filePath) { // ✅ Ensure either a new file or existing file is provided
+      console.error("❌ No file selected or existing file path missing");
+      return;
+    }
+
+    // Add validation for all required fields
+    if (!formData.name) {
+      console.error("❌ Name is required");
+      return;
+    }
+
+    if (!formData.type) {
+      console.error("❌ Document type is required");
+      return;
+    }
+
+    if (!formData.file && !formData.filePath) {
       console.error("❌ No file selected or existing file path missing");
       return;
     }
@@ -123,6 +139,7 @@ const modalContent = (
     <select
       value={formData.type}
       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+      required
       className="mt-2 mb-4 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
     >
       {DOCUMENT_TYPES[sectionKey].map((option) => (

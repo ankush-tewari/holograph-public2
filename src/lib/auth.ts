@@ -5,8 +5,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
+import { debugLog } from "../utils/debug";
 
-console.log("AUTH OPTIONS LOADING");
+debugLog("AUTH OPTIONS LOADING");
 
 
 export const authOptions: NextAuthOptions = {
@@ -64,7 +65,7 @@ export const authOptions: NextAuthOptions = {
   // Callbacks to customize JWT and session behavior
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      console.log("✅ JWT Callback Triggered");
+      debugLog("✅ JWT Callback Triggered");
       
       // If this is an initial sign in
       if (user) {
@@ -77,21 +78,21 @@ export const authOptions: NextAuthOptions = {
         // If there's a holographId in the session, add it to the token
       //  if (session.holographId) {
       //    token.holographId = session.holographId;
-      //    console.log("🔄 Updated token with holographId:", session.holographId);
+      //    debugLog("🔄 Updated token with holographId:", session.holographId);
       //  }
       //}
 
       // Handle updates to currentHolographId
       if (trigger === 'update' && session?.currentHolographId) {
         token.currentHolographId = session.currentHolographId;
-        console.log("🔄 Updated token with currentHolographId:", session.currentHolographId);
+        debugLog("🔄 Updated token with currentHolographId:", session.currentHolographId);
       }
       
       return token;
     },
     
     async session({ session, token }) {
-      console.log("✅ Session Callback Triggered");
+      debugLog("✅ Session Callback Triggered");
 
       // Add the user ID to the session
       if (session.user) {
@@ -100,7 +101,7 @@ export const authOptions: NextAuthOptions = {
         // Add currentHolographId to the session if it exists in the token
         if (token.currentHolographId) {
           session.user.currentHolographId = token.currentHolographId as string;
-          console.log("✅ Added currentHolographId to session:", token.currentHolographId);
+          debugLog("✅ Added currentHolographId to session:", token.currentHolographId);
         }
       }
 
@@ -127,5 +128,5 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV !== "production",
 };
 
-console.log("AUTH OPTIONS LOADED SUCCESSFULLY");
+debugLog("AUTH OPTIONS LOADED SUCCESSFULLY");
 export default NextAuth(authOptions);

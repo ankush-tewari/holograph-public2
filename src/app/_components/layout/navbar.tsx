@@ -5,6 +5,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
+import { debugLog } from "../../../utils/debug";
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -13,8 +14,8 @@ export default function Navbar() {
   
   // Log session data for debugging
   React.useEffect(() => {
-    console.log("Navbar - Session Status:", status);
-    console.log("Navbar - Session Data:", session);
+    debugLog("Navbar - Session Status:", status);
+    debugLog("Navbar - Session Data:", session);
   }, [session, status]);
 
   const handleLogout = async () => {

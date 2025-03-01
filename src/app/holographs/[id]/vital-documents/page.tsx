@@ -9,6 +9,7 @@ import { DOCUMENT_TYPES } from "../../../../config/documentType";
 import { useSession } from "next-auth/react";
 import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolograph hook
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
+import { debugLog } from "../../../../utils/debug";
 
 interface Document {
   id: string;
@@ -48,7 +49,7 @@ export default function VitalDocumentsPage() {
       if (!holographId || !userId) return;
       
       try {
-        console.log(`🚀 Fetching Vital Documents for Holograph ${holographId}`);
+        debugLog(`🚀 Fetching Vital Documents for Holograph ${holographId}`);
         
         // Use session-based authentication without URL parameters
         const response = await axios.get(`/api/vital-documents?holographId=${holographId}`, {
@@ -56,7 +57,7 @@ export default function VitalDocumentsPage() {
         });
 
         if (response.data.length > 0) {
-          console.log("✅ Retrieved Documents:", response.data);
+          debugLog("✅ Retrieved Documents:", response.data);
           setDocuments(response.data);
         } else {
           console.warn("⚠️ No documents found.");
@@ -78,7 +79,7 @@ export default function VitalDocumentsPage() {
     async function fetchSignedUrls() {
       if (documents.length === 0) return;
 
-      console.log("🚀 Fetching signed URLs for documents...");
+      debugLog("🚀 Fetching signed URLs for documents...");
 
       const urls: { [key: string]: string } = {};
       for (const doc of documents) {
@@ -95,7 +96,7 @@ export default function VitalDocumentsPage() {
       }
 
       setSignedUrls(urls);
-      console.log("✅ Signed URLs retrieved:", urls);
+      debugLog("✅ Signed URLs retrieved:", urls);
     }
 
     if (documents.length > 0) {
@@ -104,7 +105,7 @@ export default function VitalDocumentsPage() {
   }, [documents, holographId]);
 
   const openModal = (document: Document | null) => {
-    console.log("🟢 openModal triggered! Document:", document);
+    debugLog("🟢 openModal triggered! Document:", document);
     if (document) {
       setSelectedDocument({ 
         ...document, 
@@ -115,7 +116,7 @@ export default function VitalDocumentsPage() {
       setSelectedDocument(null);
     }
     setIsModalOpen(true);
-    console.log("🟢 isModalOpen set to TRUE");
+    debugLog("🟢 isModalOpen set to TRUE");
   };
 
   const closeModal = () => {
@@ -138,14 +139,14 @@ export default function VitalDocumentsPage() {
   const refreshDocuments = async () => {
     try {
       setIsLoading(true);
-      console.log(`🔄 Refreshing Vital Documents for Holograph ${holographId}`);
+      debugLog(`🔄 Refreshing Vital Documents for Holograph ${holographId}`);
       
       const response = await axios.get(`/api/vital-documents?holographId=${holographId}`, {
         withCredentials: true,
       });
 
       if (response.data.length > 0) {
-        console.log("✅ Retrieved Documents:", response.data);
+        debugLog("✅ Retrieved Documents:", response.data);
         setDocuments(response.data);
       } else {
         console.warn("⚠️ No documents found.");

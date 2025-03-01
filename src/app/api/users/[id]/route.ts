@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db"; // Ensure this path matches your Prisma client setup
+import { debugLog } from "../../../../utils/debug";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -8,7 +9,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
-    console.log(`🔍 Fetching user details for ID: ${params.id}`);
+    debugLog(`🔍 Fetching user details for ID: ${params.id}`);
 
     const user = await prisma.user.findUnique({
       where: { id: params.id },

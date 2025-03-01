@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { debugLog } from "../../utils/debug";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,8 @@ export default function LoginPage() {
 
   // Log session data for debugging
   useEffect(() => {
-    console.log("Login Page - Session Status:", status);
-    console.log("Login Page - Session Data:", session);
+    debugLog("Login Page - Session Status:", status);
+    debugLog("Login Page - Session Data:", session);
   }, [session, status]);
 
   // Redirect if already authenticated
@@ -32,7 +33,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    console.log("Attempting to sign in with:", { email, password });
+    debugLog("Attempting to sign in with:", { email, password });
 
     try {
       const result = await signIn("credentials", {
@@ -41,7 +42,7 @@ export default function LoginPage() {
         password,
       });
 
-      console.log("Sign in result:", result);
+      debugLog("Sign in result:", result);
 
       if (result?.error) {
         setError(result.error);

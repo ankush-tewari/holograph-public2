@@ -4,10 +4,11 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../../utils/debug";
 
 export async function GET() {
   try {
-    console.log("API Request: /api/auth/user");
+    debugLog("API Request: /api/auth/user");
     
     // Get session using NextAuth
     const session = await getServerSession(authOptions);
@@ -17,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
     
-    console.log("Session found:", session.user);
+    debugLog("Session found:", session.user);
     
     // Fetch user from database using the session user ID
     const user = await prisma.user.findUnique({
@@ -37,7 +38,7 @@ export async function GET() {
       );
     }
     
-    console.log("✅ User found:", user.id);
+    debugLog("✅ User found:", user.id);
     return NextResponse.json({ user });
   } catch (error) {
     console.error('User fetch error:', error);

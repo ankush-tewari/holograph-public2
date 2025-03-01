@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/db';
 import { deleteFileFromGCS } from '@/lib/gcs';
+import { debugLog } from "../../../utils/debug";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'DELETE') {
@@ -33,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ✅ Delete the document from the database
     await prisma.vitalDocument.delete({ where: { id: documentId } });
 
-    console.log('✅ Document successfully deleted:', documentId);
+    debugLog('✅ Document successfully deleted:', documentId);
     return res.status(200).json({ message: 'Document deleted successfully' });
   } catch (error) {
     console.error('❌ Error deleting document:', error);

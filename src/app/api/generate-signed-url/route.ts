@@ -7,22 +7,23 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "@/lib/db"; // ✅ Import Prisma to check permissions
+import { debugLog } from "../../../utils/debug";
 
 const storage = new Storage();
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME as string);
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("🔍 Checking user session...");
+    debugLog("🔍 Checking user session...");
 
     // ✅ Retrieve cookies properly
     const cookieStore = cookies();
     const authToken = await cookieStore.get("auth-token");
-    console.log("🟢 Retrieved Cookies: ", authToken);
+    debugLog("🟢 Retrieved Cookies: ", authToken);
 
     // ✅ Authenticate user with NextAuth
     let session = await getServerSession(authOptions);
-    console.log("✅ Retrieved session:", session);
+    debugLog("✅ Retrieved session:", session);
 
     // 🔴 If no session, attempt manual JWT verification
     if (!session || !session.user) {
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`🟢 User ${session.user.email} requested a signed URL`);
+    debugLog(`🟢 User ${session.user.email} requested a signed URL`);
 
     // ✅ Extract filePath and holographId from query parameters
     const { searchParams } = new URL(req.url);
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
       filePath = filePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
     }
 
-    console.log("🟢 Corrected filePath for DB lookup:", filePath);
+    debugLog("🟢 Corrected filePath for DB lookup:", filePath);
 
     // ✅ Verify user has access to the document
     const document = await prisma.vitalDocument.findUnique({
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    console.log("✅ Document found:", document);
+    debugLog("✅ Document found:", document);
 
     const userId = session.user.id;
     const isOwner = document.uploadedBy === userId;
@@ -105,10 +106,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    console.log("✅ User authorized to access this document.");
+    debugLog("✅ User authorized to access this document.");
 
     // ✅ Generate the Signed URL
-    console.log("🟢 Generating signed URL for:", filePath);
+    debugLog("🟢 Generating signed URL for:", filePath);
     const file = bucket.file(filePath);
 
     try {
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
         expires: Date.now() + 10 * 60 * 1000, // URL valid for 10 minutes
       });
 
-      console.log("✅ Signed URL generated:", signedUrl);
+      debugLog("✅ Signed URL generated:", signedUrl);
       return NextResponse.json({ url: signedUrl });
     } catch (error) {
       console.error("❌ Error generating signed URL:", error);

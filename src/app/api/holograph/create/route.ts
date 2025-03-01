@@ -3,74 +3,75 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { verify, JwtPayload } from 'jsonwebtoken';
+import { debugLog } from "../../../../utils/debug";
 
 export async function POST(request: Request) {
   try {
-    console.log("🚀 Received request to create holograph");
+    debugLog("🚀 Received request to create holograph");
 
     // 🔍 Log received cookies
-    console.log("🔍 Received Cookies:", request.headers.get('cookie'));
+    debugLog("🔍 Received Cookies:", request.headers.get('cookie'));
 
     // ✅ Manually extract `auth-token`
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = Object.fromEntries(cookieHeader.split('; ').map(c => c.split('=')));
     const authToken = cookies['auth-token'];
 
-    console.log("🔑 Extracted Token:", authToken);
+    debugLog("🔑 Extracted Token:", authToken);
 
     let session = null;
 
     if (authToken) {
       try {
         // ✅ Verify the JWT token
-        console.log("🔍 Decoding JWT with secret:", process.env.JWT_SECRET);
+        debugLog("🔍 Decoding JWT with secret:", process.env.JWT_SECRET);
         const decoded = verify(authToken, process.env.JWT_SECRET!);
 
         if (typeof decoded === 'object' && 'id' in decoded && 'email' in decoded) {
-          console.log("✅ Token successfully decoded:", decoded);
+          debugLog("✅ Token successfully decoded:", decoded);
           session = { user: { id: decoded.id, email: decoded.email } };
         } else {
-          console.log("❌ Decoded token does not contain expected fields:", decoded);
+          debugLog("❌ Decoded token does not contain expected fields:", decoded);
         }
       } catch (err) {
-        console.log("❌ Token verification failed:", err);
+        debugLog("❌ Token verification failed:", err);
       }
     }
 
     // ✅ Fallback: Try NextAuth session if JWT failed
     if (!session) {
-      console.log("🔄 Trying getServerSession as a fallback...");
+      debugLog("🔄 Trying getServerSession as a fallback...");
       session = await getServerSession(authOptions);
     }
 
-    console.log("🔑 Final Session:", session);
+    debugLog("🔑 Final Session:", session);
 
     if (!session || !session.user?.id) {
       console.error("❌ Unauthorized - No session found!");
       return NextResponse.json({ error: 'Unauthorized - Session not found' }, { status: 401 });
     }
 
-    console.log("✅ Session verified. User ID:", session.user.id);
+    debugLog("✅ Session verified. User ID:", session.user.id);
 
     // Extract request data
     const { title } = await request.json();
-    console.log("📌 Received request with title:", title);
+    debugLog("📌 Received request with title:", title);
 
     // Validate input
     if (!title) {
-      console.log("❌ No title provided.");
+      debugLog("❌ No title provided.");
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
     // ✅ Create holograph and principal relationship in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      console.log("✅ Creating holograph for user:", session.user.id);
+      debugLog("✅ Creating holograph for user:", session.user.id);
 
       const holograph = await tx.holograph.create({
         data: { title },
       });
 
-      console.log("✅ Creating principal relationship.");
+      debugLog("✅ Creating principal relationship.");
       await tx.holographPrincipal.create({
         data: {
           userId: session.user.id,
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       return holograph;
     });
 
-    console.log("🎉 Successfully created holograph:", result);
+    debugLog("🎉 Successfully created holograph:", result);
     
     // ✅ Response with proper CORS headers
     const response = NextResponse.json({

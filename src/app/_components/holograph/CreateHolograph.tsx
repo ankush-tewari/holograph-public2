@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { debugLog } from "../../../utils/debug";
 
 interface Holograph {
   id: string;
@@ -44,10 +45,10 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
       }
   
       const newHolograph = await response.json(); // ✅ Read response JSON only once
-      console.log("✅ Holograph created:", newHolograph);
+      debugLog("✅ Holograph created:", newHolograph);
   
       if (onSuccess) {
-        console.log("✅ Calling onSuccess function...");
+        debugLog("✅ Calling onSuccess function...");
         onSuccess(newHolograph);
       }
     } catch (error) {

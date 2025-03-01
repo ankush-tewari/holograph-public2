@@ -2,14 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
+import { debugLog } from "../../../utils/debug";
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("🔍 API Route: Getting session debug info");
+    debugLog("🔍 API Route: Getting session debug info");
     
     // Get the current session on the server side
     const session = await getServerSession(authOptions);
-    console.log("🔍 Session in debug API:", session);
+    debugLog("🔍 Session in debug API:", session);
     
     // Return the session data for debugging
     return NextResponse.json({

@@ -7,6 +7,7 @@ import axios from "axios";
 import { createPortal } from "react-dom";
 import React from "react"; // ✅ Ensure React is imported
 import { DOCUMENT_TYPES } from "../../../config/documentType";
+import { debugLog } from "../../../utils/debug";
 
 
 interface VitalDocument {
@@ -27,7 +28,7 @@ interface VitalDocumentModalProps {
 
 export default function VitalDocumentModal({ userId, document: docData, holographId, onClose, onSuccess }: 
   VitalDocumentModalProps) { // adding onClose and onSuccess handlers  
-  console.log("🟢 VitalDocumentModal is rendering!"); // ✅ Debug log added
+  debugLog("🟢 VitalDocumentModal is rendering!"); // ✅ Debug log added
 
   const [mounted, setMounted] = useState(false); 
   // Only run on client-side after component mounts
@@ -35,10 +36,10 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   const sectionKey = "vitalDocuments"; //for the contents of the Vital Document Type drop-down list
   
   useEffect(() => {
-    console.log("🔍 Modal component mounted, isModalOpen:", true);
+    debugLog("🔍 Modal component mounted, isModalOpen:", true);
     setMounted(true);
     return () => {
-      console.log("🔍 Modal component unmounting");
+      debugLog("🔍 Modal component unmounting");
       setMounted(false);
     };
   }, []);
@@ -105,7 +106,7 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
       return;
     }
   
-    console.log("🟢 Sending FormData:", Object.fromEntries(formDataToSend.entries()));
+    debugLog("🟢 Sending FormData:", Object.fromEntries(formDataToSend.entries()));
   
     try {
       await axios.post(`/api/vital-documents`, formDataToSend, {
@@ -177,7 +178,7 @@ const modalContent = (
   }
   
   // Use createPortal to render the modal outside of its parent DOM hierarchy
-  console.log("Creating portal for modal", { mounted, modalContent });
+  debugLog("Creating portal for modal", { mounted, modalContent });
   return createPortal(
     modalContent,
     document.body

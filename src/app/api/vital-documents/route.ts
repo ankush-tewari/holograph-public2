@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { uploadFileToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import formidable from "formidable";
 import { Duplex } from "stream";
+import { debugLog } from "../../../utils/debug";
 
 // Disable Next.js's default body parsing so formidable can handle it
 export const config = {
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const holographId = searchParams.get("holographId");
 
-    console.log("🟢 GET request for holographId:", holographId);
+    debugLog("🟢 GET request for holographId:", holographId);
 
     if (!holographId) {
       console.error("❌ Missing holographId in GET request");
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
       },
     });
 
-    console.log("✅ Retrieved documents:", documents);
+    debugLog("✅ Retrieved documents:", documents);
     return NextResponse.json(documents, { status: 200 });
 
   } catch (error) {
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     nodeReq.push(null);
     nodeReq.headers = Object.fromEntries(req.headers.entries());
 
-    console.log("🟢 Converted Request to Node stream for formidable");
+    debugLog("🟢 Converted Request to Node stream for formidable");
 
     // Parse the incoming form data
     const { fields, files } = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
@@ -75,8 +76,8 @@ export async function POST(req: Request) {
       }
     );
 
-    console.log("🟢 Formidable Parsed Fields:", fields);
-    console.log("🟢 Formidable Parsed Files:", files);
+    debugLog("🟢 Formidable Parsed Fields:", fields);
+    debugLog("🟢 Formidable Parsed Files:", files);
 
     // Helper function to extract values
     const getSingleValue = (value: string | string[] | undefined): string | undefined => {
@@ -108,17 +109,17 @@ export async function POST(req: Request) {
 
     if (!filePath) {
       // ✅ If no existing file path, check if this is a new document
-      console.log("🔍 Checking if this is a new document...");
+      debugLog("🔍 Checking if this is a new document...");
       const existingDocument = await prisma.vitalDocument.findFirst({
         where: { holographId, name },
         select: { filePath: true },
       });
 
       if (existingDocument) {
-        console.log("✅ Found existing document in DB:", existingDocument.filePath);
+        debugLog("✅ Found existing document in DB:", existingDocument.filePath);
         filePath = existingDocument.filePath;
       } else {
-        console.log("🆕 No existing document found. Creating new document.");
+        debugLog("🆕 No existing document found. Creating new document.");
         isNewDocument = true;
       }
     }
@@ -127,36 +128,37 @@ export async function POST(req: Request) {
 
     if (fileField) {
       const file = Array.isArray(fileField) ? fileField[0] : fileField;
-      console.log("🟢 Using new file:", file);
+      debugLog("🟢 Using new file:", file);
       const gcsFileName = `uploads/${Date.now()}-${file.originalFilename}`;
-      console.log("🟢 GCS File Name:", gcsFileName);
+      debugLog("🟢 GCS File Name:", gcsFileName);
       newFilePath = await uploadFileToGCS(file, gcsFileName);
-      console.log("🟢 File uploaded to GCS. Stored Path:", newFilePath);
+      debugLog("🟢 File uploaded to GCS. Stored Path:", newFilePath);
 
       // ✅ Delete the old file from GCS if a new file was uploaded and this is an update
       if (!isNewDocument && filePath && filePath !== newFilePath) {
-        console.log("🗑️ Deleting old file from GCS:", filePath);
+        debugLog("🗑️ Deleting old file from GCS:", filePath);
         await deleteFileFromGCS(filePath);
       }
     } else {
-      console.log("✅ No new file uploaded, keeping existing file:", filePath);
+      debugLog("✅ No new file uploaded, keeping existing file:", filePath);
     }
 
     if (!newFilePath) {
       console.error("❌ No valid file path available.");
       return NextResponse.json({ error: "File path missing" }, { status: 400 });
+      
     }
 
     // ✅ Normalize file path
     const normalizedFilePath = newFilePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
 
     //debugging for type
-    console.log("RAW type field:", fields.type);
-    console.log("Parsed type:", type);
+    debugLog("RAW type field:", fields.type);
+    debugLog("Parsed type:", type);
     
     if (isNewDocument) {
       // ✅ Create a new document
-      console.log("🆕 Creating a new document...");
+      debugLog("🆕 Creating a new document...");
       const newDocument = await prisma.vitalDocument.create({
         data: {
           holographId,
@@ -168,11 +170,11 @@ export async function POST(req: Request) {
         },
       });
 
-      console.log("✅ New document created:", newDocument);
+      debugLog("✅ New document created:", newDocument);
       return NextResponse.json(newDocument, { status: 201 });
     } else {
       // ✅ Update an existing document
-      console.log("✏️ Updating existing document...");
+      debugLog("✏️ Updating existing document...");
       const updatedDocument = await prisma.vitalDocument.update({
         where: {
           holographId_filePath: {
@@ -189,7 +191,7 @@ export async function POST(req: Request) {
         },
       });
 
-      console.log("✅ Document successfully updated:", updatedDocument);
+      debugLog("✅ Document successfully updated:", updatedDocument);
       return NextResponse.json(updatedDocument, { status: 200 });
     }
 

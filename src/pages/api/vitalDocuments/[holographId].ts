@@ -2,6 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/db'; // ✅ Corrected Prisma import
+import { debugLog } from "../../../utils/debug";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { holographId } = req.query;

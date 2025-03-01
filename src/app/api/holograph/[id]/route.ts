@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { debugLog } from "../../../../utils/debug";
 
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
@@ -23,13 +24,13 @@ export async function GET(request: Request, context: { params: { id: string } })
     
     // Log both session user and query user if different
     if (queryUserId && queryUserId !== userId) {
-      console.log(`⚠️ Note: Query userId (${queryUserId}) differs from session userId (${userId}). Using session userId.`);
+      debugLog(`⚠️ Note: Query userId (${queryUserId}) differs from session userId (${userId}). Using session userId.`);
     }
 
     // ✅ Await params before using it
     const { id: holographId } = await context.params; 
 
-    console.log(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
+    debugLog(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
 
     // ✅ Fetch Holograph with Principals & Delegates
     const holograph = await prisma.holograph.findUnique({
@@ -49,7 +50,7 @@ export async function GET(request: Request, context: { params: { id: string } })
       return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
     }
 
-    console.log(`✅ Found Holograph: ${holograph.title}`);
+    debugLog(`✅ Found Holograph: ${holograph.title}`);
 
     // ✅ Fetch the first Principal as the "owner"
     const ownerId = holograph.principals.length > 0 ? holograph.principals[0].userId : null;
@@ -60,7 +61,7 @@ export async function GET(request: Request, context: { params: { id: string } })
         })
       : null;
 
-    console.log(`👤 Owner Found: ${owner?.name || "Unknown User"}`);
+    debugLog(`👤 Owner Found: ${owner?.name || "Unknown User"}`);
 
     // ✅ Check if the user is authorized
     const isAuthorized =
@@ -68,7 +69,7 @@ export async function GET(request: Request, context: { params: { id: string } })
       holograph.delegates.some(d => d.userId === userId);
 
     if (isAuthorized) {
-      console.log(`✅ User ${userId} is authorized to view full Holograph ${holographId}`);
+      debugLog(`✅ User ${userId} is authorized to view full Holograph ${holographId}`);
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title,
@@ -84,7 +85,7 @@ export async function GET(request: Request, context: { params: { id: string } })
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    console.log(`🔍 Checking invitation for ${user.email} to Holograph ${holographId}`);
+    debugLog(`🔍 Checking invitation for ${user.email} to Holograph ${holographId}`);
 
     const invitation = await prisma.invitation.findFirst({
       where: {
@@ -95,7 +96,7 @@ export async function GET(request: Request, context: { params: { id: string } })
     });
 
     if (invitation) {
-      console.log(`🔹 User ${userId} has an invitation to Holograph ${holographId}. Returning limited data.`);
+      debugLog(`🔹 User ${userId} has an invitation to Holograph ${holographId}. Returning limited data.`);
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title, // Only return the title if invited

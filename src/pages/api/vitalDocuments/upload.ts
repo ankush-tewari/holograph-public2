@@ -4,6 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingForm } from 'formidable';
 import { prisma } from '@/lib/db';
 import { uploadFileToGCS } from '@/lib/gcs';
+import { debugLog } from "../../../utils/debug";
 
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // Ensure correct path
@@ -14,7 +15,7 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("➡️ Incoming request to upload a file:", req.method);
+  debugLog("➡️ Incoming request to upload a file:", req.method);
 
   if (req.method !== "POST") {
     console.error("❌ Method not allowed:", req.method);
@@ -36,8 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: "File upload failed" });
     }
 
-    console.log("🟢 Parsed form fields:", fields);
-    console.log("🟢 Parsed files:", files);
+    debugLog("🟢 Parsed form fields:", fields);
+    debugLog("🟢 Parsed files:", files);
 
     const { holographId, name, type, notes } = fields;
     const file = files.file?.[0];
@@ -65,15 +66,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      console.log("🔄 Uploading file to Google Cloud Storage...");
+      debugLog("🔄 Uploading file to Google Cloud Storage...");
 
       const section = searchParams.get("section") || "vital-documents"; // Default to 'vital-documents' if not provided
       const gcsFileName = `${holographId}/${section}/${Date.now()}-${file.originalFilename}`;
       const fileUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
 
-      console.log("✅ File uploaded successfully:", gcsFileName);
+      debugLog("✅ File uploaded successfully:", gcsFileName);
 
-      console.log("🔄 Saving file details in database...");
+      debugLog("🔄 Saving file details in database...");
       const newDocument = await prisma.vitalDocument.create({
         data: {
           holographId: Array.isArray(holographId) ? holographId[0] : holographId,
@@ -85,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      console.log("✅ File metadata saved:", newDocument);
+      debugLog("✅ File metadata saved:", newDocument);
       return res.status(201).json(newDocument);
     } catch (error) {
       console.error("❌ Upload processing error:", error);

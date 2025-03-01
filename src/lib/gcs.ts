@@ -1,6 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
 import { Readable } from 'stream';
+import { debugLog } from "../utils/debug";
 
 
 // ✅ Ensure environment variables are correctly set
@@ -9,19 +10,19 @@ if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 } else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
   console.error('❌ Service account key file does not exist at:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 } else {
-  console.log('🟢 Found service account key file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  debugLog('🟢 Found service account key file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 }
 
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
   console.error('❌ GOOGLE_CLOUD_PROJECT is missing.');
 } else {
-  console.log('🟢 Google Cloud Project:', process.env.GOOGLE_CLOUD_PROJECT);
+  debugLog('🟢 Google Cloud Project:', process.env.GOOGLE_CLOUD_PROJECT);
 }
 
 if (!process.env.GCS_BUCKET_NAME) {
   console.error('❌ GCS_BUCKET_NAME is missing.');
 } else {
-  console.log('🟢 Using Google Cloud Storage Bucket:', process.env.GCS_BUCKET_NAME);
+  debugLog('🟢 Using Google Cloud Storage Bucket:', process.env.GCS_BUCKET_NAME);
 }
 
 // ✅ Initialize Google Cloud Storage
@@ -46,17 +47,17 @@ export async function deleteFileFromGCS(filePath: string): Promise<void> {
     }
 
     try {
-      console.log('🔄 Original filePath from database:', filePath);
+      debugLog('🔄 Original filePath from database:', filePath);
 
       // ✅ Ensure we are only using the relative object path
       let gcsFilePath = filePath.trim(); // Ensure no extra spaces
 
-      console.log('🟢 Corrected GCS file path for deletion:', gcsFilePath);
+      debugLog('🟢 Corrected GCS file path for deletion:', gcsFilePath);
       const file = bucket.file(gcsFilePath);
 
       file.delete()
         .then(() => {
-          console.log('✅ File successfully deleted from GCS:', gcsFilePath);
+          debugLog('✅ File successfully deleted from GCS:', gcsFilePath);
           resolve();
         })
         .catch((error) => {
@@ -77,8 +78,8 @@ export async function uploadFileToGCS(file: any, gcsFileName: string): Promise<s
       return reject('No file provided');
     }
     
-    console.log("Received file:", file);
-    console.log('🟢 Starting file upload:', gcsFileName);
+    debugLog("Received file:", file);
+    debugLog('🟢 Starting file upload:', gcsFileName);
     const fileUpload = bucket.file(gcsFileName);
 
     let readStream;
@@ -108,7 +109,7 @@ export async function uploadFileToGCS(file: any, gcsFileName: string): Promise<s
         reject(err);
       })
       .on('finish', async () => {
-        console.log('✅ File successfully uploaded to GCS:', gcsFileName);
+        debugLog('✅ File successfully uploaded to GCS:', gcsFileName);
         // Construct the full public URL for the uploaded file.
         const publicUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
         resolve(publicUrl);

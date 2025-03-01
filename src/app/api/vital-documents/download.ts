@@ -5,6 +5,7 @@ import { Storage } from "@google-cloud/storage";
 import { getServerSession } from "next-auth"; // Ensure this is correctly configured
 import { authOptions } from "@/lib/auth"; // Adjust path as needed
 import { prisma } from "@/lib/db";
+import { debugLog } from "../../../utils/debug";
 
 const storage = new Storage({
     keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Missing holographId or filePath parameter" }, { status: 400 });
     }
 
-    console.log("🟢 Download request for:", filePath);
+    debugLog("🟢 Download request for:", filePath);
 
     // ✅ Step 3: Check if the user has access to this document
     const document = await prisma.vitalDocument.findUnique({
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: No access to this document" }, { status: 403 });
     }
 
-    console.log(`✅ User ${userId} is authorized to access ${filePath}`);
+    debugLog(`✅ User ${userId} is authorized to access ${filePath}`);
 
     // ✅ Step 4: Stream the file from GCS
     const file = bucket.file(filePath);

@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import CreateHolograph from '../_components/holograph/CreateHolograph';
 import ManageHolographAccess from '../_components/holograph/ManageHolographAccess';
+import { debugLog } from "../../utils/debug";
 
 interface User {
   id: string;

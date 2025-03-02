@@ -162,65 +162,66 @@ export default function VitalDocumentsPage() {
   if (status === 'unauthenticated') return <p>Please log in</p>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Optional: Add debug component to see session state */}
-      <SessionDebug />
-      
-      <h1 className="text-2xl font-bold">Vital Documents</h1>
-      <p className="text-gray-600">Manage your important documents securely.</p>
+    <div className="p-8 max-w-4xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
+      <h1 className="text-3xl font-bold text-gray-800">Vital Documents</h1>
+      <p className="text-gray-600 text-lg">Manage your important documents securely.</p>
 
-      <button className="bg-blue-500 text-white px-4 py-2 rounded mt-4" onClick={() => openModal(null)}>Add New Vital Document</button>
-      <button
-        onClick={() => router.push(`/holographs/${holographId}`)}
-        className="bg-gray-500 text-white px-4 py-2 rounded mb-4 hover:bg-gray-600"
-      >
-        ← Back to Holograph
-      </button>
+      <div className="mt-6 flex gap-4">
+        <button className="btn-primary" onClick={() => openModal(null)}>
+          ➕ Add New Vital Document
+        </button>
+        <button
+          onClick={() => router.push(`/holographs/${holographId}`)}
+          className="btn-secondary"
+        >
+          ← Back to Holograph
+        </button>
+      </div>
+
       {isModalOpen && userId && (
         <VitalDocumentModal 
           userId={userId}
           document={selectedDocument}
           holographId={holographId} 
           onClose={closeModal}
-          onSuccess={refreshDocuments}
+          onSuccess={() => window.location.reload()} // Refresh after modal action
         />
       )}
 
       <div className="mt-6">
-        <h2 className="text-lg font-semibold">Your Documents</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Your Documents</h2>
         {isLoading ? (
-          <p>Loading...</p>
+          <p className="text-gray-600">Loading...</p>
         ) : documents.length === 0 ? (
-          <p>No documents added yet.</p>
+          <p className="text-gray-500">No documents added yet.</p>
         ) : (
-          <ul>
+          <ul className="mt-4">
             {documents.map((doc) => (
-              <li key={doc.id} className="p-2 border-b flex justify-between">
+              <li key={doc.id} className="p-4 bg-gray-50 border-b flex justify-between items-center rounded-lg shadow-sm hover:shadow-md transition">
                 <div>
                   <a
                     href={signedUrls[doc.id] || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-500 underline"
+                    className="text-blue-600 font-semibold hover:underline"
                   >
                     {doc.name}
-                  </a>{" "}
-                  - {DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}
-
-                  {doc.notes && <p className="text-gray-600 italic">Notes: {doc.notes}</p>}
+                  </a>
+                  <p className="text-gray-600">{DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</p>
+                  {doc.notes && <p className="text-gray-500 italic">Notes: {doc.notes}</p>}
                 </div>
-                <div>
+                <div className="flex gap-2">
                   <button
-                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 mx-2"
+                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
                     onClick={() => openModal(doc)}
                   >
-                    Edit
+                    ✏️ Edit
                   </button>
                   <button
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
                     onClick={() => handleDelete(doc.id)}
                   >
-                    Delete
+                    🗑 Delete
                   </button>
                 </div>
               </li>

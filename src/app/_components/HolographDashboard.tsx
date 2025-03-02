@@ -217,29 +217,23 @@ const HolographDashboard = () => {
           <div className="relative w-full max-w-2xl bg-white rounded-lg">
             <button 
               onClick={() => setShowCreateForm(false)}
-              className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full"
+              className="btn-secondary absolute right-4 top-4 p-2"
             >
               <X size={20} />
             </button>
             <CreateHolograph 
               userId={session?.user?.id}
-              onSuccess={handleCreateSuccess}
+              onSuccess={() => router.refresh()}
             />
           </div>
         </div>
       ) : (
         <>
-          {/* Optional: Session debug info (remove in production) 
-          <div className="bg-gray-100 p-3 rounded text-xs mb-4">
-            <p><strong>Auth Status:</strong> {status}</p>
-            <p><strong>User ID:</strong> {session?.user?.id || 'Not available'}</p>
-          </div> */}
-
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Holographs</h1>
             <button 
               onClick={() => setShowCreateForm(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="btn-primary flex items-center gap-2"
             >
               <Plus size={20} />
               Create New
@@ -247,14 +241,11 @@ const HolographDashboard = () => {
           </div>
 
           <div className="w-full">
-            {/* Tab buttons */}
             <div className="flex gap-4 border-b mb-6">
               <button
                 onClick={() => setActiveTab('owned')}
                 className={`px-4 py-2 font-medium ${
-                  activeTab === 'owned'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                  activeTab === 'owned' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 📜 My Holographs
@@ -262,86 +253,29 @@ const HolographDashboard = () => {
               <button
                 onClick={() => setActiveTab('delegated')}
                 className={`px-4 py-2 font-medium ${
-                  activeTab === 'delegated'
-                    ? 'text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                  activeTab === 'delegated' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 🤝 Shared with Me
               </button>
             </div>
 
-            {/* Loading state */}
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : (
               <>
-                {/* Owned Holographs */}
                 {activeTab === 'owned' && (
                   <div className="grid gap-4 md:grid-cols-2">
                     {holographs.owned.map(holograph => (
                       <div 
                         key={holograph.id} 
-                        className="bg-blue-50 rounded-lg border border-blue-300 p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleHolographClick(holograph.id)}
+                        className="holograph-item cursor-pointer"
+                        onClick={() => router.push(`/holographs/${holograph.id}`)}
                       >
-                        <h3 className="text-lg font-semibold text-blue-700">
-                          📜 {holograph.title}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          Last modified: {holograph.updatedAt ? format(new Date(holograph.updatedAt), "MMM d, yyyy") : "Unknown"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Delegated Holographs */}
-                {activeTab === 'delegated' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {holographs.delegated.map(holograph => (
-                      <div 
-                        key={holograph.id} 
-                        className="bg-green-50 rounded-lg border border-green-300 p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleHolographClick(holograph.id)}
-                      >
-                        <h3 className="text-lg font-semibold text-green-700">
-                          🤝 {holograph.title}
-                        </h3>
-                        <p className="text-sm text-gray-600">Shared by {holograph.owner?.name ?? "Unknown User"}</p>
-                        <p className="text-sm text-gray-600">
-                          Last modified: {holograph.updatedAt ? format(new Date(holograph.updatedAt), "MMM d, yyyy") : "Unknown"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Pending Invitations Section */}
-                {invitations.length > 0 && (
-                  <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg mb-6 mt-6">
-                    <h2 className="text-xl font-semibold text-yellow-700 mb-2">Pending Invitations</h2>
-                    {invitations.map((invite) => (
-                      <div key={invite.id} className="flex justify-between items-center p-3 border-b">
-                        <p className="text-gray-700">
-                          Invitation to join <strong>{invite.holographTitle}</strong> by <strong>{invite.inviterName}</strong> as a <strong>{invite.role}</strong>
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                            onClick={() => handleAcceptInvite(invite.id, invite.holographId)}
-                          >
-                            Accept
-                          </button>
-                          <button
-                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                            onClick={() => handleDeclineInvite(invite.id)}
-                          >
-                            Decline
-                          </button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-blue-700">📜 {holograph.title}</h3>
+                        <p className="text-sm text-gray-600">Last modified: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
                       </div>
                     ))}
                   </div>

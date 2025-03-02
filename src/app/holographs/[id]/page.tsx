@@ -70,35 +70,42 @@ const HolographDetailPage = () => {
     if (userId) fetchHolograph();
   }, [params.id, userId, router]);
 
-  if (isSessionLoading || isLoading) return <p>Loading...</p>;
-  if (!isAuthenticated) return <p>Please log in</p>;
-  if (!isAuthorized) return <p className="text-red-500">{error}</p>;
-  if (!holograph) return <p>No Holograph found.</p>;
+  if (isSessionLoading || isLoading) 
+    return <p className="text-center text-gray-600 text-lg">Loading...</p>;
+  
+  if (!isAuthenticated) 
+    return <p className="text-center text-red-500 text-lg">Please log in</p>;
+  
+  if (!isAuthorized) 
+    return <p className="text-center text-red-600 text-lg">{error}</p>;
+  
+  if (!holograph) 
+    return <p className="text-center text-gray-500 text-lg">No Holograph found.</p>;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold">{holograph.title}</h1>
-      <p className="text-gray-600">Created: {new Date(holograph.createdAt).toLocaleDateString()}</p>
-      <p className="text-gray-600">Last Updated: {new Date(holograph.updatedAt).toLocaleDateString()}</p>
+    <div className="p-6 max-w-4xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
+      <h1 className="text-3xl font-bold text-gray-800">{holograph.title}</h1>
+      <p className="text-gray-600 text-lg">Created: {new Date(holograph.createdAt).toLocaleDateString()}</p>
+      <p className="text-gray-600 text-lg">Last Updated: {new Date(holograph.updatedAt).toLocaleDateString()}</p>
       
       <div className="mt-6 flex gap-4">
         <button
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           onClick={() => { setInviteRole('Principal'); setShowInviteModal(true); }}
         >
-          Add Principal
+          ➕ Add Principal
         </button>
         <button
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
           onClick={() => { setInviteRole('Delegate'); setShowInviteModal(true); }}
         >
-          Add Delegate
+          👥 Add Delegate
         </button>
       </div>
 
       <button
         onClick={() => router.push('/dashboard')}
-        className="bg-gray-500 text-white px-4 py-2 rounded mb-4 hover:bg-gray-600"
+        className="mt-4 bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition"
       >
         ← Back to Dashboard
       </button>
@@ -115,7 +122,7 @@ const HolographDetailPage = () => {
       <div className="mt-6 border-t pt-4">
         <Link href={`/holographs/${holograph.id}/vital-documents`}>
           <h2 className="text-xl font-semibold text-blue-600 hover:underline cursor-pointer">
-            Vital Documents
+            📂 Vital Documents
           </h2>
         </Link>
         <p className="text-gray-600">Manage all essential documents like wills, trusts, and health directives.</p>

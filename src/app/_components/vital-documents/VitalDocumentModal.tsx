@@ -126,50 +126,70 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
 // Create modal content with explicit styling
 const modalContent = (
   <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-  <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+          {docData ? "Edit Document" : "Add New Document"}
+        </h2>
+        
+        {/* Document Name Input */}
+        <label className="block text-gray-700 font-medium">Document Name</label>
+        <input
+          type="text"
+          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter document name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
 
-    <h2 className="text-xl font-semibold">
-      {docData ? "Edit Document" : "Add Document"}
-    </h2>
-    <input
-      type="text"
-      placeholder="Name"
-      value={formData.name}
-      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-    />
-    <select
-      value={formData.type}
-      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-      required
-      className="mt-2 mb-4 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-    >
-      {DOCUMENT_TYPES[sectionKey].map((option) => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
-    <textarea
-      placeholder="Notes"
-      value={formData.notes || ""}
-      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-    />
-    <input 
-      type="file" 
-      onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
-    />
-    {!formData.file && formData.filePath && (
-      <p className="text-gray-600">Existing file: {formData.filePath.split('/').pop()}</p>
-    )}
-    <button
-      onClick={handleSubmit}
-      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-    >
-      {document ? "Update" : "Upload"}
-    </button>
-    <button onClick={onClose} className="ml-2 px-4 py-2 bg-gray-500 text-white rounded">
-      Cancel
-    </button>
-  </div>
-</div>
+        {/* Document Type Dropdown */}
+        <label className="block text-gray-700 font-medium mt-4">Document Type</label>
+        <select
+          value={formData.type}
+          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          {DOCUMENT_TYPES[sectionKey].map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+
+        {/* Notes Input */}
+        <label className="block text-gray-700 font-medium mt-4">Notes</label>
+        <textarea
+          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Enter notes (optional)"
+          value={formData.notes || ""}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+        />
+
+        {/* File Upload */}
+        <label className="block text-gray-700 font-medium mt-4">Upload File</label>
+        <input
+          type="file"
+          className="w-full border border-gray-300 rounded-lg p-2"
+          onChange={handleFileChange}
+        />
+        {!formData.file && formData.filePath && (
+          <p className="text-gray-600 mt-2">Existing file: {formData.filePath.split('/').pop()}</p>
+        )}
+
+        {/* Buttons */}
+        <div className="mt-6 flex justify-end gap-4">
+          <button
+            onClick={handleSubmit}
+            className="btn-primary"
+          >
+            {docData ? "Update" : "Upload"}
+          </button>
+          <button
+            onClick={onClose}
+            className="btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
 );
   
   // Only render on client-side with portal

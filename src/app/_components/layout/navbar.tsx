@@ -32,44 +32,41 @@ export default function Navbar() {
   const isAuthenticated = status === 'authenticated' && session?.user;
 
   return (
-    <nav className="bg-white shadow">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-gray-800">
-              Holograph
-            </Link>
-          </div>
-          
-          <div className="flex items-center">
+    <nav className="bg-white shadow-md sticky top-0 z-50 font-sans">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/dashboard" className="text-2xl font-bold text-gray-800">
+            Holograph
+          </Link>
+
+          <div className="flex items-center gap-6">
             {isAuthenticated ? (
               <>
                 <Link 
                   href="/dashboard" 
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  className={`px-4 py-2 rounded-md text-lg font-medium ${
                     pathname === '/dashboard' 
-                      ? 'text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   Dashboard
                 </Link>
                 <Link 
                   href="/documents" 
-                  className={`ml-4 px-3 py-2 rounded-md text-sm font-medium ${
+                  className={`px-4 py-2 rounded-md text-lg font-medium ${
                     pathname === '/documents' 
-                      ? 'text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   Documents
                 </Link>
-                <div className="ml-4 px-3 py-2 text-sm text-gray-500">
-                  {session?.user?.name || session?.user?.email}
-                </div>
+
+                {/* Logout Button */}
                 <button
                   onClick={handleLogout}
-                  className="ml-4 px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700"
+                  className="px-4 py-2 text-lg font-medium text-gray-600 hover:text-red-600 transition"
                 >
                   Logout
                 </button>
@@ -78,17 +75,13 @@ export default function Navbar() {
               <>
                 <Link 
                   href="/login"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    pathname === '/login' 
-                      ? 'text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  className="px-4 py-2 text-lg font-medium text-gray-600 hover:text-gray-800"
                 >
                   Login
                 </Link>
                 <Link 
                   href="/register"
-                  className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  className="px-5 py-2 rounded-md text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
                 >
                   Sign Up
                 </Link>
@@ -98,5 +91,6 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
+
   )
 }

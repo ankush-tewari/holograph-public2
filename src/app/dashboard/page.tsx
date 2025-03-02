@@ -40,31 +40,32 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-xl text-gray-700">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 gap-8">
-        {/* User Welcome Card */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Welcome {user?.name || 'User'}!</h2>
-          <p className="text-gray-600">Email: {user?.email}</p>
+    <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-10 bg-gray-50 min-h-screen font-sans">
+        <div className="grid grid-cols-1 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Welcome {user?.name || 'User'}!
+            </h2>
+            <p className="text-gray-600 text-lg">Email: {user?.email}</p>
+
+            {/* Remove or update session debug info if not using session 
+            <pre className="bg-gray-100 p-2">User ID: /src/app/dashboard/page.tsx {user?.id}</pre>
+            */}
+
+            {/* ✅ Debug: Show session details on the page */}
+            {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre>*/}
+            
+            {/* Holograph Dashboard */}
+            {user && <HolographDashboard userId={user.id} />}
+          </div>
         </div>
-
-        {/* Remove or update session debug info if not using session 
-        <pre className="bg-gray-100 p-2">User ID: /src/app/dashboard/page.tsx {user?.id}</pre>
-        */}
-
-        {/* ✅ Debug: Show session details on the page */}
-        {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre>*/}
-        
-        {/* Holograph Dashboard */}
-        {user && <HolographDashboard userId={user.id} />}
-      </div>
     </div>
   )
 }

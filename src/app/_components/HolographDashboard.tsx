@@ -1,4 +1,4 @@
-// src/app/_components/HolographDashboard.tsx - this is the main user dashboard
+// src/app/_components/HolographDashboard.tsx - this is the main user dashboard - shows ALL Holographs for a user
 
 "use client";
 
@@ -96,12 +96,10 @@ const HolographDashboard = () => {
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
             ...holo,
-            lastModified: holo.updatedAt, // ✅ Ensure lastModified is assigned from updatedAt
             owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
-            lastModified: holo.updatedAt, // ✅ Ensure lastModified is assigned from updatedAt
             owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
           })),
         });

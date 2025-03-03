@@ -38,10 +38,14 @@ export async function GET(request: Request, context: { params: { id: string } })
       select: {
         id: true,
         title: true,
-        createdAt: true,  // ✅ Ensure this is included
-        updatedAt: true,  // ✅ Ensure this is included
-        principals: { select: { userId: true } },
-        delegates: { select: { userId: true } },
+        createdAt: true,
+        updatedAt: true,
+        principals: { 
+          select: { user: { select: { id: true, name: true } } } 
+        },
+        delegates: { 
+          select: { user: { select: { id: true, name: true } } } 
+        },
       },
     });
 
@@ -65,16 +69,18 @@ export async function GET(request: Request, context: { params: { id: string } })
 
     // ✅ Check if the user is authorized
     const isAuthorized =
-      holograph.principals.some(p => p.userId === userId) ||
-      holograph.delegates.some(d => d.userId === userId);
+    holograph.principals.some(p => p.user.id === userId) ||
+    holograph.delegates.some(d => d.user.id === userId);
 
     if (isAuthorized) {
       debugLog(`✅ User ${userId} is authorized to view full Holograph ${holographId}`);
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title,
-        lastModified: holograph.updatedAt.toISOString(),
-        owner: owner ? { id: owner.id, name: owner.name || "Unknown User" } : null,
+        createdAt: holograph.createdAt.toISOString(),
+        updatedAt: holograph.updatedAt.toISOString(),
+        principals: holograph.principals.map(p => ({ id: p.user.id, name: p.user.name })),
+        delegates: holograph.delegates.map(d => ({ id: d.user.id, name: d.user.name })),
       });
     }
 

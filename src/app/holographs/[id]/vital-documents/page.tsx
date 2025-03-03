@@ -168,7 +168,7 @@ export default function VitalDocumentsPage() {
 
       <div className="mt-6 flex gap-4">
         <button className="btn-primary" onClick={() => openModal(null)}>
-          ➕ Add New Vital Document
+          + Add New Vital Document
         </button>
         <button
           onClick={() => router.push(`/holographs/${holographId}`)}

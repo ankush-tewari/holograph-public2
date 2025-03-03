@@ -33,6 +33,7 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
     event.preventDefault();
   
     try {
+      setIsSubmitting(true);
       const response = await fetch('/api/holograph/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,15 +52,18 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
         debugLog("✅ Calling onSuccess function...");
         onSuccess(newHolograph);
       }
+
+      setIsSubmitting(false);
     } catch (error) {
       console.error("❌ Error creating holograph:", error);
+      setIsSubmitting(false);
     }
   };
     
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Create New Holograph</h2>
+      <h2 className="text-2xl font-bold mb-6">Create a new Holograph</h2>
       
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
@@ -71,7 +75,7 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
         <div className="mb-4">
           <label 
             htmlFor="title" 
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-lg font-semibold text-gray-700 mb-2"
           >
             Title
           </label>
@@ -85,12 +89,12 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
           />
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-4 mt-4">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="btn-secondary"
               disabled={isSubmitting}
             >
               Cancel
@@ -98,7 +102,7 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
           )}
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+            className="btn-primary"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creating...' : 'Create Holograph'}

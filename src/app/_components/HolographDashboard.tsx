@@ -227,17 +227,6 @@ const HolographDashboard = () => {
         </div>
       ) : (
         <>
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">My Holographs</h1>
-            <button 
-              onClick={() => setShowCreateForm(true)}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus size={20} />
-              Create New
-            </button>
-          </div>
-
           <div className="w-full">
             <div className="flex gap-4 border-b mb-6">
               <button
@@ -278,9 +267,30 @@ const HolographDashboard = () => {
                     ))}
                   </div>
                 )}
+
+                {/* ✅ Added Delegated Section */}
+                {activeTab === 'delegated' && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {holographs.delegated.length > 0 ? (
+                      holographs.delegated.map(holograph => (
+                        <div 
+                          key={holograph.id} 
+                          className="holograph-item cursor-pointer"
+                          onClick={() => router.push(`/holographs/${holograph.id}`)}
+                        >
+                          <h3 className="text-lg font-semibold text-green-700">🤝 {holograph.title}</h3>
+                          <p className="text-sm text-gray-600">Delegated On: {holograph.assignedAt ? format(new Date(holograph.assignedAt), "MMM d, yyyy") : "Unknown"}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No delegated Holographs found.</p>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
+
         </>
       )}
     </div>

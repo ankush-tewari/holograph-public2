@@ -254,7 +254,7 @@ const HolographDashboard = () => {
                   activeTab === 'delegated' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                🤝 Shared with Me
+                🤝 Delegated to Me
               </button>
             </div>
 

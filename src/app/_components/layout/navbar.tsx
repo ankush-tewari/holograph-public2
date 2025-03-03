@@ -32,7 +32,7 @@ export default function Navbar() {
   const isAuthenticated = status === 'authenticated' && session?.user;
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50 font-sans">
+    <nav className="bg-slate-400 shadow-md sticky top-0 z-50 font-sans">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
         <div className="flex justify-between items-center h-16">
           <Link href="/dashboard" className="text-2xl font-bold text-gray-800">
@@ -46,8 +46,8 @@ export default function Navbar() {
                   href="/dashboard" 
                   className={`px-4 py-2 rounded-md text-lg font-medium ${
                     pathname === '/dashboard' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'text-blue-900 border-b-2 border-blue-600' 
+                      : 'text-gray-900 hover:text-gray-800'
                   }`}
                 >
                   Dashboard
@@ -56,8 +56,8 @@ export default function Navbar() {
                   href="/documents" 
                   className={`px-4 py-2 rounded-md text-lg font-medium ${
                     pathname === '/documents' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'text-blue-900 border-b-2 border-blue-600' 
+                      : 'text-gray-900 hover:text-gray-800'
                   }`}
                 >
                   Documents

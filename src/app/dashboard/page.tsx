@@ -4,9 +4,12 @@
 'use client'
 import React from 'react'
 import { useEffect, useState } from 'react'
+import { Plus, X } from 'lucide-react'; // ✅ Ensure X is imported
 import { useRouter } from 'next/navigation'
 import HolographDashboard from '../_components/HolographDashboard'
 import { debugLog } from "../../utils/debug";
+import CreateHolograph from '../_components/holograph/CreateHolograph';
+
 
 interface User {
   id: string
@@ -18,6 +21,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
 
   useEffect(() => {
     async function loadUserData() {
@@ -46,6 +51,8 @@ export default function Dashboard() {
     )
   }
 
+  
+
   return (
     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-10 bg-gray-50 min-h-screen font-sans">
         <div className="grid grid-cols-1 gap-8">
@@ -53,7 +60,17 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               Welcome {user?.name || 'User'}!
             </h2>
+            <button 
+              onClick={() => setShowCreateForm(true)}
+              className="btn-primary"
+            >
+               + Create New Holograph
+            </button>
             <p className="text-gray-600 text-lg">Email: {user?.email}</p>
+            <div className="flex justify-between items-center mb-6">
+            
+          </div>
+          
 
             {/* Remove or update session debug info if not using session 
             <pre className="bg-gray-100 p-2">User ID: /src/app/dashboard/page.tsx {user?.id}</pre>
@@ -64,6 +81,32 @@ export default function Dashboard() {
             
             {/* Holograph Dashboard */}
             {user && <HolographDashboard userId={user.id} />}
+            {/* ✅ Place CreateHolograph Modal Here */}
+            {showCreateForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="relative w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+                  <button
+                    onClick={() => setShowCreateForm(false)}
+                    className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+                  >
+                    <X size={20} />
+                  </button>
+                  <CreateHolograph
+                    userId={user?.id}
+                    onSuccess={() => {
+                      setShowCreateForm(false);
+                      router.refresh();
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowCreateForm(false)}
+                    className="mt-4 w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
     </div>

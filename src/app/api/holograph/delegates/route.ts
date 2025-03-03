@@ -20,37 +20,36 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
     debugLog("✅ User ID from session:", userId);
 
-    const delegatedHolographs = await prisma.holograph.findMany({
-      where: {
-        delegates: {
-          some: { userId: userId } // Finds holographs where user is a delegate
-        }
+    // ✅ Fetch Delegated Holographs with assigned date (`assignedAt`) and first Principal as owner
+    const delegatedHolographs = await prisma.holographDelegate.findMany({
+      where: { userId: userId },
+      select: {
+        assignedAt: true, // ✅ Show when this user was assigned as a delegate
+        holograph: {
+          select: {
+            id: true,
+            title: true,
+            updatedAt: true,
+            principals: {
+              take: 1, // ✅ Fetch the first Principal as the owner
+              select: { user: { select: { id: true, name: true } } },
+            },
+          },
+        },
       },
-      include: {
-        principals: { select: { userId: true } }, // Fetching principals
-      }
     });
 
+
     // Transform response to include the owner's userId
-    const formattedHolographs = await Promise.all(
-      delegatedHolographs.map(async (holograph) => {
-        const ownerId = holograph.principals.length > 0 ? holograph.principals[0].userId : null;
-
-        const owner = ownerId
-          ? await prisma.user.findUnique({
-              where: { id: ownerId },
-              select: { id: true, name: true },
-            })
-          : null;
-
-        return {
-          id: holograph.id,
-          title: holograph.title,
-          lastModified: holograph.updatedAt.toISOString(),
-          owner: owner ? { id: owner.id, name: owner.name ?? "Unknown User" } : null,
-        };
-      })
-    );
+    // ✅ Format the response correctly
+    const formattedHolographs = delegatedHolographs.map(dh => ({
+      id: dh.holograph.id,
+      title: dh.holograph.title,
+      assignedAt: dh.assignedAt.toISOString(), // ✅ Show the date the user was assigned as delegate
+      owner: dh.holograph.principals.length > 0
+        ? { id: dh.holograph.principals[0].user.id, name: dh.holograph.principals[0].user.name }
+        : null,
+    }));
 
     debugLog("✅ Returning", formattedHolographs.length, "delegated holographs");
     return NextResponse.json(formattedHolographs);

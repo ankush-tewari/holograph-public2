@@ -108,8 +108,22 @@ const HolographDetailPage = () => {
           </div>
         </span>
         <div className="flex gap-4">
-          <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700" onClick={() => { setInviteRole('Principal'); setShowInviteModal(true); }}>➕ Add Principal</button>
-          <button className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700" onClick={() => { setInviteRole('Delegate'); setShowInviteModal(true); }}>👥 Add Delegate</button>
+          <button 
+            className="btn-primary" 
+            onClick={() => { setInviteRole('Principal'); setShowInviteModal(true); }}>➕   Add Principal
+          </button>
+          <button 
+            className="btn-primary" 
+            onClick={() => { setInviteRole('Delegate'); setShowInviteModal(true); }}>👥    Add Delegate
+          </button>
+          <button
+            onClick={() => router.push(`/dashboard`)}
+            className="btn-secondary"
+          >
+            ← Back to Dashboard
+          </button>
+          <div className="mt-6 flex gap-4">
+      </div>
         </div>
         {showInviteModal && inviteRole && (
           <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />

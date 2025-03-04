@@ -150,7 +150,7 @@ const HolographDashboard = () => {
   const handleAcceptInvite = async (inviteId: string, holographId: string) => {
     try {
       const response = await fetch(`/api/invitations/${inviteId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -171,7 +171,7 @@ const HolographDashboard = () => {
   const handleDeclineInvite = async (inviteId: string) => {
     try {
       const response = await fetch(`/api/invitations/${inviteId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -245,6 +245,14 @@ const HolographDashboard = () => {
               >
                 🤝 Delegated to Me
               </button>
+              <button
+                onClick={() => setActiveTab('invitations')}
+                className={`px-4 py-2 font-medium ${
+                  activeTab === 'invitations' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                📩 Invitations
+              </button>
             </div>
 
             {isLoading ? (
@@ -268,7 +276,6 @@ const HolographDashboard = () => {
                   </div>
                 )}
 
-                {/* ✅ Added Delegated Section */}
                 {activeTab === 'delegated' && (
                   <div className="grid gap-4 md:grid-cols-2">
                     {holographs.delegated.length > 0 ? (
@@ -287,10 +294,27 @@ const HolographDashboard = () => {
                     )}
                   </div>
                 )}
+
+                {activeTab === 'invitations' && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {invitations.length > 0 ? (
+                      invitations.map(invitation => (
+                        <div key={invitation.id} className="holograph-item flex flex-wrap justify-between items-center w-full">
+                          <span className="truncate">Invitation to join Holograph: "{invitation.holographTitle}" as a { invitation.role } by {invitation.inviterName}</span>
+                          <div className='flex gap-2'>
+                            <button className="px-3 py-1 bg-green-600 text-white rounded mr-2 hover:bg-green-700" onClick={() => handleAcceptInvite(invitation.id,invitation.holographId)}>Accept</button>
+                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDeclineInvite(invitation.id)}>Decline</button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No pending invitations.</p>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
-
         </>
       )}
     </div>

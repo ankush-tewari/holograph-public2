@@ -42,6 +42,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       }
     }
 
+    if (status === 'Declined') {
+      await prisma.invitation.delete({ where: { id: invitationId } });
+    }
+
     return NextResponse.json(updatedInvitation);
   } catch (error) {
     console.error('Error updating invitation:', error);

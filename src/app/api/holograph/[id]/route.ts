@@ -1,10 +1,11 @@
 // src/app/api/holograph/[id]/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { debugLog } from "../../../../utils/debug";
+import { deleteFileFromGCS } from "@/lib/gcs"; // Import Google Cloud Storage delete function
 
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
@@ -116,5 +117,65 @@ export async function GET(request: Request, context: { params: { id: string } })
   } catch (error) {
     console.error("❌ API Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// for editing a Holograph Name
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    const { title } = await req.json();
+
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    const updatedHolograph = await prisma.holograph.update({
+      where: { id },
+      data: { title },
+    });
+
+    return NextResponse.json(updatedHolograph, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update Holograph" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+
+    debugLog(`🔍 Deleting Holograph with ID: ${id}`);
+
+    // Fetch all related documents before deleting the Holograph
+    const relatedDocuments = await prisma.vitalDocument.findMany({
+      where: { holographId: id },
+    });
+
+    // Delete related documents from Google Cloud Storage
+    for (const doc of relatedDocuments) {
+      debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
+      await deleteFileFromGCS(doc.filePath);
+    }
+
+    // Delete all related database records
+    debugLog("🗑 Deleting related vital documents...");
+    await prisma.vitalDocument.deleteMany({ where: { holographId: id } });
+
+    // Delete related records
+    debugLog("🗑 Deleting related Principal and Delegate records...");
+    await prisma.holographDelegate.deleteMany({ where: { holographId: id } });
+    await prisma.holographPrincipal.deleteMany({ where: { holographId: id } });
+    await prisma.invitation.deleteMany({ where: { holographId: id } });
+
+    debugLog("🗑 Deleting the Holograph record...");
+    await prisma.holograph.delete({ where: { id } });
+
+    debugLog("✅ Holograph deleted successfully.");
+
+    return NextResponse.json({ message: "Holograph deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting Holograph:", error);
+    return NextResponse.json({ error: "Failed to delete Holograph" }, { status: 500 });
   }
 }

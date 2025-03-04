@@ -42,6 +42,8 @@ const HolographDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
 
   useEffect(() => {
     if (params.id && currentHolographId !== params.id) {
@@ -72,6 +74,7 @@ const HolographDetailPage = () => {
         debugLog("✅ Holograph Delegates:", data.delegates);
 
         setHolograph(data);
+        setNewTitle(data.title); // Ensure the input field has the current title value
         setIsAuthorized(true);
       } catch (err) {
         console.error("❌ Error fetching Holograph:", err);
@@ -84,6 +87,39 @@ const HolographDetailPage = () => {
     if (userId) fetchHolograph();
   }, [params.id, userId, router]);
 
+  const handleEdit = async () => {
+    if (!holograph) return;
+    await fetch(`/api/holograph/${holograph.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTitle }),
+    });
+    setHolograph((prev) => prev ? { ...prev, title: newTitle } : prev);
+    setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (!holograph) return;
+    if (!confirm("Are you sure you want to delete this Holograph? This action cannot be undone.")) return;
+  
+    try {
+      const response = await fetch(`/api/holograph/${holograph.id}`, { method: "DELETE" });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ Failed to delete Holograph:", errorData);
+        alert("Failed to delete Holograph: " + errorData.error);
+        return;
+      }
+  
+      console.log("✅ Holograph deleted successfully.");
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("❌ Unexpected error:", err);
+      alert("Unexpected error occurred while deleting the Holograph.");
+    }
+  };
+
   if (isSessionLoading || isLoading) return <p className="text-center text-gray-500 text-lg">Loading...</p>;
   if (!isAuthenticated) return <p className="text-center text-red-500 text-lg">Please log in</p>;
   if (!isAuthorized) return <p className="text-center text-red-600 text-lg">{error}</p>;
@@ -91,7 +127,28 @@ const HolographDetailPage = () => {
 
   return (
     <div className="p-8 max-w-full mx-auto bg-stone-50 text-black min-h-screen">
-      <h1 className="text-4xl font-bold text-gray-800">{holograph.title}</h1>
+      <h1 className="text-4xl font-bold text-gray-800">
+        {isEditing ? (
+          <>
+            <input
+              className="border p-2"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+            />
+            <button className="ml-2 btn-primary" onClick={handleEdit}>Submit</button>
+            <button className="ml-2 btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
+          </>
+        ) : (
+          <>
+            {holograph.title}
+            <button className="ml-4 text-blue-600" onClick={() => setIsEditing(true)}>✏️</button>
+          </>
+        )}
+      </h1>
+        <div className="flex gap-4 mt-4">
+          <button className="btn-primary" onClick={handleDelete}>🗑 Delete Holograph</button>
+        </div>
+
         <span className="ml-2 relative group cursor-pointer">
           ℹ️
           <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
@@ -125,9 +182,11 @@ const HolographDetailPage = () => {
           <div className="mt-6 flex gap-4">
       </div>
         </div>
+
         {showInviteModal && inviteRole && (
           <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />
         )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
         {SECTIONS.map(section => (
           <Link key={section.id} href={`/holographs/${holograph.id}/${section.id}`} className="block border border-gray-400 shadow-md rounded-lg p-4 bg-gray-200 hover:bg-gray-100 transition cursor-pointer no-underline">

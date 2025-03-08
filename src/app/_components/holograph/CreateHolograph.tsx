@@ -31,6 +31,8 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setIsSubmitting(true);
+    setError(""); // ✅ Clear old errors
   
     try {
       setIsSubmitting(true);

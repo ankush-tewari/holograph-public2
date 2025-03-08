@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // ✅ Add refresh state
 
 
   useEffect(() => {
@@ -79,8 +80,6 @@ export default function Dashboard() {
             {/* ✅ Debug: Show session details on the page */}
             {/* <pre className="bg-gray-100 p-2">Session in holograph landing page={JSON.stringify(session, null, 2)}</pre>*/}
             
-            {/* Holograph Dashboard */}
-            {user && <HolographDashboard userId={user.id} />}
             {/* ✅ Place CreateHolograph Modal Here */}
             {showCreateForm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -93,9 +92,11 @@ export default function Dashboard() {
                   </button>
                   <CreateHolograph
                     userId={user?.id}
-                    onSuccess={() => {
+                    onSuccess={(createdHolograph) => { // ✅ Fix: Use correct variable name
+                      debugLog("✅ Dashboard received new Holograph:", createdHolograph);
                       setShowCreateForm(false);
-                      router.refresh();
+                      setRefreshKey(prevKey => prevKey + 1); // ✅ Force refresh
+                      router.refresh(); // ✅ Force UI update
                     }}
                   />
                   <button
@@ -107,6 +108,10 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Holograph Dashboard */}
+            {user && <HolographDashboard userId={user.id} />}
+            
           </div>
         </div>
     </div>

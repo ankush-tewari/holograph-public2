@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolograph hook
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
 import { debugLog } from "../../../../utils/debug";
+import { FiLink, FiEdit, FiTrash2 } from "react-icons/fi";
 
 interface Document {
   id: string;
@@ -162,20 +163,23 @@ export default function VitalDocumentsPage() {
   if (status === 'unauthenticated') return <p>Please log in</p>;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
-      <h1 className="text-3xl font-bold text-gray-800">Vital Documents</h1>
-      <p className="text-gray-600 text-lg">Manage your important documents securely.</p>
-
-      <div className="mt-6 flex gap-4">
-        <button className="btn-primary" onClick={() => openModal(null)}>
-          + Add New Vital Document
-        </button>
-        <button
-          onClick={() => router.push(`/holographs/${holographId}`)}
-          className="btn-secondary"
-        >
-          ← Back to Holograph
-        </button>
+    <div className="flex gap-6 p-8 max-w-6xl mx-auto">
+      {/* Left Section: Controls & Instructions */}
+      <div className="w-1/3 bg-white shadow-lg p-6 rounded-lg">
+        <div className="mt-4 flex flex-col gap-4">
+          <button className="btn-primary" onClick={() => openModal(null)}>+ Add New Vital Document</button>
+          <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
+        </div>
+        <div className="mt-6 text-gray-700 text-sm space-y-2">
+          <p>Upload a scanned copy of your will, advance healthcare directive, and at least one identity document.</p>
+          <p>You may also upload other important documents such as:</p>
+          <ul className="list-disc pl-4">
+            <li>Pet information</li>
+            <li>Location of important heirlooms</li>
+            <li>Digital/scanned photos</li>
+            <li>Other transition-related instructions</li>
+          </ul>
+        </div>
       </div>
 
       {isModalOpen && userId && (
@@ -188,45 +192,53 @@ export default function VitalDocumentsPage() {
         />
       )}
 
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold text-gray-800">Your Documents</h2>
+      {/* Right Section: Document Table */}
+      <div className="w-2/3 bg-white shadow-lg p-6 rounded-lg">
+        <h2 className="text-xl font-semibold text-gray-800">Vital Documents</h2>
         {isLoading ? (
           <p className="text-gray-600">Loading...</p>
         ) : documents.length === 0 ? (
           <p className="text-gray-500">No documents added yet.</p>
         ) : (
-          <ul className="mt-4">
-            {documents.map((doc) => (
-              <li key={doc.id} className="p-4 bg-gray-50 border-b flex justify-between items-center rounded-lg shadow-sm hover:shadow-md transition">
-                <div>
-                  <a
-                    href={signedUrls[doc.id] || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 font-semibold hover:underline"
-                  >
-                    {doc.name}
-                  </a>
-                  <p className="text-gray-600">{DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</p>
-                  {doc.notes && <p className="text-gray-500 italic">Notes: {doc.notes}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
-                    onClick={() => openModal(doc)}
-                  >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                    onClick={() => handleDelete(doc.id)}
-                  >
-                    🗑 Delete
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <table className="w-full mt-4 border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="p-3 border border-gray-300">Document Name</th>
+                <th className="p-3 border border-gray-300">Type</th>
+                <th className="p-3 border border-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((doc) => (
+                <tr key={doc.id} className="border-t">
+                  <td className="p-3 border border-gray-300">{doc.name}</td>
+                  <td className="p-3 border border-gray-300">{DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</td>
+                  <td className="p-3 border border-gray-300 flex gap-3">
+                    <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
+                      <a href={signedUrls[doc.id] || "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                        <FiLink size={18} />
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                          Download Vital Document
+                        </span>
+                      </a>
+                    </button>
+                    <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
+                      <span><FiEdit size={18} /></span>
+                      <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                        Edit Vital Document
+                      </span>
+                    </button>
+                    <button className="ml-2 text-red-600 hover:text-red-800 text-sm relative group" onClick={() => handleDelete(doc.id)}>
+                      <span><FiTrash2 size={18} /></span>
+                      <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                        Delete Vital Document
+                      </span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

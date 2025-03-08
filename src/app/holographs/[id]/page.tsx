@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
 import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
+import { FiLink, FiEdit, FiTrash2, FiDelete } from "react-icons/fi";
 
 interface Holograph {
   id: string;
@@ -100,7 +101,9 @@ const HolographDetailPage = () => {
 
   const handleDelete = async () => {
     if (!holograph) return;
-    if (!confirm("Are you sure you want to delete this Holograph? This action cannot be undone.")) return;
+    if (
+      !confirm("Are you sure you want to delete this Holograph? Deleting this Holograph will also delete all sections, and this action cannot be undone.")
+    ) return;
   
     try {
       const response = await fetch(`/api/holograph/${holograph.id}`, { method: "DELETE" });
@@ -127,7 +130,7 @@ const HolographDetailPage = () => {
 
   return (
     <div className="p-8 max-w-full mx-auto bg-stone-50 text-black min-h-screen">
-      <h1 className="text-4xl font-bold text-gray-800">
+      <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-2">
         {isEditing ? (
           <>
             <input
@@ -140,30 +143,43 @@ const HolographDetailPage = () => {
           </>
         ) : (
           <>
-            {holograph.title}
-            <button className="ml-4 text-blue-600" onClick={() => setIsEditing(true)}>✏️</button>
+            {holograph.title}     
+
+            {/* Info Icon with smaller size */}
+            <span className="ml-2 text-sm relative group cursor-pointer">
+              <span className="text-lg">ℹ️</span>
+              <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
+                <p><span className="font-semibold">Principals:</span> 
+                  {holograph.principals && holograph.principals.length > 0 ? 
+                    holograph.principals.map(p => p.name).join(", ") : 'None'}
+                </p>
+                <p><span className="font-semibold">Delegates:</span> 
+                  {holograph.delegates && holograph.delegates.length > 0 ? 
+                    holograph.delegates.map(d => d.name).join(", ") : 'None'}
+                </p>
+                <p className="mt-2 text-xs text-gray-500">Created: {format(new Date(holograph.createdAt), "MMM d, yyyy")}</p>
+                <p className="text-xs text-gray-500">Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
+              </div>
+            </span>
+
+            {/* Edit Icon with Tooltip */}
+            <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
+              <span><FiEdit size={18} /></span>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                Edit Holograph Name
+              </span>
+            </button>
+
+            {/* Delete Icon with Tooltip */}
+            <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
+              <span><FiTrash2 size={18} /></span>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                Delete Holograph (Caution!)
+              </span>
+            </button>
           </>
         )}
       </h1>
-        <div className="flex gap-4 mt-4">
-          <button className="btn-primary" onClick={handleDelete}>🗑 Delete Holograph</button>
-        </div>
-
-        <span className="ml-2 relative group cursor-pointer">
-          ℹ️
-          <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
-          <p><span className="font-semibold">Principals:</span> 
-            {holograph.principals && holograph.principals.length > 0 ? 
-              holograph.principals.map(p => p.name).join(", ") : 'None'}
-          </p>
-          <p><span className="font-semibold">Delegates:</span> 
-            {holograph.delegates && holograph.delegates.length > 0 ? 
-              holograph.delegates.map(d => d.name).join(", ") : 'None'}
-          </p>
-          <p className="mt-2 text-xs text-gray-500">Created: {format(new Date(holograph.createdAt), "MMM d, yyyy")}</p>
-          <p className="text-xs text-gray-500">Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
-          </div>
-        </span>
         <div className="flex gap-4">
           <button 
             className="btn-primary" 
@@ -180,8 +196,8 @@ const HolographDetailPage = () => {
             ← Back to Dashboard
           </button>
           <div className="mt-6 flex gap-4">
+       </div>
       </div>
-        </div>
 
         {showInviteModal && inviteRole && (
           <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />

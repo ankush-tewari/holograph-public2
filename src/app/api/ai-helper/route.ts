@@ -43,7 +43,7 @@ async function fetchChatGPT(question: string): Promise<string> {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are an assistant specializing in US estate law." },
           { role: "user", content: question },

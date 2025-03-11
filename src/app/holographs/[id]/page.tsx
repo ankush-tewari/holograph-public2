@@ -20,7 +20,7 @@ interface Holograph {
 }
 
 const SECTIONS = [
-  { id: 'vital-documents', name: 'Vital Documents', icon: '📂', description: 'Manage all essential documents like wills, trusts, and health directives.' },
+  { id: 'vital-documents', name: 'Vital Documents', icon: '📂', description: 'Manage all essential documents like wills, trusts, and advance health directives.' },
   { id: 'financial-accounts', name: 'Financial Accounts', icon: '💰', description: 'Manage bank accounts, investments, and financial assets.' },
   { id: 'insurance-accounts', name: 'Insurance Accounts', icon: '🛡️', description: 'Organize life, health, and property insurance policies.' },
   { id: 'properties', name: 'Properties', icon: '🏡', description: 'Keep track of owned real estate and property-related documents.' },

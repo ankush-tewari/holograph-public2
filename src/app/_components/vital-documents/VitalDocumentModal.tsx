@@ -89,14 +89,19 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
     formDataToSend.append("type", formData.type);
     formDataToSend.append("notes", formData.notes || "");
   
+    // ✅ IMPORTANT FIX: Always include the existing file path if this is an edit operation
+    if (docData && docData.filePath) {
+      // Always send the existing file path when editing, regardless of whether a new file is selected
+      formDataToSend.append("existingFilePath", docData.filePath);
+      debugLog("✅ Including existingFilePath in FormData:", docData.filePath);
+    }
+  
     // ✅ If a new file is selected, send it
     if (formData.file) {
       // We know formData.file is not null at this point, so it's safe to use
       const fileToUpload: File = formData.file;
       formDataToSend.append("file", fileToUpload);
-    } else if (formData.filePath) {
-      // ✅ Otherwise, send the existing file path
-      formDataToSend.append("existingFilePath", formData.filePath);
+      debugLog("✅ Including new file in FormData:", fileToUpload.name);
     }
   
     if (userId) {

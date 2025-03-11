@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,10 +25,12 @@ model Holograph {
   title          String
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
+  sslCertPath    String? // Path to SSL cert in GCS (optional)
+  sslKeyPath     String? // Path to SSL key in GCS (optional)
   delegates      HolographDelegate[]
   principals     HolographPrincipal[]
-  vitalDocuments VitalDocument[] // New relation
-  Invitation     Invitation[]
+  vitalDocuments VitalDocument[]
+  invitations    Invitation[] // ✅ Add this to establish the relation
 }
 
 model HolographPrincipal {
@@ -55,19 +58,17 @@ model HolographDelegate {
 model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
-  name        String    // Name of the document
-  type        String    // Will, Trust, Advanced Health Directive, or Other
-  filePath    String    // Path or URL to the uploaded file
+  name        String    // Encrypted name of the document
+  type        String    // Will, Trust, Advanced Health Directive, etc.
+  filePath    String    // Path to the uploaded file
   uploadedBy  String    // User ID of the uploader
-  notes       String?   @db.Text // ✅ Add this as a new column with long text support
+  notes       String?   @db.Text // Encrypted notes (long text support)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   holograph   Holograph @relation(fields: [holographId], references: [id])
 
-  @@unique([holographId, filePath])  // Enforce uniqueness within each Holograph
+  @@unique([holographId, filePath]) // Ensure unique filenames within each Holograph
 }
-
-
 
 model Invitation {
   id           String   @id @default(uuid()) // Unique ID for the invitation

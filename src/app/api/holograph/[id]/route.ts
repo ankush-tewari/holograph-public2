@@ -147,27 +147,47 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     debugLog(`🔍 Deleting Holograph with ID: ${id}`);
 
-    // Fetch all related documents before deleting the Holograph
+    // ✅ Step 1: Delete related Sections from `HolographSection`
+    debugLog("🗑 Deleting related sections in HolographSection...");
+    await prisma.holographSection.deleteMany({ where: { holographId: id } });
+
+    // ✅ Step 2: Delete SSL Certificates from Google Cloud Storage
+    debugLog("🔍 Fetching SSL certificate paths for deletion...");
+    const holograph = await prisma.holograph.findUnique({
+      where: { id },
+      select: { sslCertPath: true, sslKeyPath: true },
+    });
+
+    if (holograph?.sslCertPath) {
+      await deleteFileFromGCS(holograph.sslCertPath);
+    }
+    if (holograph?.sslKeyPath) {
+      await deleteFileFromGCS(holograph.sslKeyPath);
+    }
+
+    // ✅ Step 3: Fetch all related documents before deleting the Holograph
     const relatedDocuments = await prisma.vitalDocument.findMany({
       where: { holographId: id },
     });
 
-    // Delete related documents from Google Cloud Storage
+
+    // ✅ Step 4: Delete related documents from Google Cloud Storage
     for (const doc of relatedDocuments) {
       debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
       await deleteFileFromGCS(doc.filePath);
     }
 
-    // Delete all related database records
+    // ✅ Step 5: Delete all related database records
     debugLog("🗑 Deleting related vital documents...");
     await prisma.vitalDocument.deleteMany({ where: { holographId: id } });
 
-    // Delete related records
+    // ✅ Step 6: Delete related Principals and Delegates
     debugLog("🗑 Deleting related Principal and Delegate records...");
     await prisma.holographDelegate.deleteMany({ where: { holographId: id } });
     await prisma.holographPrincipal.deleteMany({ where: { holographId: id } });
     await prisma.invitation.deleteMany({ where: { holographId: id } });
 
+    // ✅ Step 7: Finally delete the Holograph
     debugLog("🗑 Deleting the Holograph record...");
     await prisma.holograph.delete({ where: { id } });
 

@@ -1,6 +1,6 @@
 // /src/app/api/holograph/create/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -112,64 +112,85 @@ export async function POST(request: Request) {
 
     // ✅ Create holograph and principal relationship in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      debugLog("✅ Creating holograph for user:", session.user.id);
+    debugLog("✅ Creating holograph for user:", session.user.id);
 
-      const holograph = await tx.holograph.create({
-        data: { title },
+    const holograph = await tx.holograph.create({
+      data: { title },
+    });
+
+    debugLog("✅ Creating principal relationship.");
+    await tx.holographPrincipal.create({
+      data: {
+        userId: session.user.id,
+        holographId: holograph.id,
+      },
+    });
+
+    debugLog("🔐 Generating SSL Certificate...");
+    let sslCertPath = null;
+    let sslKeyPath = null;
+
+    try {
+      const sslPaths = await generateSSLCertificate(holograph.id);
+      sslCertPath = sslPaths.sslCertPath;
+      sslKeyPath = sslPaths.sslKeyPath;
+      debugLog("✅ SSL Certificate generated:", sslPaths);
+    } catch (sslError) {
+      console.error("❌ SSL Generation Failed:", sslError);
+    }
+
+    // ✅ Step 3: Update Holograph with SSL paths
+    if (sslCertPath && sslKeyPath) {
+      await tx.holograph.update({
+        where: { id: holograph.id },
+        data: { sslCertPath, sslKeyPath },
       });
+      debugLog("✅ Holograph updated with SSL paths.");
+    } else {
+      console.warn("⚠️ SSL Certificate was not created. Holograph saved without SSL.");
+    }
 
-      debugLog("✅ Creating principal relationship.");
-      await tx.holographPrincipal.create({
-        data: {
-          userId: session.user.id,
+    // ✅ Step 4: Attach Default Sections to the New Holograph
+    debugLog("📌 Fetching default sections...");
+    const defaultSections = await tx.section.findMany({ 
+      where: { isDefault: true },
+      orderBy: { order: "asc"}, 
+    });
+
+    if (defaultSections.length > 0) {
+      debugLog(`✅ Found ${defaultSections.length} default sections. Attaching...`);
+      await tx.holographSection.createMany({
+        data: defaultSections.map((section) => ({
           holographId: holograph.id,
-        },
+          sectionId: section.id,
+          order: section.order,
+        })),
       });
+      debugLog("✅ Default sections successfully attached.");
+    } else {
+      debugLog("⚠️ No default sections found. Skipping.");
+    }
+    return { ...holograph, sslCertPath, sslKeyPath };
+  });
 
-      debugLog("🔐 Generating SSL Certificate...");
-      let sslCertPath = null;
-      let sslKeyPath = null;
+  debugLog("🎉 Successfully created holograph:", result);
+  
+  // ✅ Response with proper CORS headers
+  const response = NextResponse.json({
+    id: result.id,
+    title: result.title,
+    sslCertPath: result.sslCertPath,
+    sslKeyPath: result.sslKeyPath,
+    lastModified: result.updatedAt.toISOString(),
+  });
+  
 
-      try {
-        const sslPaths = await generateSSLCertificate(holograph.id);
-        sslCertPath = sslPaths.sslCertPath;
-        sslKeyPath = sslPaths.sslKeyPath;
-        debugLog("✅ SSL Certificate generated:", sslPaths);
-      } catch (sslError) {
-        console.error("❌ SSL Generation Failed:", sslError);
-      }
+  response.headers.append('Access-Control-Allow-Credentials', 'true');
+  response.headers.append('Access-Control-Allow-Origin', 'http://localhost:3000'); // Adjust for production
+  response.headers.append('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.append('Access-Control-Allow-Methods', 'POST, OPTIONS');
 
-      // ✅ Step 3: Update Holograph with SSL paths
-      if (sslCertPath && sslKeyPath) {
-        await tx.holograph.update({
-          where: { id: holograph.id },
-          data: { sslCertPath, sslKeyPath },
-        });
-        debugLog("✅ Holograph updated with SSL paths.");
-      } else {
-        console.warn("⚠️ SSL Certificate was not created. Holograph saved without SSL.");
-      }
-      return { ...holograph, sslCertPath, sslKeyPath };
-    });
-
-    debugLog("🎉 Successfully created holograph:", result);
-    
-    // ✅ Response with proper CORS headers
-    const response = NextResponse.json({
-      id: result.id,
-      title: result.title,
-      sslCertPath: result.sslCertPath,
-      sslKeyPath: result.sslKeyPath,
-      lastModified: result.updatedAt.toISOString(),
-    });
-    
-
-    response.headers.append('Access-Control-Allow-Credentials', 'true');
-    response.headers.append('Access-Control-Allow-Origin', 'http://localhost:3000'); // Adjust for production
-    response.headers.append('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    response.headers.append('Access-Control-Allow-Methods', 'POST, OPTIONS');
-
-    return response;
+  return response;
   } catch (error: any) {
     console.error("❌ Detailed error creating holograph:", error);
     return NextResponse.json(

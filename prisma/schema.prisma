@@ -30,6 +30,7 @@ model Holograph {
   principals     HolographPrincipal[]
   vitalDocuments VitalDocument[]
   invitations    Invitation[] // ✅ Add this to establish the relation
+  sections       HolographSection[] // ✅ Add this to establish the relation
 }
 
 model HolographPrincipal {
@@ -57,10 +58,10 @@ model HolographDelegate {
 model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
-  name        String    // Encrypted name of the document
-  type        String    // Will, Trust, Advanced Health Directive, etc.
-  filePath    String    // Path to the uploaded file
-  uploadedBy  String    // User ID of the uploader
+  name        String // Encrypted name of the document
+  type        String // Will, Trust, Advanced Health Directive, etc.
+  filePath    String // Path to the uploaded file
+  uploadedBy  String // User ID of the uploader
   notes       String?   @db.Text // Encrypted notes (long text support)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -83,4 +84,30 @@ model Invitation {
   inviter   User      @relation(fields: [inviterId], references: [id], name: "Inviter")
 
   @@unique([holographId, inviteeEmail]) // Ensure one invitation per user per Holograph
+}
+
+// Table for Holograph sections so they can be added dynamically
+model Section {
+  id          String             @id @default(uuid())
+  name        String             @unique // "Financial Accounts"
+  slug        String             @unique // "financial_accounts"
+  description String? // Explanation of the section
+  iconSlug    String? // Matches a key in the `icons.ts` file
+  isDefault   Boolean            @default(true) // Determines if it's a default section
+  createdAt   DateTime           @default(now())
+  order       Int                @default(0) // ✅ Controls display order
+  holographs  HolographSection[] // ✅ Add this to establish the relation
+}
+
+// ties Sections to Holographs
+model HolographSection {
+  id          String @id @default(uuid())
+  holographId String
+  sectionId   String
+  order       Int      @default(0) // ✅ Controls layout order per Holograph
+
+  holograph Holograph @relation(fields: [holographId], references: [id])
+  section   Section   @relation(fields: [sectionId], references: [id])
+
+  @@unique([holographId, sectionId]) // Prevent duplicate entries
 }

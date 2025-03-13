@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
 import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
-import { FiLink, FiEdit, FiTrash2, FiDelete } from "react-icons/fi";
+import { FiEdit, FiTrash2 } from "react-icons/fi";
+import { sectionIcons } from "@/config/icons"; // Import the dynamic icons
 
 interface Holograph {
   id: string;
@@ -19,18 +20,13 @@ interface Holograph {
   delegates: { name: string }[];
 }
 
-const SECTIONS = [
-  { id: 'vital-documents', name: 'Vital Documents', icon: '📂', description: 'Manage all essential documents like wills, trusts, and advance health directives.' },
-  { id: 'financial-accounts', name: 'Financial Accounts', icon: '💰', description: 'Manage bank accounts, investments, and financial assets.' },
-  { id: 'insurance-accounts', name: 'Insurance Accounts', icon: '🛡️', description: 'Organize life, health, and property insurance policies.' },
-  { id: 'properties', name: 'Properties', icon: '🏡', description: 'Keep track of owned real estate and property-related documents.' },
-  { id: 'personal-properties', name: 'Personal Properties', icon: '📦', description: 'Document valuable personal belongings and heirlooms.' },
-  { id: 'social-media', name: 'Social Media', icon: '📱', description: 'Manage digital legacy and social media accounts.' },
-  { id: 'utilities', name: 'Utilities', icon: '⚡', description: 'Track and manage home utility services.' },
-  { id: 'subscriptions', name: 'Subscriptions', icon: '📜', description: 'List and manage ongoing subscriptions.' },
-  { id: 'reward-programs', name: 'Reward Programs', icon: '🎁', description: 'Organize frequent flyer miles, store rewards, and more.' },
-  { id: 'home-services', name: 'Home Services', icon: '🛠️', description: 'Track household maintenance services and providers.' }
-];
+interface Section {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  iconSlug: string;
+}
 
 const HolographDetailPage = () => {
   const params = useParams();
@@ -38,6 +34,7 @@ const HolographDetailPage = () => {
   const { currentHolographId, setCurrentHolographId, userId, isAuthenticated, isLoading: isSessionLoading } = useHolograph();
   
   const [holograph, setHolograph] = useState<Holograph | null>(null);
+  const [sections, setSections] = useState<Section[]>([]); // Stores dynamic sections
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +64,7 @@ const HolographDetailPage = () => {
         const response = await fetch(`/api/holograph/${params.id}`);
         if (!response.ok) throw new Error("Unauthorized or Holograph not found");
         const data = await response.json();
-        
+
         debugLog(`🔍 Checking authorization for user ${userId}`);
         debugLog("✅ Full API Response:", data);  // 🔍 Log the entire response
         debugLog("✅ Holograph Data:", data);
@@ -75,7 +72,7 @@ const HolographDetailPage = () => {
         debugLog("✅ Holograph Delegates:", data.delegates);
 
         setHolograph(data);
-        setNewTitle(data.title); // Ensure the input field has the current title value
+        setNewTitle(data.title);
         setIsAuthorized(true);
       } catch (err) {
         console.error("❌ Error fetching Holograph:", err);
@@ -85,8 +82,27 @@ const HolographDetailPage = () => {
         setIsLoading(false);
       }
     };
+
     if (userId) fetchHolograph();
   }, [params.id, userId, router]);
+
+  // Fetch sections dynamically
+  useEffect(() => {
+    const fetchSections = async () => {
+      try {
+        if (!params.id) return;
+        debugLog(`🚀 Fetching Sections for Holograph ID: ${params.id}`);
+        const response = await fetch(`/api/holograph/${params.id}/sections`);
+        if (!response.ok) throw new Error("Failed to fetch sections");
+        const data = await response.json();
+        setSections(data);
+      } catch (err) {
+        console.error("❌ Error fetching sections:", err);
+      }
+    };
+
+    fetchSections();
+  }, [params.id]);
 
   const handleEdit = async () => {
     if (!holograph) return;
@@ -104,17 +120,17 @@ const HolographDetailPage = () => {
     if (
       !confirm("Are you sure you want to delete this Holograph? Deleting this Holograph will also delete all sections, and this action cannot be undone.")
     ) return;
-  
+
     try {
       const response = await fetch(`/api/holograph/${holograph.id}`, { method: "DELETE" });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("❌ Failed to delete Holograph:", errorData);
         alert("Failed to delete Holograph: " + errorData.error);
         return;
       }
-  
+
       console.log("✅ Holograph deleted successfully.");
       router.push("/dashboard");
     } catch (err) {
@@ -133,20 +149,15 @@ const HolographDetailPage = () => {
       <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-2">
         {isEditing ? (
           <>
-            <input
-              className="border p-2"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-            />
+            <input className="border p-2" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             <button className="ml-2 btn-primary" onClick={handleEdit}>Submit</button>
             <button className="ml-2 btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
           </>
         ) : (
           <>
-            {holograph.title}     
-
-            {/* Info Icon with smaller size */}
-            <span className="ml-2 text-sm relative group cursor-pointer">
+            {holograph.title}
+             {/* Info Icon with smaller size */}
+             <span className="ml-2 text-sm relative group cursor-pointer">
               <span className="text-lg">ℹ️</span>
               <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
                 <p><span className="font-semibold">Principals:</span> 
@@ -161,7 +172,7 @@ const HolographDetailPage = () => {
                 <p className="text-xs text-gray-500">Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
               </div>
             </span>
-
+            
             {/* Edit Icon with Tooltip */}
             <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
               <span><FiEdit size={18} /></span>
@@ -180,7 +191,7 @@ const HolographDetailPage = () => {
           </>
         )}
       </h1>
-        <div className="flex gap-4">
+      <div className="flex gap-4">
           <button 
             className="btn-primary" 
             onClick={() => { setInviteRole('Principal'); setShowInviteModal(true); }}>➕   Add Principal
@@ -199,19 +210,22 @@ const HolographDetailPage = () => {
        </div>
       </div>
 
-        {showInviteModal && inviteRole && (
-          <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />
-        )}
+      {showInviteModal && inviteRole && (
+        <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
-        {SECTIONS.map(section => (
-          <Link key={section.id} href={`/holographs/${holograph.id}/${section.id}`} className="block border border-gray-400 shadow-md rounded-lg p-4 bg-gray-200 hover:bg-gray-100 transition cursor-pointer no-underline">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 no-underline">
-              {section.icon} {section.name}
-            </h2>
-            <p className="text-gray-700 mt-1 text-sm no-underline">{section.description}</p>
-          </Link>
-        ))}
+        {sections.map((section) => {
+          const IconComponent = sectionIcons[section.iconSlug] || sectionIcons["vital_documents"]; // Default icon
+          return (
+            <Link key={section.id} href={`/holographs/${holograph.id}/${section.slug}`} className="block border border-gray-400 shadow-md rounded-lg p-4 bg-gray-200 hover:bg-gray-100 transition cursor-pointer no-underline">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 no-underline">
+                <IconComponent size={24} /> {section.name}
+              </h2>
+              <p className="text-gray-700 mt-1 text-sm no-underline">{section.description}</p>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

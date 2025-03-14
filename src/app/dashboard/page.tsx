@@ -1,5 +1,5 @@
 // /src/app/dashboard/page.tsx - this is the REAL Dashboard page, the one that incorporates 
-// \_components\HolographDashboard.tsx
+// \_components\HolographDashboard.tsx where a user sees all of their holographs
 
 'use client'
 import React from 'react'

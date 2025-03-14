@@ -1,3 +1,5 @@
+// /src/app/api/users/[id]/route.ts
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db"; // Ensure this path matches your Prisma client setup
 import { debugLog } from "../../../../utils/debug";

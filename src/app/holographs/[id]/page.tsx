@@ -9,7 +9,7 @@ import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHol
 import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
-import { buttonIcons, sectionIcons } from "@/config/icons"; // Import the dynamic icons
+import { sectionIcons } from "@/config/icons"; // Import the dynamic icons
 
 interface Holograph {
   id: string;
@@ -173,9 +173,9 @@ const HolographDetailPage = () => {
               </div>
             </span>
             
-           {/* Edit Icon with Tooltip */}
+            {/* Edit Icon with Tooltip */}
             <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
-              <span><buttonIcons.edit size={18} /></span>
+              <span><FiEdit size={18} /></span>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
                 Edit Holograph Name
               </span>
@@ -183,7 +183,7 @@ const HolographDetailPage = () => {
 
             {/* Delete Icon with Tooltip */}
             <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
-              <span><buttonIcons.delete size={18} /></span>
+              <span><FiTrash2 size={18} /></span>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
                 Delete Holograph (Caution!)
               </span>
@@ -200,6 +200,14 @@ const HolographDetailPage = () => {
             className="btn-primary" 
             onClick={() => { setInviteRole('Delegate'); setShowInviteModal(true); }}>👥    Add Delegate
           </button>
+
+          {/* ✅ New "Manage Users" Button */}
+          <button 
+            onClick={() => router.push(`/holographs/${holograph.id}/manage-users`)} 
+            className="btn-primary">
+            ⚙️ Manage Users
+          </button>
+          
           <button
             onClick={() => router.push(`/dashboard`)}
             className="btn-secondary"

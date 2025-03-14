@@ -4,11 +4,11 @@
 'use client'
 import React from 'react'
 import { useEffect, useState } from 'react'
-import { Plus, X } from 'lucide-react'; // ✅ Ensure X is imported
 import { useRouter } from 'next/navigation'
 import HolographDashboard from '../_components/HolographDashboard'
 import { debugLog } from "../../utils/debug";
 import CreateHolograph from '../_components/holograph/CreateHolograph';
+import { buttonIcons } from '../../config/icons'; // ✅ Import standardized icons
 
 
 interface User {
@@ -61,11 +61,12 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               Welcome {user?.name || 'User'}!
             </h2>
+            {/* ✅ Standardized button icon for creating a new Holograph */}
             <button 
               onClick={() => setShowCreateForm(true)}
-              className="btn-primary"
+              className="btn-primary flex items-center gap-2"
             >
-               + Create New Holograph
+               <buttonIcons.create size={16} /> Create New Holograph
             </button>
             <p className="text-gray-600 text-lg">Email: {user?.email}</p>
             <div className="flex justify-between items-center mb-6">
@@ -84,12 +85,14 @@ export default function Dashboard() {
             {showCreateForm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="relative w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+                  {/* ✅ Standardized close button */}
                   <button
                     onClick={() => setShowCreateForm(false)}
                     className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
                   >
-                    <X size={20} />
+                    <buttonIcons.close size={20} />
                   </button>
+
                   <CreateHolograph
                     userId={user?.id}
                     onSuccess={(createdHolograph) => { // ✅ Fix: Use correct variable name
@@ -99,11 +102,12 @@ export default function Dashboard() {
                       router.refresh(); // ✅ Force UI update
                     }}
                   />
+                  {/* ✅ Standardized cancel button */}
                   <button
                     onClick={() => setShowCreateForm(false)}
-                    className="mt-4 w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
+                    className="mt-4 w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 flex items-center justify-center gap-2"
                   >
-                    Cancel
+                    <buttonIcons.close size={16} /> Cancel
                   </button>
                 </div>
               </div>

@@ -1,6 +1,6 @@
-import { FiBox, FiHome, FiFileText } from "react-icons/fi"; // Feather Icons
-import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent } from "react-icons/md"; // Material Icons
-import { FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
+import { FiBox, FiHome, FiFileText, FiEdit, FiTrash2, FiLink } from "react-icons/fi"; // Feather Icons
+import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, MdClose, MdAddCircle } from "react-icons/md"; // Material Icons
+import { FaPlus, FaTimes, FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
 import { AiFillCreditCard, AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
 import { GiOpenTreasureChest, GiGemPendant } from "react-icons/gi"; // Game Icons for valuables
 
@@ -15,4 +15,15 @@ export const sectionIcons = {
   "subscriptions": AiOutlineShoppingCart, // Represents paid subscriptions
   "reward-programs": FaGift, // Rewards and loyalty programs
   "home-services": FiHome, // Home maintenance and related services
+};
+
+// ✅ Standardized button icons
+export const buttonIcons = {
+  create: FaPlus, // ✅ Create new items
+  close: FaTimes, // ✅ Close modals
+  add: MdAddCircle, // ✅ Alternative for create
+  remove: MdClose, // ✅ Alternative for close
+  edit: FiEdit, // ✅ Standard Edit icon
+  delete: FiTrash2, // ✅ Standard Delete icon
+  link: FiLink, // ✅ Standardized Link icon
 };

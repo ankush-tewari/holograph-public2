@@ -10,7 +10,7 @@ import { useSession } from "next-auth/react";
 import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolograph hook
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
 import { debugLog } from "../../../../utils/debug";
-import { FiLink, FiEdit, FiTrash2 } from "react-icons/fi";
+import { buttonIcons } from "../../../../config/icons"; // ✅ Import standardized icons
 
 interface Document {
   id: string;
@@ -171,12 +171,11 @@ export default function VitalDocumentsPage() {
           <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
         </div>
         <div className="mt-6 text-gray-700 text-sm space-y-2">
-          <p>Upload a scanned copy of your will, advance healthcare directive, and at least one identity document.</p>
+          <p>Upload a scanned copy of your will, trust, and advance healthcare directive documents.</p>
           <p>You may also upload other important documents such as:</p>
           <ul className="list-disc pl-4">
             <li>Pet information</li>
             <li>Location of important heirlooms</li>
-            <li>Digital/scanned photos</li>
             <li>Other transition-related instructions</li>
           </ul>
         </div>
@@ -214,22 +213,28 @@ export default function VitalDocumentsPage() {
                   <td className="p-3 border border-gray-300">{doc.name}</td>
                   <td className="p-3 border border-gray-300">{DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</td>
                   <td className="p-3 border border-gray-300 flex gap-3">
-                    <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
-                      <a href={signedUrls[doc.id] || "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                        <FiLink size={18} />
+
+                    {/* ✅ Standardized Download Button */}
+                    <button className="ml-2 text-blue-600 hover:text-blue-800 text-sm relative group">
+                      <a href={signedUrls[doc.id] || "#"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                        <buttonIcons.link size={18} />
                         <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
                           Download Vital Document
                         </span>
                       </a>
                     </button>
+
+                    {/* ✅ Standardized Edit Button */}
                     <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
-                      <span><FiEdit size={18} /></span>
+                      <span><buttonIcons.edit size={18} /></span>
                       <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
                         Edit Vital Document
                       </span>
                     </button>
+
+                    {/* ✅ Standardized Delete Button */}
                     <button className="ml-2 text-red-600 hover:text-red-800 text-sm relative group" onClick={() => handleDelete(doc.id)}>
-                      <span><FiTrash2 size={18} /></span>
+                      <span><buttonIcons.delete size={18} /></span>
                       <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
                         Delete Vital Document
                       </span>

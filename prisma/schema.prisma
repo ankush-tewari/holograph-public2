@@ -8,29 +8,31 @@ datasource db {
 }
 
 model User {
-  id              String               @id @default(uuid())
-  email           String               @unique
-  password        String
-  name            String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  delegateAccess  HolographDelegate[]
-  principalOf     HolographPrincipal[]
-  invitationsSent Invitation[]         @relation("Inviter")
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  password            String
+  name                String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  delegateAccess      HolographDelegate[]
+  principalOf         HolographPrincipal[]
+  invitationsSent     Invitation[]          @relation("Inviter")
+  delegatePermissions DelegatePermissions[] // ✅ Add this line
 }
 
 model Holograph {
-  id             String               @id @default(uuid())
-  title          String
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  sslCertPath    String? // Path to SSL cert in GCS (optional)
-  sslKeyPath     String? // Path to SSL key in GCS (optional)
-  delegates      HolographDelegate[]
-  principals     HolographPrincipal[]
-  vitalDocuments VitalDocument[]
-  invitations    Invitation[] // ✅ Add this to establish the relation
-  sections       HolographSection[] // ✅ Add this to establish the relation
+  id                  String                @id @default(uuid())
+  title               String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  sslCertPath         String? // Path to SSL cert in GCS (optional)
+  sslKeyPath          String? // Path to SSL key in GCS (optional)
+  delegates           HolographDelegate[]
+  principals          HolographPrincipal[]
+  vitalDocuments      VitalDocument[]
+  invitations         Invitation[] // ✅ Add this to establish the relation
+  sections            HolographSection[] // ✅ Add this to establish the relation
+  delegatePermissions DelegatePermissions[] // ✅ Add this line
 }
 
 model HolographPrincipal {
@@ -104,10 +106,24 @@ model HolographSection {
   id          String @id @default(uuid())
   holographId String
   sectionId   String
-  order       Int      @default(0) // ✅ Controls layout order per Holograph
+  order       Int    @default(0) // ✅ Controls layout order per Holograph
 
   holograph Holograph @relation(fields: [holographId], references: [id])
   section   Section   @relation(fields: [sectionId], references: [id])
 
   @@unique([holographId, sectionId]) // Prevent duplicate entries
+}
+
+// determines what access level Delegates have to each Holograph Section
+model DelegatePermissions {
+  id          String @id @default(uuid())
+  holographId String
+  delegateId  String
+  section     String
+  accessLevel String // "none" or "view-only"
+
+  holograph Holograph @relation(fields: [holographId], references: [id], onDelete: Cascade)
+  delegate  User      @relation(fields: [delegateId], references: [id], onDelete: Cascade)
+
+  @@unique([holographId, delegateId, section]) // Ensure one entry per section per delegate
 }

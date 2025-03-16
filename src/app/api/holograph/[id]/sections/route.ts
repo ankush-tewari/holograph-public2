@@ -11,6 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     console.log("❌ Missing holograph ID");
     return NextResponse.json({ error: "Holograph ID is required" }, { status: 400 });
   }
+  const holographId = params.id;
 
   try {
 
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     console.log("✅ Sections found:", holographSections);
 
     return NextResponse.json(holographSections.map(s => ({
+      sectionId: s.id, // ✅ Added sectionId (Primary key in HolographSection)
       id: s.section.id,
       name: s.section.name,
       slug: s.section.slug,

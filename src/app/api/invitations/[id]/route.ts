@@ -39,7 +39,25 @@ export async function PATCH(request: Request, { params }: { params: { id: string
             userId: invitee.id,
           }
         });
-      }
+      
+        // ✅ Fetch all sections for this Holograph
+        const sections = await prisma.holographSection.findMany({
+          where: { holographId: updatedInvitation.holographId },
+          select: { id: true },
+        });
+      
+        // ✅ Create default permissions: "view-only"
+        await prisma.delegatePermissions.createMany({
+          data: sections.map((section) => ({
+            holographId: updatedInvitation.holographId,
+            delegateId: invitee.id,
+            sectionId: section.id,
+            accessLevel: "view-only",
+          })),
+        });
+      
+        debugLog(`✅ Default 'view-only' permissions created for Delegate ${invitee.email}`);
+      }      
     }
 
     if (status === 'Declined') {

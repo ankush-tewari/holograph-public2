@@ -110,20 +110,22 @@ model HolographSection {
 
   holograph Holograph @relation(fields: [holographId], references: [id])
   section   Section   @relation(fields: [sectionId], references: [id])
-
+  delegatePermissions DelegatePermissions[] // ✅ Added relation back to DelegatePermissions
+  
   @@unique([holographId, sectionId]) // Prevent duplicate entries
 }
 
-// determines what access level Delegates have to each Holograph Section
+// Determines what access level Delegates have to each Holograph Section
 model DelegatePermissions {
   id          String @id @default(uuid())
   holographId String
   delegateId  String
-  section     String
-  accessLevel String // "none" or "view-only"
+  sectionId   String  // ✅ Foreign key to HolographSection
+  accessLevel String  // "none" or "view-only"
 
-  holograph Holograph @relation(fields: [holographId], references: [id], onDelete: Cascade)
-  delegate  User      @relation(fields: [delegateId], references: [id], onDelete: Cascade)
+  holograph   Holograph        @relation(fields: [holographId], references: [id], onDelete: Cascade)
+  delegate    User             @relation(fields: [delegateId], references: [id], onDelete: Cascade)
+  section     HolographSection @relation(fields: [sectionId], references: [id], onDelete: Cascade) // ✅ Added relation
 
-  @@unique([holographId, delegateId, section]) // Ensure one entry per section per delegate
+  @@unique([holographId, delegateId, sectionId]) // Ensure one entry per section per delegate
 }

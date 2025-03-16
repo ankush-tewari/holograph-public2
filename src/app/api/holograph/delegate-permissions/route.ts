@@ -33,23 +33,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { holographId, delegateId, section, accessLevel } = await req.json();
+    const { holographId, delegateId, sectionId, accessLevel } = await req.json(); // ✅ Use sectionId
 
-    if (!holographId || !delegateId || !section || !accessLevel) {
+    if (!holographId || !delegateId || !sectionId || !accessLevel) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     try {
         const updatedPermission = await prisma.delegatePermissions.upsert({
             where: {
-                holographId_delegateId_section: {
+                holographId_delegateId_sectionId: { // ✅ Updated composite key
                     holographId,
                     delegateId,
-                    section
+                    sectionId
                 }
             },
             update: { accessLevel },
-            create: { holographId, delegateId, section, accessLevel },
+            create: { holographId, delegateId, sectionId, accessLevel },
         });
 
         return NextResponse.json(updatedPermission);

@@ -71,7 +71,8 @@ export default function ManageUsers() {
       <UserList users={users} />
 
       <h2 className="text-xl font-semibold mt-6">Delegate Permissions</h2>
-      <DelegatePermissions holographId={currentHolographId} />
+      <DelegatePermissions holographId={currentHolographId} useSectionIds={true} />
+
 
       <button
         className="mt-4 bg-gray-500 text-white px-4 py-2 rounded"

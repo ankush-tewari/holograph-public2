@@ -6,40 +6,65 @@ import { debugLog } from "../../../utils/debug";
 export default function DelegatePermissions({ holographId }) {
   const [delegates, setDelegates] = useState([]);
   const [permissions, setPermissions] = useState({});
+  const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    fetch(`/api/holograph/delegates?holographId=${holographId}`)
+    fetch(`/api/holograph/delegates/list?holographId=${holographId}`)
       .then((res) => res.json())
-      .then((data) => setDelegates(data));
-  }, [holographId]);
+      .then((data) => {
+        console.log("✅ Delegates loaded:", data); // Debug
+        setDelegates(data);
+      });
+  }, [holographId]);  
 
   useEffect(() => {
     fetch(`/api/holograph/delegate-permissions?holographId=${holographId}`)
       .then((res) => res.json())
       .then((data) => {
         const permissionsMap = {};
-        data.forEach(({ delegateId, section, accessLevel }) => {
+        data.forEach(({ delegateId, sectionId, accessLevel }) => { // ✅ Uses "sectionId"
           if (!permissionsMap[delegateId]) {
             permissionsMap[delegateId] = {};
           }
-          permissionsMap[delegateId][section] = accessLevel;
+          permissionsMap[delegateId][sectionId] = accessLevel; // ✅ Maps by sectionId
         });
         setPermissions(permissionsMap);
+        debugLog("✅ Delegate Permissions Map:", permissionsMap);
       });
   }, [holographId]);
 
-  const handlePermissionChange = (delegateId, section, newLevel) => {
+  
+
+
+  useEffect(() => {
+    fetch(`/api/holograph/${holographId}/sections`) // ✅ New API call to get sections
+      .then((res) => res.json())
+      .then((data) => setSections(data))
+      .catch((err) => console.error("Error loading sections:", err));
+  }, [holographId]);
+  
+
+  const handlePermissionChange = (delegateId, sectionId, newLevel) => {
     setPermissions((prev) => ({
       ...prev,
-      [delegateId]: { ...prev[delegateId], [section]: newLevel },
+      [delegateId]: { ...prev[delegateId], [sectionId]: newLevel },
     }));
+
+    const payload = {
+      holographId,
+      delegateId,
+      sectionId,
+      accessLevel: newLevel,
+    };
+
+    debugLog("📤 Sending permission update:", payload); // Add this debug log
 
     fetch("/api/holograph/delegate-permissions", {
       method: "POST",
       body: JSON.stringify({
         holographId,
         delegateId,
-        section,
+        sectionId,
         accessLevel: newLevel,
       }),
       headers: { "Content-Type": "application/json" },
@@ -53,14 +78,15 @@ export default function DelegatePermissions({ holographId }) {
         <div key={delegate.id} className="mt-2">
           <h3 className="font-medium">{delegate.name} ({delegate.email})</h3>
           <div className="grid grid-cols-3 gap-2 mt-2">
-            {["Vital Documents", "Financial Accounts", "Digital Assets"].map((section) => (
-              <div key={section} className="flex items-center justify-between bg-gray-100 p-2 rounded">
-                <span>{section}</span>
+            {sections.map((section) => (
+              <div key={section.sectionId} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+                <span>{section.name}</span>
                 <select
-                  value={permissions[delegate.id]?.[section] || "view-only"}
-                  onChange={(e) => handlePermissionChange(delegate.id, section, e.target.value)}
+                  value={permissions[delegate.id]?.[section.sectionId] || "none"} // ✅ Map by sectionId
+                  onChange={(e) => handlePermissionChange(delegate.id, section.sectionId, e.target.value)} // ✅ Use sectionId
                   className="border rounded px-2 py-1"
                 >
+
                   <option value="none">None</option>
                   <option value="view-only">View-Only</option>
                 </select>

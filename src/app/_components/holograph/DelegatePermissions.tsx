@@ -1,12 +1,15 @@
 // /src/app/_components/manage-users/DelegatePermissions.tsx
 
 import { useState, useEffect } from "react";
+import { useHolograph } from "@/hooks/useHolograph";
 import { debugLog } from "../../../utils/debug";
 
 export default function DelegatePermissions({ holographId }) {
   const [delegates, setDelegates] = useState([]);
   const [permissions, setPermissions] = useState({});
-  const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
+  const [sections, setSections] = useState<{ id: string; sectionId: string; name: string }[]>([]);
+  const { userId } = useHolograph();  // ✅ Get logged-in user's ID
+
 
   useEffect(() => {
     fetch(`/api/holograph/delegates/list?holographId=${holographId}`)
@@ -18,28 +21,37 @@ export default function DelegatePermissions({ holographId }) {
   }, [holographId]);  
 
   useEffect(() => {
+    if (!holographId || !userId) return;
+  
     fetch(`/api/holograph/delegate-permissions?holographId=${holographId}`)
       .then((res) => res.json())
       .then((data) => {
+        if (!Array.isArray(data)) {
+          console.error("❌ Expected an array but got:", data);
+          return;
+        }
+  
         const permissionsMap = {};
-        data.forEach(({ delegateId, sectionId, accessLevel }) => { // ✅ Uses "sectionId"
+        data.forEach(({ delegateId, sectionId, accessLevel }) => {
           if (!permissionsMap[delegateId]) {
             permissionsMap[delegateId] = {};
           }
-          permissionsMap[delegateId][sectionId] = accessLevel; // ✅ Maps by sectionId
+          permissionsMap[delegateId][sectionId] = accessLevel;
         });
         setPermissions(permissionsMap);
-        debugLog("✅ Delegate Permissions Map:", permissionsMap);
-      });
-  }, [holographId]);
-
-  
+        debugLog("🗺️ Permissions Map:", permissionsMap); // ✅ Moved here
+      })
+      .catch((err) => console.error("❌ Error fetching permissions:", err));
+  }, [holographId, userId]);
 
 
   useEffect(() => {
     fetch(`/api/holograph/${holographId}/sections`) // ✅ New API call to get sections
       .then((res) => res.json())
-      .then((data) => setSections(data))
+      .then((data) => {
+        setSections(data);
+        debugLog("📦 Sections Loaded:", data);  // ✅ Logs correctly
+      })      
       .catch((err) => console.error("Error loading sections:", err));
   }, [holographId]);
   
@@ -58,7 +70,7 @@ export default function DelegatePermissions({ holographId }) {
     };
 
     debugLog("📤 Sending permission update:", payload); // Add this debug log
-
+   
     fetch("/api/holograph/delegate-permissions", {
       method: "POST",
       body: JSON.stringify({

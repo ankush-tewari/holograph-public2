@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "No sections found for this Holograph" }, { status: 404 });
     }
 
-    console.log("✅ Sections found:", holographSections);
+    //debugLog("✅ Sections found:", holographSections);
 
     return NextResponse.json(holographSections.map(s => ({
       sectionId: s.id, // ✅ Added sectionId (Primary key in HolographSection)

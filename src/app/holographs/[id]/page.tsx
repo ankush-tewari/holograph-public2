@@ -11,16 +11,23 @@ import { format } from "date-fns";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { sectionIcons } from "@/config/icons"; // Import the dynamic icons
 
+interface HolographUser {
+  id: string;
+  name: string;
+}
+
 interface Holograph {
   id: string;
   title: string;
   createdAt: string;
   updatedAt: string;
-  principals: { name: string }[];
-  delegates: { name: string }[];
+  principals: HolographUser[];  // ✅ Now includes user.id
+  delegates: HolographUser[];  // ✅ Same here
 }
 
+
 interface Section {
+  sectionId: string;  // ✅ Add this
   id: string;
   name: string;
   slug: string;
@@ -42,6 +49,8 @@ const HolographDetailPage = () => {
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [delegatePermissions, setDelegatePermissions] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     if (params.id && currentHolographId !== params.id) {
@@ -104,6 +113,33 @@ const HolographDetailPage = () => {
     fetchSections();
   }, [params.id]);
 
+  useEffect(() => {
+    const fetchDelegatePermissions = async () => {
+      if (!params.id || !userId) return;
+  
+      try {
+        const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`);
+        if (!response.ok) throw new Error("Failed to fetch delegate permissions");
+        const data = await response.json(); // Expected: [{ sectionId, accessLevel }]
+        const permissionsMap: Record<string, string> = {};
+        data.forEach(({ sectionId, accessLevel }) => {
+          permissionsMap[sectionId] = accessLevel;
+        });
+        setDelegatePermissions(permissionsMap);
+        debugLog("✅ Delegate Permissions Fetched:", permissionsMap);
+      } catch (err) {
+        console.error("❌ Error loading delegate permissions:", err);
+      }
+    };
+  
+    // Only fetch permissions if user is not a Principal
+    const isPrincipal = holograph?.principals?.some(p => p.id === userId) || false;
+    if (!isPrincipal && userId) {
+      fetchDelegatePermissions();
+    }
+  }, [params.id, userId, holograph]);
+  
+
   const handleEdit = async () => {
     if (!holograph) return;
     await fetch(`/api/holograph/${holograph.id}`, {
@@ -143,6 +179,15 @@ const HolographDetailPage = () => {
   if (!isAuthenticated) return <p className="text-center text-red-500 text-lg">Please log in</p>;
   if (!isAuthorized) return <p className="text-center text-red-600 text-lg">{error}</p>;
   if (!holograph) return <p className="text-center text-gray-600 text-lg">No Holograph found.</p>;
+
+  const isPrincipal = holograph?.principals?.some(p => p.id === userId) || false;
+  debugLog("👑 Holograph Principals:", holograph?.principals);
+  debugLog("🧑‍💻 Current User ID:", userId);
+  debugLog("🔐 delegatePermissions Map:", delegatePermissions);
+  debugLog("🕵️ isPrincipal?", isPrincipal);
+  debugLog("📦 Sections Loaded:", sections);
+
+
 
   return (
     <div className="p-8 max-w-full mx-auto bg-stone-50 text-black min-h-screen">
@@ -223,17 +268,42 @@ const HolographDetailPage = () => {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
-        {sections.map((section) => {
-          const IconComponent = sectionIcons[section.iconSlug] || sectionIcons["vital_documents"]; // Default icon
-          return (
-            <Link key={section.id} href={`/holographs/${holograph.id}/${section.slug}`} className="block border border-gray-400 shadow-md rounded-lg p-4 bg-gray-200 hover:bg-gray-100 transition cursor-pointer no-underline">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 no-underline">
-                <IconComponent size={24} /> {section.name}
-              </h2>
-              <p className="text-gray-700 mt-1 text-sm no-underline">{section.description}</p>
-            </Link>
-          );
-        })}
+      {sections.map((section) => {
+        const IconComponent = sectionIcons[section.iconSlug] || sectionIcons["vital_documents"];
+        
+        let canAccess = true; // Default for Principals
+
+        if (!isPrincipal) {
+          const accessLevel = delegatePermissions[section.sectionId] || "none";
+          canAccess = accessLevel === "view-only";
+        }
+
+        return (
+          <div
+            key={section.id}
+            className={`block border border-gray-400 shadow-md rounded-lg p-4 
+              ${canAccess ? "bg-gray-200 hover:bg-gray-100 cursor-pointer" : "bg-gray-100 cursor-not-allowed opacity-50"}`}
+          >
+            {canAccess ? (
+              <Link href={`/holographs/${holograph.id}/${section.slug}`} className="no-underline">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 no-underline">
+                  <IconComponent size={24} /> {section.name}
+                </h2>
+                <p className="text-gray-700 mt-1 text-sm no-underline">{section.description}</p>
+              </Link>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <IconComponent size={24} /> {section.name}
+                </h2>
+                <p className="text-gray-700 mt-1 text-sm">{section.description}</p>
+                <p className="text-red-500 text-xs mt-1 italic">Access Restricted</p>
+              </>
+            )}
+          </div>
+        );
+      })}
+
       </div>
     </div>
   );

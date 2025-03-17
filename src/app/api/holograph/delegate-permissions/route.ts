@@ -9,23 +9,34 @@ import { debugLog } from "../../../../utils/debug";
 export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  
     const { searchParams } = new URL(req.url);
     const holographId = searchParams.get('holographId');
-
+    const userId = searchParams.get('userId'); // ✅ Optional param for delegate-specific
+  
     if (!holographId) return NextResponse.json({ error: 'Missing holographId' }, { status: 400 });
-
+  
     try {
-        const permissions = await prisma.delegatePermissions.findMany({
-        where: { holographId },
-        include: { delegate: { select: { id: true, name: true, email: true } } }
-        });
-
-        return NextResponse.json(permissions);
+      const whereClause = userId
+        ? { holographId, delegateId: userId }  // ✅ Delegate-specific fetch
+        : { holographId };                   // ✅ Fetch all permissions
+  
+      const permissions = await prisma.delegatePermissions.findMany({
+        where: whereClause,
+        select: {
+          delegateId: true,
+          sectionId: true,
+          accessLevel: true,
+        },
+      });
+  
+      return NextResponse.json(permissions);
     } catch (error) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+      console.error("Error fetching delegate permissions:", error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-}
+  }  
+  
   
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);

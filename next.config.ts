@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      {
+        source: "/holographs",
+        destination: "/dashboard",
+        permanent: false, // safe for dev, doesn’t get cached by browsers
+      },
+    ];
+  },
 };
 
 export default nextConfig;

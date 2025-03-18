@@ -4,10 +4,12 @@
 
 import { useState, useEffect } from "react";
 import { useHolograph } from "@/hooks/useHolograph";
-import UserList from "./UserList"; // Will be created inside the same folder
 import InviteUserModal from "./InviteUserModal";
 import DelegatePermissions from "./DelegatePermissions";
 import { useRouter, useParams } from "next/navigation";
+import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
+import { userIcons } from "@/config/icons";
+import { debugLog } from "@/utils/debug";
 
 // ✅ Define a type for users
 interface User {
@@ -27,6 +29,13 @@ export default function ManageUsers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
+
+  const { userId } = useHolograph(); // Get current userId
+  const [isPrincipal, setIsPrincipal] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+
 
   
   useEffect(() => {
@@ -48,6 +57,34 @@ export default function ManageUsers() {
       .catch(() => setError("Failed to load users."));
   }, [currentHolographId]);
 
+  // checks whether or not the user has access to this page
+  useEffect(() => {
+    if (!currentHolographId || !userId) return;
+  
+    fetch(`/api/holograph/${currentHolographId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const principals = data.principals || [];
+        const isCurrentPrincipal = principals.some((p: any) => p.id === userId);
+        setIsPrincipal(isCurrentPrincipal);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to verify user role.");
+        setIsLoading(false);
+      });
+  }, [currentHolographId, userId]);
+  
+  if (isLoading) return <p className="text-center text-gray-500">Loading...</p>;
+
+  if (!isPrincipal) {
+    return (
+      <AccessDeniedModalDashboardRedirect
+        message="You do not have permission to manage users for this Holograph."
+      />
+    );
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Manage Users</h1>
@@ -55,31 +92,86 @@ export default function ManageUsers() {
       {error && <p className="text-red-500">{error}</p>}
 
       <button
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-        onClick={() => setIsModalOpen(true)}
-      >
-        Invite User
-      </button>
-
-      {isModalOpen && (
-        <InviteUserModal
-          holographId={currentHolographId}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
-
-      <UserList users={users} />
-
-      <h2 className="text-xl font-semibold mt-6">Delegate Permissions</h2>
-      <DelegatePermissions holographId={currentHolographId} useSectionIds={true} />
-
-
-      <button
-        className="mt-4 bg-gray-500 text-white px-4 py-2 rounded"
+        className="btn-secondary"
         onClick={() => router.push(`/holographs/${currentHolographId}`)}
       >
         ← Back to Holograph
       </button>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Principals Section */}
+        <div className="bg-white shadow-md rounded-lg p-4 mt-4">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span>Principals</span>
+          <button
+            className="text-green-600 hover:text-green-800 relative group"
+            onClick={() => {
+              setInviteRole("Principal");
+              setIsModalOpen(true);
+            }}
+          >
+            <userIcons.addPrincipal size={18} />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+              Add Principal
+            </span>
+          </button>
+        </h2>
+
+        <ul className="space-y-2">
+          {users.filter(user => user.role === "Principal").map(user => (
+            <li key={user.id} className="border-b pb-2">
+              <p className="font-medium">{user.name}</p>
+              <p className="text-sm text-gray-600">{user.email}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Delegates Section */}
+      <div className="bg-white shadow-md rounded-lg p-4 mt-4">
+      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+        <span>Delegates</span>
+        <button
+          className="text-blue-600 hover:text-blue-800 relative group"
+          onClick={() => {
+            setInviteRole("Delegate");
+            setIsModalOpen(true);
+          }}
+        >
+          <userIcons.addDelegate size={18} />
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+            Add Delegate
+          </span>
+        </button>
+      </h2>
+        <ul className="space-y-2">
+          {users.filter(user => user.role === "Delegate").map(user => (
+            <li key={user.id} className="border-b pb-2">
+              <p className="font-medium">{user.name}</p>
+              <p className="text-sm text-gray-600">{user.email}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+
+      {/* ✅ InviteUserModal appears based on selected role */}
+      {isModalOpen && inviteRole && (
+        <InviteUserModal
+          holographId={currentHolographId}
+          role={inviteRole}
+          onClose={() => {
+            setIsModalOpen(false);
+            setInviteRole(null); // Reset role after closing
+          }}
+        />
+      )}
+
+      <hr className="my-6 border-t border-gray-300" />
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Delegate Permissions</h2>
+
+      <DelegatePermissions holographId={currentHolographId} useSectionIds={true} />
     </div>
   );
 }

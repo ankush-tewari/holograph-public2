@@ -1,8 +1,12 @@
-import { FiBox, FiHome, FiFileText, FiEdit, FiTrash2, FiLink } from "react-icons/fi"; // Feather Icons
+// /src/config/icons.ts
+
+import { FiBox, FiHome, FiFileText, FiDelete } from "react-icons/fi"; // Feather Icons
 import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, MdClose, MdAddCircle } from "react-icons/md"; // Material Icons
 import { FaPlus, FaTimes, FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
 import { AiFillCreditCard, AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
 import { GiOpenTreasureChest, GiGemPendant } from "react-icons/gi"; // Game Icons for valuables
+import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink } from "react-icons/fi"; // Import these for user roles
+
 
 export const sectionIcons = {
   "vital-documents": FiFileText, // Represents document storage
@@ -23,7 +27,13 @@ export const buttonIcons = {
   close: FaTimes, // ✅ Close modals
   add: MdAddCircle, // ✅ Alternative for create
   remove: MdClose, // ✅ Alternative for close
-  edit: FiEdit, // ✅ Standard Edit icon
-  delete: FiTrash2, // ✅ Standard Delete icon
-  link: FiLink, // ✅ Standardized Link icon
+  link: FiLink, // link icon
+  edit: FiEdit, // edit icon
+  delete: FiTrash2, //delete icon
+  users: FiUsers, //users icon
+};
+
+export const userIcons = {
+  addPrincipal: FiUserPlus,
+  addDelegate: FiUsers,
 };

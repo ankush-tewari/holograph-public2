@@ -8,8 +8,7 @@ import Link from 'next/link';
 import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
 import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
-import { FiEdit, FiTrash2 } from "react-icons/fi";
-import { sectionIcons } from "@/config/icons"; // Import the dynamic icons
+import { sectionIcons, buttonIcons } from "@/config/icons"; // Import the dynamic icons
 import AccessDeniedModalDashboardRedirect from "../../_components/AccessDeniedModalDashboardRedirect";
 
 
@@ -225,41 +224,37 @@ const HolographDetailPage = () => {
               </div>
             </span>
             
-            {/* Edit Icon with Tooltip */}
-            <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
-              <span><FiEdit size={18} /></span>
-              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                Edit Holograph Name
-              </span>
-            </button>
+            {isPrincipal && (
+              <>
+                {/* Edit Holograph Name */}
+                <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
+                  <span><buttonIcons.edit size={18} /></span>
+                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                    Edit Holograph Name
+                  </span>
+                </button>
 
-            {/* Delete Icon with Tooltip */}
-            <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
-              <span><FiTrash2 size={18} /></span>
-              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                Delete Holograph (Caution!)
-              </span>
-            </button>
+                {/* Manage Users */}
+                <button className="ml-2 text-blue-600 text-sm relative group" onClick={() => router.push(`/holographs/${holograph.id}/manage-users`)}>
+                  <span><buttonIcons.users size={18} /></span>
+                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-blue-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                    Manage Users for this Holograph
+                  </span>
+                </button>
+
+                {/* Delete Holograph */}
+                <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
+                  <span><buttonIcons.delete size={18} /></span>
+                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                    Delete Holograph (Caution!)
+                  </span>
+                </button>
+              </>
+            )}
           </>
         )}
       </h1>
       <div className="flex gap-4">
-          <button 
-            className="btn-primary" 
-            onClick={() => { setInviteRole('Principal'); setShowInviteModal(true); }}>➕   Add Principal
-          </button>
-          <button 
-            className="btn-primary" 
-            onClick={() => { setInviteRole('Delegate'); setShowInviteModal(true); }}>👥    Add Delegate
-          </button>
-
-          {/* ✅ New "Manage Users" Button */}
-          <button 
-            onClick={() => router.push(`/holographs/${holograph.id}/manage-users`)} 
-            className="btn-primary">
-            ⚙️ Manage Users
-          </button>
-          
           <button
             onClick={() => router.push(`/dashboard`)}
             className="btn-secondary"

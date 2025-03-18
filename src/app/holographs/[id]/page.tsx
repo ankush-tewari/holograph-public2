@@ -10,6 +10,9 @@ import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { sectionIcons } from "@/config/icons"; // Import the dynamic icons
+import AccessDeniedModalDashboardRedirect from "../../_components/AccessDeniedModalDashboardRedirect";
+
+
 
 interface HolographUser {
   id: string;
@@ -177,7 +180,11 @@ const HolographDetailPage = () => {
 
   if (isSessionLoading || isLoading) return <p className="text-center text-gray-500 text-lg">Loading...</p>;
   if (!isAuthenticated) return <p className="text-center text-red-500 text-lg">Please log in</p>;
-  if (!isAuthorized) return <p className="text-center text-red-600 text-lg">{error}</p>;
+  if (!isAuthorized) {
+    return (
+      <AccessDeniedModalDashboardRedirect message={error || "You are not authorized to view this Holograph."} />
+    );
+  }
   if (!holograph) return <p className="text-center text-gray-600 text-lg">No Holograph found.</p>;
 
   const isPrincipal = holograph?.principals?.some(p => p.id === userId) || false;

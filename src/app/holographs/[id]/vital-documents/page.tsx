@@ -11,6 +11,10 @@ import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolo
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
 import { debugLog } from "../../../../utils/debug";
 import { buttonIcons } from "../../../../config/icons"; // ✅ Import standardized icons
+import { useSectionAccess } from "@/hooks/useSectionAccess";
+import AccessDeniedModal from "@/app/_components/AccessDeniedModal";
+
+
 
 interface Document {
   id: string;
@@ -30,12 +34,18 @@ export default function VitalDocumentsPage() {
   
   // Use the holographId from the URL params
   const holographId = params.id as string;
+  // make sure only authorized users can see this page
+  const { isAuthorized, isLoading: isAccessLoading, accessDenied, holographTitle, sectionName } = useSectionAccess("vital-documents");
+
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+
+
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -159,8 +169,29 @@ export default function VitalDocumentsPage() {
     }
   };
 
-  if (status === 'loading' || (isLoading && documents.length === 0)) return <p>Loading...</p>;
+  if (
+    status === 'loading' || 
+    isHolographLoading || 
+    isAccessLoading || 
+    (isLoading && documents.length === 0)
+  ) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800"></div>
+      </div>
+    );
+  }
+  
   if (status === 'unauthenticated') return <p>Please log in</p>;
+  if (accessDenied) {
+    return (
+      <AccessDeniedModal 
+        holographId={holographId}
+        holographTitle={holographTitle}
+        sectionName={sectionName || "this section"}
+      />
+    );
+  }
 
   return (
     <div className="flex gap-6 p-8 max-w-6xl mx-auto">

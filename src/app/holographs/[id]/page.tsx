@@ -15,8 +15,10 @@ import AccessDeniedModalDashboardRedirect from "../../_components/AccessDeniedMo
 
 interface HolographUser {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
 }
+
 
 interface Holograph {
   id: string;
@@ -212,12 +214,14 @@ const HolographDetailPage = () => {
               <span className="text-lg">ℹ️</span>
               <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
                 <p><span className="font-semibold">Principals:</span> 
-                  {holograph.principals && holograph.principals.length > 0 ? 
-                    holograph.principals.map(p => p.name).join(", ") : 'None'}
+                  {holograph.principals && holograph.principals.length > 0 
+                    ? holograph.principals.map(p => `${p.firstName} ${p.lastName}`).join(", ")
+                    : 'None' }
                 </p>
                 <p><span className="font-semibold">Delegates:</span> 
-                  {holograph.delegates && holograph.delegates.length > 0 ? 
-                    holograph.delegates.map(d => d.name).join(", ") : 'None'}
+                  {holograph.delegates && holograph.delegates.length > 0 
+                    ? holograph.delegates.map(d => `${d.firstName} ${d.lastName}`).join(", ")
+                    : 'None' }
                 </p>
                 <p className="mt-2 text-xs text-gray-500">Created: {format(new Date(holograph.createdAt), "MMM d, yyyy")}</p>
                 <p className="text-xs text-gray-500">Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>

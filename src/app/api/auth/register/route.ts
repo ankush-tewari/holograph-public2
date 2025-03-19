@@ -1,3 +1,5 @@
+// /src/app/api/auth/register/route.ts
+
 import { NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
 import { prisma } from '@/lib/db'
@@ -5,7 +7,15 @@ import { debugLog } from "../../../../utils/debug";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name } = await req.json()
+    const { email, password, firstName, lastName } = await req.json()
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -22,11 +32,12 @@ export async function POST(req: Request) {
     // Hash password
     const hashedPassword = await hash(password, 12)
 
-    // Create user
+    // Create user with firstName and lastName
     const user = await prisma.user.create({
       data: {
         email,
-        name,
+        firstName,
+        lastName,
         password: hashedPassword
       }
     })
@@ -36,7 +47,8 @@ export async function POST(req: Request) {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        firstName: user.firstName,
+        lastName: user.lastName
       }
     })
   } catch (error) {

@@ -33,40 +33,33 @@ export async function GET(request: Request, context: { params: { id: string } })
 
     debugLog(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
 
-    // ✅ Fetch Holograph with Principals & Delegates
-    const holograph = await prisma.holograph.findUnique({
-      where: { id: holographId },
-      select: {
-        id: true,
-        title: true,
-        createdAt: true,
-        updatedAt: true,
-        principals: { 
-          select: { user: { select: { id: true, name: true } } } 
-        },
-        delegates: { 
-          select: { user: { select: { id: true, name: true } } } 
-        },
+   // ✅ Fetch the Owner
+   const holograph = await prisma.holograph.findUnique({
+    where: { id: holographId },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      updatedAt: true,
+      owner: {
+        select: { id: true, firstName: true, lastName: true },
       },
-    });
+      principals: {
+        select: { user: { select: { id: true, firstName: true, lastName: true } } },
+      },
+      delegates: {
+        select: { user: { select: { id: true, firstName: true, lastName: true } } },
+      },
+    },
+  });    
 
     if (!holograph) {
       console.error(`❌ Holograph ${holographId} not found`);
       return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
     }
 
-    debugLog(`✅ Found Holograph: ${holograph.title}`);
-
-    // ✅ Fetch the first Principal as the "owner"
-    const ownerId = holograph.principals.length > 0 ? holograph.principals[0].userId : null;
-    const owner = ownerId
-      ? await prisma.user.findUnique({
-          where: { id: ownerId },
-          select: { id: true, name: true },
-        })
-      : null;
-
-    debugLog(`👤 Owner Found: ${owner?.name || "Unknown User"}`);
+    debugLog(`✅ Found Holograph: ${holograph.title}`)
+    debugLog(`👤 Owner Found: ${holograph.owner ? `${holograph.owner.firstName} ${holograph.owner.lastName}` : "Unknown User"}`);
 
     // ✅ Check if the user is authorized
     const isAuthorized =
@@ -80,9 +73,24 @@ export async function GET(request: Request, context: { params: { id: string } })
         title: holograph.title,
         createdAt: holograph.createdAt.toISOString(),
         updatedAt: holograph.updatedAt.toISOString(),
-        principals: holograph.principals.map(p => ({ id: p.user.id, name: p.user.name })),
-        delegates: holograph.delegates.map(d => ({ id: d.user.id, name: d.user.name })),
-      });
+        owner: holograph.owner
+          ? {
+              id: holograph.owner.id,
+              firstName: holograph.owner.firstName,
+              lastName: holograph.owner.lastName,
+            }
+          : null,
+        principals: holograph.principals.map(p => ({
+          id: p.user.id,
+          firstName: p.user.firstName,
+          lastName: p.user.lastName,
+        })),
+        delegates: holograph.delegates.map(d => ({
+          id: d.user.id,
+          firstName: d.user.firstName,
+          lastName: d.user.lastName,
+        })),
+      });      
     }
 
     // 🚨 If user is not a Principal or Delegate, check for an invitation
@@ -107,7 +115,12 @@ export async function GET(request: Request, context: { params: { id: string } })
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title, // Only return the title if invited
-        owner: owner ? { id: owner.id, name: owner.name || "Unknown User" } : null,
+        owner: holograph.owner
+          ? {
+              id: holograph.owner.id,
+              name: `${holograph.owner.firstName} ${holograph.owner.lastName}`,
+            }
+          : { id: "unknown", name: "Unknown User" },
       });
     }
 
@@ -186,6 +199,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await prisma.holographDelegate.deleteMany({ where: { holographId: id } });
     await prisma.holographPrincipal.deleteMany({ where: { holographId: id } });
     await prisma.invitation.deleteMany({ where: { holographId: id } });
+
+    // ✅ Step 7A: Delete OwnershipAuditLog entries
+    debugLog("🗑 Deleting OwnershipAuditLog entries...");
+    await prisma.ownershipAuditLog.deleteMany({ where: { holographId: id } });
+
 
     // ✅ Step 7: Finally delete the Holograph
     debugLog("🗑 Deleting the Holograph record...");

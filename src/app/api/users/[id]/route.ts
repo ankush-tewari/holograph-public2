@@ -18,7 +18,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         createdAt: true,
       },
     });

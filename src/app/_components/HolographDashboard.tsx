@@ -16,15 +16,21 @@ import { debugLog } from "../../utils/debug";
 interface User {
   id: string;
   email: string;
-  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
 }
 
 interface Holograph {
   id: string;
   title: string;
   updatedAt: string;
-  owner?: { id: string; name: string | null };
+  owner?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
 }
+
 
 interface Invitation {
   id: string;
@@ -32,7 +38,8 @@ interface Invitation {
   role: string;
   inviterId: string;
   holographTitle?: string;
-  inviterName?: string;
+  inviterFirstName?: string;
+  inviterLastName?: string;
 }
 
 const HolographDashboard = () => {
@@ -96,13 +103,24 @@ const HolographDashboard = () => {
         setHolographs({
           owned: ownedData.map((holo: Holograph) => ({
             ...holo,
-            owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
+            owner: holo.owner
+              ? {
+                  id: holo.owner.id,
+                  name: `${holo.owner.firstName} ${holo.owner.lastName}`,
+                }
+              : { id: "unknown", name: "Unknown" },
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
-            owner: holo.owner ? { id: holo.owner.id, name: holo.owner.name ?? "Unknown" } : { id: "unknown", name: "Unknown" },
+            owner: holo.owner
+              ? {
+                  id: holo.owner.id,
+                  name: `${holo.owner.firstName} ${holo.owner.lastName}`,
+                }
+              : { id: "unknown", name: "Unknown" },
           })),
         });
+        
 
         if (holographs.owned.length > 0 || holographs.delegated.length > 0) {
           debugLog("📡 Owned Holographs:", holographs.owned);
@@ -300,7 +318,7 @@ const HolographDashboard = () => {
                     {invitations.length > 0 ? (
                       invitations.map(invitation => (
                         <div key={invitation.id} className="holograph-item flex flex-wrap justify-between items-center w-full">
-                          <span className="truncate">Invitation to join Holograph: "{invitation.holographTitle}" as a { invitation.role } by {invitation.inviterName}</span>
+                          <span className="truncate">Invitation to join Holograph: "{invitation.holographTitle}" as a { invitation.role } by {invitation.inviterFirstName} {invitation.inviterLastName}</span>
                           <div className='flex gap-2'>
                             <button className="px-3 py-1 bg-green-600 text-white rounded mr-2 hover:bg-green-700" onClick={() => handleAcceptInvite(invitation.id,invitation.holographId)}>Accept</button>
                             <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDeclineInvite(invitation.id)}>Decline</button>

@@ -8,13 +8,14 @@ import InviteUserModal from "./InviteUserModal";
 import DelegatePermissions from "./DelegatePermissions";
 import { useRouter, useParams } from "next/navigation";
 import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
-import { userIcons } from "@/config/icons";
+import { userIcons, buttonIcons } from "@/config/icons";
 import { debugLog } from "@/utils/debug";
 
 // ✅ Define a type for users
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
 }
@@ -120,7 +121,7 @@ export default function ManageUsers() {
         <ul className="space-y-2">
           {users.filter(user => user.role === "Principal").map(user => (
             <li key={user.id} className="border-b pb-2">
-              <p className="font-medium">{user.name}</p>
+              <p className="font-medium">{user.firstName} {user.lastName}</p>
               <p className="text-sm text-gray-600">{user.email}</p>
             </li>
           ))}
@@ -144,14 +145,25 @@ export default function ManageUsers() {
           </span>
         </button>
       </h2>
-        <ul className="space-y-2">
-          {users.filter(user => user.role === "Delegate").map(user => (
-            <li key={user.id} className="border-b pb-2">
-              <p className="font-medium">{user.name}</p>
-              <p className="text-sm text-gray-600">{user.email}</p>
-            </li>
-          ))}
-        </ul>
+      <div className="space-y-4">
+        {users.filter(user => user.role === "Delegate").map(user => (
+          <div key={user.id} className="bg-white border border-gray-300 shadow-md rounded-lg p-4 flex justify-between items-center">
+              <p className="font-medium text-gray-800">
+                {user.firstName} {user.lastName} <span className="text-gray-500">({user.email})</span>
+              </p>
+            <button
+              className="text-red-600 hover:text-red-800 relative group"
+              onClick={() => handleRemoveDelegate(user.id)} // You'll define this
+            >
+              <buttonIcons.delete size={18} />
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                Remove this Delegate
+              </span>
+            </button>
+          </div>
+        ))}
+      </div>
+
       </div>
     </div>
 

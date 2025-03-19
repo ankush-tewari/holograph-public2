@@ -18,16 +18,18 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
           },
         },
-      },
+      },      
     });
 
     const formatted = delegates.map((d) => ({
       id: d.user.id,
-      name: d.user.name || "Unknown",
+      firstName: d.user.firstName || "Unknown First Name",
+      lastName: d.user.lastName || "Unknown Last Name",
       email: d.user.email,
     }));
 

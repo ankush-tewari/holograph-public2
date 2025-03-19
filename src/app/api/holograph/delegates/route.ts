@@ -1,4 +1,5 @@
 // /src/app/api/holograph/delegates/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
             updatedAt: true,
             principals: {
               take: 1, // ✅ Fetch the first Principal as the owner
-              select: { user: { select: { id: true, name: true } } },
+              select: { user: { select: { id: true, firstName: true, lastName: true } } },
             },
           },
         },
@@ -47,7 +48,9 @@ export async function GET(request: NextRequest) {
       title: dh.holograph.title,
       assignedAt: dh.assignedAt.toISOString(), // ✅ Show the date the user was assigned as delegate
       owner: dh.holograph.principals.length > 0
-        ? { id: dh.holograph.principals[0].user.id, name: dh.holograph.principals[0].user.name }
+        ? { id: dh.holograph.principals[0].user.id, 
+            firstName: dh.holograph.principals[0].user.firstName, 
+            lastName: dh.holograph.principals[0].user.lastName }
         : null,
     }));
 

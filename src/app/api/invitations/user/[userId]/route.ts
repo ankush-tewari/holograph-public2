@@ -59,7 +59,10 @@ export async function GET(
         },
         inviter: {
           select: {
-            name: true,
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           }
         }
       }
@@ -73,7 +76,8 @@ export async function GET(
       role: invitation.role,
       status: invitation.status,
       holographTitle: invitation.holograph.title,
-      inviterName: invitation.inviter.name,
+      inviterFirstName: invitation.inviter.firstName,
+      inviterLastName: invitation.inviter.lastName,
     }));
 
     debugLog(`✅ Found ${invitations.length} invitations for user ${user.email}`);

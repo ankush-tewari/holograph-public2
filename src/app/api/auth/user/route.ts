@@ -26,7 +26,8 @@ export async function GET() {
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
       },
     });
     

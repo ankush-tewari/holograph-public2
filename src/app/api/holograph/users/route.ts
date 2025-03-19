@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { debugLog } from "../../../../utils/debug"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest) {
         user: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
           },
         },
@@ -33,7 +35,8 @@ export async function GET(req: NextRequest) {
         user: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
           },
         },
@@ -44,19 +47,21 @@ export async function GET(req: NextRequest) {
     const formattedUsers = [
       ...principals.map((entry) => ({
         id: entry.user.id,
-        name: entry.user.name || "Unknown",
+        firstName: entry.user.firstName,
+        lastName: entry.user.lastName,
         email: entry.user.email,
         role: "Principal",
       })),
       ...delegates.map((entry) => ({
         id: entry.user.id,
-        name: entry.user.name || "Unknown",
+        firstName: entry.user.firstName,
+        lastName: entry.user.lastName,
         email: entry.user.email,
         role: "Delegate",
       })),
     ];
 
-    return NextResponse.json(formattedUsers); // ✅ Always return an array
+    return NextResponse.json(formattedUsers);
   } catch (error) {
     console.error("❌ Error fetching users:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -6,7 +6,8 @@ import { debugLog } from "../../../utils/debug";
 
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
 }
 
@@ -50,24 +51,25 @@ const ManageHolographAccess: React.FC<ManageHolographAccessProps> = ({
       setSearchResults([]);
       return;
     }
-
+  
     setIsSearching(true);
     
     try {
-      // In a real app, this would be an API call to search users
-      // For now, we'll simulate with mock data
+      // 🔹 Updated mock users to use firstName & lastName
       const mockUsers: User[] = [
-        { id: 'user4', name: 'Sarah Johnson', email: 'sarah@example.com' },
-        { id: 'user5', name: 'Mike Wilson', email: 'mike@example.com' },
+        { id: 'user4', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@example.com' },
+        { id: 'user5', firstName: 'Mike', lastName: 'Wilson', email: 'mike@example.com' },
       ];
-
-      const filtered = mockUsers.filter(user => 
-        (user.name.toLowerCase().includes(term.toLowerCase()) ||
-        user.email.toLowerCase().includes(term.toLowerCase())) &&
-        !principals.some(p => p.id === user.id) &&
-        !delegates.some(d => d.id === user.id)
-      );
-      
+  
+      const filtered = mockUsers.filter(user => {
+        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+        return (
+          (fullName.includes(term.toLowerCase()) || user.email.toLowerCase().includes(term.toLowerCase())) &&
+          !principals.some(p => p.id === user.id) &&
+          !delegates.some(d => d.id === user.id)
+        );
+      });
+  
       setSearchResults(filtered);
     } catch (err) {
       setError('Failed to search users');
@@ -75,7 +77,7 @@ const ManageHolographAccess: React.FC<ManageHolographAccessProps> = ({
       setIsSearching(false);
     }
   };
-
+  
   const handleAddUser = async (user: User) => {
     try {
       if (searchType === 'principal') {
@@ -152,7 +154,7 @@ const ManageHolographAccess: React.FC<ManageHolographAccessProps> = ({
                       onClick={() => handleAddUser(user)}
                     >
                       <div>
-                        <div>{user.name}</div>
+                        <div>{user.firstName}</div>
                         <div className="text-sm text-gray-500">{user.email}</div>
                       </div>
                       <span className="text-blue-500">➕</span>

@@ -1,3 +1,5 @@
+// /src/app/register/page.tsx
+
 'use client'
 import React from 'react'
 import { useState } from 'react'
@@ -10,8 +12,10 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    name: ''
-  })
+    firstName: '',
+    lastName: '',
+  });
+  
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -35,9 +39,10 @@ export default function Register() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          name: formData.name
+          firstName: formData.firstName,
+          lastName: formData.lastName,
         }),
-      })
+      });
 
       if (!res.ok) {
         const data = await res.json()
@@ -81,21 +86,32 @@ export default function Register() {
             </div>
           )}
           <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
+          <div>
+            <label htmlFor="firstName" className="sr-only">First Name</label>
+            <input
+              id="firstName"
+              name="firstName"
+              type="text"
+              required
+              className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <label htmlFor="lastName" className="sr-only">Last Name</label>
+            <input
+              id="lastName"
+              name="lastName"
+              type="text"
+              required
+              className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChange={handleChange}
+            />
+          </div>
             <div>
               <label htmlFor="email" className="sr-only">
                 Email address

@@ -115,8 +115,12 @@ export async function POST(request: Request) {
     debugLog("✅ Creating holograph for user:", session.user.id);
 
     const holograph = await tx.holograph.create({
-      data: { title },
+      data: {
+        title,
+        ownerId: session.user.id,  // ✅ Set ownerId to creator
+      },
     });
+    
 
     debugLog("✅ Creating principal relationship.");
     await tx.holographPrincipal.create({
@@ -167,6 +171,15 @@ export async function POST(request: Request) {
         })),
       });
       debugLog("✅ Default sections successfully attached.");
+      // ✅ Log initial ownership in OwnershipAuditLog
+      await tx.ownershipAuditLog.create({
+        data: {
+          holographId: holograph.id,
+          oldOwnerId: null,  // First owner, no previous owner
+          currentOwnerId: session.user.id,
+        },
+      });
+      debugLog("📜 OwnershipAuditLog created for initial owner.");
     } else {
       debugLog("⚠️ No default sections found. Skipping.");
     }

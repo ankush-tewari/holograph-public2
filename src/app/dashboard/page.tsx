@@ -14,7 +14,8 @@ import { buttonIcons } from '../../config/icons'; // ✅ Import standardized ico
 interface User {
   id: string
   email: string
-  name: string | null
+  firstName: string | null
+  lastName: string | null
 }
 
 export default function Dashboard() {
@@ -59,7 +60,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-8">
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Welcome {user?.name || 'User'}!
+              Welcome {user?.firstName || 'User'}!
             </h2>
             {/* ✅ Standardized button icon for creating a new Holograph */}
             <button 

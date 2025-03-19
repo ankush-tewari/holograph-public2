@@ -5,7 +5,13 @@ import { useHolograph } from "@/hooks/useHolograph";
 import { debugLog } from "../../../utils/debug";
 
 export default function DelegatePermissions({ holographId }) {
-  const [delegates, setDelegates] = useState([]);
+  interface Delegate {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }
+  const [delegates, setDelegates] = useState<Delegate[]>([]);
   const [permissions, setPermissions] = useState({});
   const [sections, setSections] = useState<{ id: string; sectionId: string; name: string }[]>([]);
   const { userId } = useHolograph();  // ✅ Get logged-in user's ID
@@ -85,28 +91,31 @@ export default function DelegatePermissions({ holographId }) {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-4 mt-4">
-      <h2 className="text-lg font-semibold">Manage Delegate Permissions</h2>
-      {delegates.map((delegate) => (
-        <div key={delegate.id} className="mt-2">
-          <h3 className="font-medium">{delegate.name} ({delegate.email})</h3>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {sections.map((section) => (
-              <div key={section.sectionId} className="flex items-center justify-between bg-gray-100 p-2 rounded">
-                <span>{section.name}</span>
-                <select
-                  value={permissions[delegate.id]?.[section.sectionId] || "none"} // ✅ Map by sectionId
-                  onChange={(e) => handlePermissionChange(delegate.id, section.sectionId, e.target.value)} // ✅ Use sectionId
-                  className="border rounded px-2 py-1"
-                >
-
-                  <option value="none">None</option>
-                  <option value="view-only">View-Only</option>
-                </select>
-              </div>
-            ))}
-          </div>
+  <h2 className="text-lg font-semibold">Manage Delegate Permissions</h2>
+  
+    {(Array.isArray(delegates) ? delegates : []).map((delegate) => (
+      <div key={delegate.id} className="mt-2">
+        <h3 className="font-medium">
+          {delegate.firstName} {delegate.lastName} ({delegate.email})
+        </h3>
+        
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          {sections.map((section) => (
+            <div key={section.sectionId} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+              <span>{section.name}</span>
+              <select
+                value={permissions[delegate.id]?.[section.sectionId] || "none"}
+                onChange={(e) => handlePermissionChange(delegate.id, section.sectionId, e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="none">None</option>
+                <option value="view-only">View-Only</option>
+              </select>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    ))}
+  </div>
   );
 }

@@ -20,8 +20,9 @@ export async function POST(req: Request) {
   }
 
   try {
+    // ✅ Securely update user by ID
     await prisma.user.update({
-      where: { email: session.user.email },
+      where: { id: session.user.id },  // changed from email
       data: { firstName, lastName, email },
     });
 

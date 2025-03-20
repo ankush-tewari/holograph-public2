@@ -156,9 +156,24 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
 
-    debugLog(`🔍 Deleting Holograph with ID: ${id}`);
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = params;
+    const userId = session.user.id;
+
+    debugLog(`🔍 User ${userId} attempting to delete Holograph with ID: ${id}`);
+
+    // 🔐 Authorization: Only Principals can delete the Holograph
+    const isPrincipal = await prisma.holographPrincipal.findFirst({
+      where: { holographId: id, userId },
+    });
+
+    if (!isPrincipal) {
+      return NextResponse.json({ error: 'Forbidden — only Principals can delete this Holograph' }, { status: 403 });
+    }
 
     // ✅ Step 1: Delete related Sections from `HolographSection`
     debugLog("🗑 Deleting related sections in HolographSection...");

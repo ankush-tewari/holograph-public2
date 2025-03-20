@@ -224,6 +224,7 @@ const HolographDashboard = () => {
     );
   }
 
+  
   const pendingInvitations = invitations.filter(invite => invite.status === "Pending");
 
   return (

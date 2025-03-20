@@ -1,4 +1,5 @@
-// /src/app/api/invitations/route.ts
+// /src/app/api/invitations/route.ts - send invitations.  see your invitations. 
+// ** accept or decline invitations is in /src/app/api/invitations/[id]/route.ts 
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
@@ -197,6 +198,7 @@ export async function GET(request: Request) {
       holographId: invite.holographId,
       role: invite.role,
       inviterId: invite.inviterId,
+      status: invite.status,  // ✅ Add this line
       holographTitle: invite.holograph.title, // ✅ Include title
       inviterFirstName: invite.inviter.firstName, // ✅ Include names
       inviterLastName: invite.inviter.lastName,
@@ -210,70 +212,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message || 'Failed to fetch invitations' }, { status: 500 });
   }
 }
-
-// PATCH: Accept or decline an invitation
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {  // ✅ START TRY BLOCK
-
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { status } = await request.json();
-    const invitationId = params.id;  // ✅ Correct way to access params.id
-    debugLog(`📩 Updating Invitation ID: ${invitationId} with status: ${status}`);
-
-    if (!invitationId || !['Accepted', 'Declined'].includes(status)) {
-      console.error("❌ Invalid request data");
-      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-    }
-
-    const invitation = await prisma.invitation.findUnique({ where: { id: invitationId } });
-    if (!invitation) {
-      return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
-    }
-
-    // 🔐 Validate inviteeId matches session user.id
-    if (invitation.inviteeId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden — invitee mismatch' }, { status: 403 });
-    }
-
-    const updatedInvitation = await prisma.invitation.update({
-      where: { id: invitationId },
-      data: { status },
-    });
-
-    debugLog("🔍 Invitation object in PATCH:", invitation);
-
-
-    if (status === 'Accepted') {
-      if (invitation.role === 'Principal') {
-        await prisma.holographPrincipal.create({
-          data: {
-            holographId: invitation.holographId,
-            userId: session.user.id,
-          },
-        });
-        debugLog(`✅ User added as Principal to Holograph ${invitation.holographId}`);
-      } else if (invitation.role === 'Delegate') {
-        await prisma.holographDelegate.create({
-          data: {
-            holographId: invitation.holographId,
-            userId: session.user.id,
-          },
-        });
-        debugLog(`✅ User added as Delegate to Holograph ${invitation.holographId}`);
-      }
-    }
-
-    return NextResponse.json(updatedInvitation);
-
-  } catch (error: any) {  // ✅ CATCH BLOCK
-    console.error("❌ Error updating invitation:", error);
-    return NextResponse.json({ error: error.message || 'Failed to update invitation' }, { status: 500 });
-  }
-}  // ✅ PATCH FUNCTION ENDS HERE

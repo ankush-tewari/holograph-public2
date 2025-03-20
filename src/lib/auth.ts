@@ -77,6 +77,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         // Add user ID to the token
         token.userId = user.id;
+        token.firstName = user.firstName;  // ✅ Add this
+        token.lastName = user.lastName;    // ✅ Add this
       }
       
 
@@ -95,6 +97,8 @@ export const authOptions: NextAuthOptions = {
       // Add the user ID to the session
       if (session.user) {
         session.user.id = token.userId || token.sub;
+        session.user.firstName = token.firstName;  // ✅ Add this
+        session.user.lastName = token.lastName;    // ✅ Add this
         
         // Add currentHolographId to the session if it exists in the token
         if (token.currentHolographId) {

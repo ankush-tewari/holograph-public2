@@ -1,4 +1,4 @@
-// /src/app/dashboard/page.tsx - this is the REAL Dashboard page, the one that incorporates 
+// /src/app/dashboard/page.tsx - this is the REAL User Dashboard page, the one that incorporates 
 // \_components\HolographDashboard.tsx where a user sees all of their holographs
 
 import { getServerSession } from "next-auth";
@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 import React from 'react'
 import HolographDashboard from '../_components/HolographDashboard'
 import { debugLog } from "../../utils/debug";
-import CreateHolograph from '../_components/holograph/CreateHolograph';
 import { buttonIcons } from '../../config/icons'; // ✅ Import standardized icons
 
 

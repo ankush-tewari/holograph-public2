@@ -1,4 +1,4 @@
-// /src/app/holographs/[id]/page.tsx - Holograph Dashboard/Landing Page
+// /src/app/holographs/[id]/page.tsx - Holograph detail page Dashboard/Landing Page
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -175,6 +175,11 @@ const HolographDetailPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 403) {
+          alert("You are not authorized to delete this Holograph.");
+          router.push("/dashboard");
+          return;
+        }
         console.error("❌ Failed to delete Holograph:", errorData);
         alert("Failed to delete Holograph: " + errorData.error);
         return;

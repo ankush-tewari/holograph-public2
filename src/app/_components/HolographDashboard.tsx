@@ -37,6 +37,7 @@ interface Invitation {
   holographId: string;
   role: string;
   inviterId: string;
+  status: string;  
   holographTitle?: string;
   inviterFirstName?: string;
   inviterLastName?: string;
@@ -140,7 +141,7 @@ const HolographDashboard = () => {
     const fetchInvitations = async () => {
       debugLog("🔍 Fetching invitations for user:", userId);
       try {
-        const response = await fetch(`/api/invitations/user/${userId}`);
+        const response = await fetch(`/api/invitations?userId=${userId}`);
         if (!response.ok) throw new Error("Failed to fetch invitations");
 
         let invitationsData = await response.json();
@@ -223,8 +224,7 @@ const HolographDashboard = () => {
     );
   }
 
-  
-
+  const pendingInvitations = invitations.filter(invite => invite.status === "Pending");
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -246,6 +246,15 @@ const HolographDashboard = () => {
       ) : (
         <>
           <div className="w-full">
+            <div className="flex justify-between items-center mb-6">
+              <button 
+                onClick={() => setShowCreateForm(true)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Plus size={16} /> Create New Holograph
+              </button>
+            </div>
+
             <div className="flex gap-4 border-b mb-6">
               <button
                 onClick={() => setActiveTab('owned')}
@@ -315,8 +324,8 @@ const HolographDashboard = () => {
 
                 {activeTab === 'invitations' && (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {invitations.length > 0 ? (
-                      invitations.map(invitation => (
+                   {pendingInvitations.length > 0 ? (
+                      pendingInvitations.map(invitation => (
                         <div key={invitation.id} className="holograph-item flex flex-wrap justify-between items-center w-full">
                           <span className="truncate">Invitation to join Holograph: "{invitation.holographTitle}" as a { invitation.role } by {invitation.inviterFirstName} {invitation.inviterLastName}</span>
                           <div className='flex gap-2'>

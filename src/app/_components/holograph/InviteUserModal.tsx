@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 import { debugLog } from "../../../utils/debug";
+import { useSession } from "next-auth/react";
+
 
 interface InviteUserModalProps {
   holographId: string;
@@ -11,6 +13,8 @@ interface InviteUserModalProps {
 }
 
 const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) => {
+  const { data: session } = useSession();
+  const inviterId = session?.user?.id;
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,26 +26,14 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
     setSuccess(null);
   
     try {
-      // ✅ Fetch the logged-in user to get inviterId
-      const authResponse = await fetch('/api/auth/user');
-      const authData = await authResponse.json();
-  
-      debugLog("🔍 Auth Data:", authData); // ✅ Log the auth data
-  
-      if (!authResponse.ok || !authData.user || !authData.user.id) {
-        throw new Error('Failed to retrieve the inviter ID');
-      }
-  
-      const inviterId = authData.user.id;
-  
       const requestBody = {
         holographId,
         inviteeEmail: email,
         role,
-        inviterId, // ✅ Ensure inviterId is included
-      };  
+        inviterId, // ✅ Add inviterId to the payload
+      };      
   
-      debugLog("📤 Sending Invitation API Request:", requestBody); // ✅ Debug log before sending
+      debugLog("📤 Sending Invitation API Request:", requestBody);
   
       const response = await fetch('/api/invitations', {
         method: 'POST',
@@ -90,7 +82,6 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
     }
   };
   
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">

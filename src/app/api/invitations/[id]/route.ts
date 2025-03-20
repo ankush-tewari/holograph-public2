@@ -1,12 +1,31 @@
 // /src/app/api/invitations/[id]/route.ts - Accept or Decline an Invitation
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { debugLog } from "../../../../utils/debug";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
+ 
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { status } = await request.json();
     const invitationId = params.id;
+
+    const invitation = await prisma.invitation.findUnique({ where: { id: invitationId } });
+    if (!invitation) {
+      return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
+    }
+
+    // ✅ Validate inviteeId matches session user
+    if (invitation.inviteeId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden — invitee mismatch' }, { status: 403 });
+    }
 
     if (!invitationId || !['Accepted', 'Declined'].includes(status)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
@@ -18,9 +37,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
 
     if (status === 'Accepted') {
-      const invitee = await prisma.user.findUnique({ where: { email: updatedInvitation.inviteeEmail } });
-
-      if (!invitee) {
+      const inviteeId = invitation.inviteeId;
+      if (!inviteeId) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
@@ -29,14 +47,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         await prisma.holographPrincipal.create({
           data: {
             holographId: updatedInvitation.holographId,
-            userId: invitee.id,
+            userId: inviteeId,
           }
         });
       } else if (updatedInvitation.role === 'Delegate') {
         await prisma.holographDelegate.create({
           data: {
             holographId: updatedInvitation.holographId,
-            userId: invitee.id,
+            userId: inviteeId,
           }
         });
       
@@ -50,13 +68,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         await prisma.delegatePermissions.createMany({
           data: sections.map((section) => ({
             holographId: updatedInvitation.holographId,
-            delegateId: invitee.id,
+            delegateId: inviteeId,
             sectionId: section.id,
             accessLevel: "view-only",
           })),
         });
       
-        debugLog(`✅ Default 'view-only' permissions created for Delegate ${invitee.email}`);
+        debugLog(`✅ Default 'view-only' permissions created for Delegate ${inviteeId}`);
       }      
     }
 

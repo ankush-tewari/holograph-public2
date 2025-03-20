@@ -75,7 +75,12 @@ const HolographDetailPage = () => {
         if (!params.id || !userId) return;
         debugLog(`🚀 Fetching Holograph Details for ID: ${params.id}`);
         const response = await fetch(`/api/holograph/${params.id}`);
-        if (!response.ok) throw new Error("Unauthorized or Holograph not found");
+        if (!response.ok) {
+          debugLog("⛔ Unauthorized or Holograph not found — redirecting.");
+          setError("You are not authorized to view this Holograph.");
+          setTimeout(() => router.push("/dashboard"), 3000);
+          return;
+        }
         const data = await response.json();
 
         debugLog(`🔍 Checking authorization for user ${userId}`);
@@ -103,19 +108,23 @@ const HolographDetailPage = () => {
   useEffect(() => {
     const fetchSections = async () => {
       try {
-        if (!params.id) return;
+        if (!params.id || !isAuthorized) return; // ✅ Skip fetch if not authorized
         debugLog(`🚀 Fetching Sections for Holograph ID: ${params.id}`);
         const response = await fetch(`/api/holograph/${params.id}/sections`);
-        if (!response.ok) throw new Error("Failed to fetch sections");
+        if (!response.ok) {
+          debugLog("❌ Failed to fetch sections");
+          return; // ✅ Don't throw — just exit
+        }
         const data = await response.json();
         setSections(data);
       } catch (err) {
         console.error("❌ Error fetching sections:", err);
       }
     };
-
+  
     fetchSections();
-  }, [params.id]);
+  }, [params.id, isAuthorized]);
+  
 
   useEffect(() => {
     const fetchDelegatePermissions = async () => {

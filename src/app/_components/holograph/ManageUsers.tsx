@@ -21,7 +21,15 @@ interface User {
 }
 
 export default function ManageUsers() {
-  
+  const router = useRouter();
+  const { isAuthenticated, isLoading: isSessionLoading } = useHolograph();
+
+  useEffect(() => {
+    if (!isSessionLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isSessionLoading, isAuthenticated, router]);
+
   const { currentHolographId: sessionHolographId } = useHolograph(); // ✅ Get Holograph ID from session
   const params = useParams(); // ✅ Get Holograph ID from the URL
   // ✅ Use `params.id` as a fallback if sessionHolographId is missing
@@ -29,13 +37,13 @@ export default function ManageUsers() {
   const [users, setUsers] = useState<User[]>([]); // ✅ Now TypeScript knows it's an array of Users
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+
   const [inviteRole, setInviteRole] = useState<'Principal' | 'Delegate' | null>(null);
 
   const { userId } = useHolograph(); // Get current userId
   const [isPrincipal, setIsPrincipal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  
 
 
   
@@ -85,6 +93,8 @@ export default function ManageUsers() {
       />
     );
   }
+
+  if (isSessionLoading || isLoading) return <p className="text-center text-gray-500">Loading...</p>;
 
   return (
     <div className="p-6">

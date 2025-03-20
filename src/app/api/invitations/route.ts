@@ -1,6 +1,9 @@
 // /src/app/api/invitations/route.ts
-import { NextResponse } from 'next/server';
+
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { debugLog } from "../../../utils/debug";
 
 // POST: Send an invitation
@@ -8,11 +11,23 @@ export async function POST(request: Request) {
   try {
     debugLog("🚀 /api/invitations endpoint hit!"); 
 
+    // make sure the person sending the invitation is the user logged in
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     debugLog("📩 Raw API Request Data:", body);
 
     const { holographId, inviterId, inviteeEmail, role } = body;
     debugLog("📩 Parsed API Request Data:", { holographId, inviterId, inviteeEmail, role });
+
+    // 🔐 Validate inviterId matches session user
+    if (inviterId !== session.user.id) {
+      console.error("❌ inviterId mismatch with logged-in user");
+      return NextResponse.json({ error: 'Forbidden — inviterId mismatch' }, { status: 403 });
+    }
 
     // ✅ Validate required fields
     if (!holographId || !inviterId || !inviteeEmail || !role) {
@@ -92,10 +107,11 @@ export async function POST(request: Request) {
     const existingInvitation = await prisma.invitation.findFirst({
       where: {
         holographId,
-        inviteeEmail,
-        status: "Pending", // Only check if the invitation is still pending
+        inviteeId: invitee.id,
+        status: "Pending",
       },
     });
+    
 
     // ❌ Case 5: there is already a pending invitation for this user in this Holograph
     if (existingInvitation) {
@@ -103,8 +119,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This user already has a pending invitation for this Holograph." }, { status: 400 });
     }
 
-
-    
     debugLog("✅ Final Data Before Prisma Query:", {
       holographId,
       inviterId,
@@ -114,12 +128,13 @@ export async function POST(request: Request) {
 
     // ✅ Ensure correct Prisma schema by explicitly connecting relations
     const invitationData = {
-      holograph: { connect: { id: holographId } }, // Connect to existing Holograph
-      inviter: { connect: { id: inviterId } }, // Connect to existing User
-      inviteeEmail: inviteeEmail,
+      holograph: { connect: { id: holographId } },
+      inviter: { connect: { id: inviterId } },
+      invitee: { connect: { id: invitee.id } }, // ✅ Add this
       role: role,
       status: "Pending",
     };
+    
 
     debugLog("📩 Sending data to Prisma:", invitationData);
 
@@ -146,11 +161,21 @@ export async function POST(request: Request) {
 // GET: Fetch invitations for a user
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    }
+
+    // 🔐 Validate userId matches logged-in user
+    if (userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden — userId mismatch' }, { status: 403 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -160,11 +185,26 @@ export async function GET(request: Request) {
     }
 
     const invitations = await prisma.invitation.findMany({
-      where: { inviteeEmail: user.email }
-    });
+      where: { inviteeId: user.id },
+      include: {
+        holograph: { select: { title: true } },  // ✅ Get Holograph title
+        inviter: { select: { firstName: true, lastName: true } }, // ✅ Get Inviter’s name
+      },
+    });   
 
-    debugLog(`✅ Retrieved ${invitations.length} invitations for ${user.email}`);
-    return NextResponse.json(invitations);
+    const formattedInvitations = invitations.map((invite) => ({
+      id: invite.id,
+      holographId: invite.holographId,
+      role: invite.role,
+      inviterId: invite.inviterId,
+      holographTitle: invite.holograph.title, // ✅ Include title
+      inviterFirstName: invite.inviter.firstName, // ✅ Include names
+      inviterLastName: invite.inviter.lastName,
+    }));
+    
+
+    debugLog(`✅ Retrieved ${invitations.length} invitations for ${user.id}`);
+    return NextResponse.json(formattedInvitations);
   } catch (error: any) {
     console.error("❌ Error fetching invitations:", error);
     return NextResponse.json({ error: error.message || 'Failed to fetch invitations' }, { status: 500 });
@@ -172,43 +212,68 @@ export async function GET(request: Request) {
 }
 
 // PATCH: Accept or decline an invitation
-export async function PATCH(request: Request) {
-  try {
-    const { id, status } = await request.json();
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {  // ✅ START TRY BLOCK
 
-    debugLog(`📩 Updating Invitation ID: ${id} with status: ${status}`);
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!id || !['Accepted', 'Declined'].includes(status)) {
+    const { status } = await request.json();
+    const invitationId = params.id;  // ✅ Correct way to access params.id
+    debugLog(`📩 Updating Invitation ID: ${invitationId} with status: ${status}`);
+
+    if (!invitationId || !['Accepted', 'Declined'].includes(status)) {
       console.error("❌ Invalid request data");
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
+    const invitation = await prisma.invitation.findUnique({ where: { id: invitationId } });
+    if (!invitation) {
+      return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
+    }
+
+    // 🔐 Validate inviteeId matches session user.id
+    if (invitation.inviteeId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden — invitee mismatch' }, { status: 403 });
+    }
+
     const updatedInvitation = await prisma.invitation.update({
-      where: { id },
-      data: { status }
+      where: { id: invitationId },
+      data: { status },
     });
 
+    debugLog("🔍 Invitation object in PATCH:", invitation);
+
+
     if (status === 'Accepted') {
-      const invitee = await prisma.user.findUnique({ where: { email: updatedInvitation.inviteeEmail } });
-
-      if (!invitee) {
-        console.error(`❌ Invited user (${updatedInvitation.inviteeEmail}) not found`);
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      if (invitation.role === 'Principal') {
+        await prisma.holographPrincipal.create({
+          data: {
+            holographId: invitation.holographId,
+            userId: session.user.id,
+          },
+        });
+        debugLog(`✅ User added as Principal to Holograph ${invitation.holographId}`);
+      } else if (invitation.role === 'Delegate') {
+        await prisma.holographDelegate.create({
+          data: {
+            holographId: invitation.holographId,
+            userId: session.user.id,
+          },
+        });
+        debugLog(`✅ User added as Delegate to Holograph ${invitation.holographId}`);
       }
-
-      await prisma.holographPrincipal.create({
-        data: {
-          holographId: updatedInvitation.holographId,
-          userId: invitee.id,
-        }
-      });
-
-      debugLog(`✅ User ${invitee.email} added as Principal to Holograph ${updatedInvitation.holographId}`);
     }
 
     return NextResponse.json(updatedInvitation);
-  } catch (error: any) {
+
+  } catch (error: any) {  // ✅ CATCH BLOCK
     console.error("❌ Error updating invitation:", error);
     return NextResponse.json({ error: error.message || 'Failed to update invitation' }, { status: 500 });
   }
-}
+}  // ✅ PATCH FUNCTION ENDS HERE

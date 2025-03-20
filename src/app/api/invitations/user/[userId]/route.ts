@@ -1,4 +1,4 @@
-// /src/app/api/invitations/user/[userId]/route.ts
+// /src/app/api/invitations/user/[userId]/route.ts  not sure if this is used.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';

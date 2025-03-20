@@ -1,10 +1,15 @@
-// /src/app/api/holograph/users/route.ts
-
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { debugLog } from "../../../../utils/debug"
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { debugLog } from "../../../../utils/debug";
 
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const holographId = searchParams.get("holographId");
 
@@ -13,7 +18,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch all Principals of the Holograph
+    const userId = session.user.id;
+
+    // 🔐 Check if user is a Principal or Delegate
+    const principal = await prisma.holographPrincipal.findFirst({
+      where: { holographId, userId },
+    });
+
+    const delegate = await prisma.holographDelegate.findFirst({
+      where: { holographId, userId },
+    });
+
+    if (!principal && !delegate) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // ✅ User is authorized — fetch users
     const principals = await prisma.holographPrincipal.findMany({
       where: { holographId },
       select: {
@@ -28,7 +48,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Fetch all Delegates of the Holograph
     const delegates = await prisma.holographDelegate.findMany({
       where: { holographId },
       select: {
@@ -43,7 +62,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Format the response
     const formattedUsers = [
       ...principals.map((entry) => ({
         id: entry.user.id,

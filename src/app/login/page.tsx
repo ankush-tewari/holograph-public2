@@ -33,7 +33,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    debugLog("Attempting to sign in with:", { email, password });
+    debugLog("Attempting to sign in with email:", email);
 
     try {
       const result = await signIn("credentials", {

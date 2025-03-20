@@ -6,6 +6,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import { debugLog } from "../utils/debug";
+import bcrypt from "bcryptjs"; // ✅ Import bcryptjs
 
 debugLog("AUTH OPTIONS LOADING");
 
@@ -39,9 +40,12 @@ export const authOptions: NextAuthOptions = {
 
         if (!user) throw new Error("No user found");
 
-        // You would typically verify password here
-        // For example: if (!await bcrypt.compare(credentials.password, user.password)) 
-        //              throw new Error("Invalid password");
+        // ✅ Verify password using bcrypt
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid password");
+    }
 
         // Return user info
         return {
@@ -57,8 +61,9 @@ export const authOptions: NextAuthOptions = {
   // Use JWT for session strategy
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 60 * 60, // 1 hour
   },
+  
 
   // Set the overall secret
   secret: process.env.NEXTAUTH_SECRET,
@@ -74,14 +79,6 @@ export const authOptions: NextAuthOptions = {
         token.userId = user.id;
       }
       
-      // Check if this is a session update
-      //if (trigger === 'update' && session) {
-        // If there's a holographId in the session, add it to the token
-      //  if (session.holographId) {
-      //    token.holographId = session.holographId;
-      //    debugLog("🔄 Updated token with holographId:", session.holographId);
-      //  }
-      //}
 
       // Handle updates to currentHolographId
       if (trigger === 'update' && session?.currentHolographId) {

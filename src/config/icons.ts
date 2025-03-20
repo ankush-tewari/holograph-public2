@@ -5,7 +5,7 @@ import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, Md
 import { FaPlus, FaTimes, FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
 import { AiFillCreditCard, AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
 import { GiOpenTreasureChest, GiGemPendant } from "react-icons/gi"; // Game Icons for valuables
-import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink } from "react-icons/fi"; // Import these for user roles
+import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink, FiLock } from "react-icons/fi"; // Import these for user roles
 
 
 export const sectionIcons = {
@@ -31,6 +31,7 @@ export const buttonIcons = {
   edit: FiEdit, // edit icon
   delete: FiTrash2, //delete icon
   users: FiUsers, //users icon
+  lock: FiLock,
 };
 
 export const userIcons = {

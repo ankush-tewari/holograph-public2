@@ -63,6 +63,30 @@ export default function Navbar() {
                   Documents
                 </Link>
 
+                {/* 🔹 Profile Link */}
+                <Link 
+                  href="/dashboard/user-profile"
+                  className={`px-4 py-2 rounded-md text-lg font-medium ${
+                    pathname === '/dashboard/user-profile'
+                      ? 'text-blue-900 border-b-2 border-blue-600'
+                      : 'text-gray-900 hover:text-gray-800'
+                  }`}
+                >
+                  Profile
+                </Link>
+
+                <Link 
+                  href="/dashboard/billing"
+                  className={`px-4 py-2 rounded-md text-lg font-medium ${
+                    pathname === '/dashboard/billing'
+                      ? 'text-blue-900 border-b-2 border-blue-600'
+                      : 'text-gray-900 hover:text-gray-800'
+                  }`}
+                >
+                  Billing
+                </Link>
+
+
                 {/* Logout Button */}
                 <button
                   onClick={handleLogout}

@@ -8,24 +8,30 @@ datasource db {
 }
 
 model User {
-  id                  String                @id @default(uuid())
-  email               String                @unique
-  password            String
-  firstName           String                // new field replaces name
-  lastName            String                // new field replaces name
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  delegateAccess      HolographDelegate[]
-  principalOf         HolographPrincipal[]
-  invitationsSent     Invitation[]          @relation("Inviter")
-  delegatePermissions DelegatePermissions[] // ✅ Add this line
+  id                    String                @id @default(uuid())
+  email                 String                @unique
+  password              String
+  firstName             String
+  lastName              String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  delegateAccess        HolographDelegate[]
+  principalOf           HolographPrincipal[]
+  invitationsSent       Invitation[]          @relation("Inviter")
+  delegatePermissions   DelegatePermissions[] 
+
+  // 🔽 Corrected back-relations
+  ownedHolographs       Holograph[]           @relation("HolographOwner")
+  oldOwnedLogs          OwnershipAuditLog[]   @relation("OldOwnerRelation")
+  currentOwnedLogs      OwnershipAuditLog[]   @relation("CurrentOwnerRelation") // ✅ Renamed from newOwnedLogs
 }
 
+
 model Holograph {
-  id                  String                @id @default(uuid())
+  id                  String    @id @default(uuid())
   title               String
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   sslCertPath         String? 
   sslKeyPath          String? 
   delegates           HolographDelegate[]
@@ -35,22 +41,24 @@ model Holograph {
   sections            HolographSection[] 
   delegatePermissions DelegatePermissions[] 
 
-  // 🔽 New Owner field
+  // 🔽 Ownership (required again)
   ownerId             String
-  owner               User                  @relation(fields: [ownerId], references: [id])
-  ownershipAuditLogs  OwnershipAuditLog[]  // One-to-many relation
+  owner               User      @relation("HolographOwner", fields: [ownerId], references: [id])
+  ownershipAuditLogs  OwnershipAuditLog[]
 }
 
-model OwnershipAuditLog {
-  id             String     @id @default(uuid())
-  holographId    String
-  oldOwnerId     String
-  newOwnerId     String
-  changedAt      DateTime   @default(now())
 
-  holograph      Holograph  @relation(fields: [holographId], references: [id])
-  oldOwner       User       @relation("OldOwner", fields: [oldOwnerId], references: [id])
-  newOwner       User       @relation("NewOwner", fields: [newOwnerId], references: [id])
+// establishes an owner for the holograph who is responsible for payment
+model OwnershipAuditLog {
+  id               String     @id @default(uuid())
+  holographId      String
+  oldOwnerId       String?    // Optional for first ownership, required for transfers (enforced in app logic)
+  currentOwnerId   String
+  changedAt        DateTime   @default(now())
+
+  holograph        Holograph  @relation(fields: [holographId], references: [id])
+  oldOwner         User?      @relation("OldOwnerRelation", fields: [oldOwnerId], references: [id])
+  currentOwner     User       @relation("CurrentOwnerRelation", fields: [currentOwnerId], references: [id])
 }
 
 

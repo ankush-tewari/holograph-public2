@@ -5,6 +5,9 @@ import { authOptions } from '../../../lib/auth';
 import { debugLog } from "../../../utils/debug";
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  }
   try {
     debugLog("🔍 API Route: Getting session debug info");
     

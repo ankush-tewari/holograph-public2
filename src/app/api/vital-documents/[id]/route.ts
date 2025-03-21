@@ -4,11 +4,45 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFileFromGCS } from "@/lib/gcs";
 import { uploadFileToGCS } from "@/lib/gcs"; // ✅ Ensure this import exists
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { debugLog } from "../../../../utils/debug";
 
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
+    
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+    
     try {
+        // make sure user is authorized to see vital document 
+        const document = await prisma.vitalDocument.findUnique({
+            where: { id: params.id },
+            include: {
+                holograph: {
+                select: {
+                    principals: { select: { userId: true } },
+                    delegates: { select: { userId: true } },
+                },
+                },
+            },
+            });
+            
+            if (!document) {
+            return NextResponse.json({ error: "Document not found" }, { status: 404 });
+            }
+            
+            const isOwner = document.uploadedBy === userId;
+            const isPrincipal = document.holograph.principals.some(p => p.userId === userId);
+            const isDelegate = document.holograph.delegates.some(d => d.userId === userId);
+            
+            if (!(isOwner || isPrincipal )) {
+            return NextResponse.json({ error: "Forbidden — no access to this document" }, { status: 403 });
+            }         
+
         const formData = await req.formData();
         const name = formData.get("name") as string;
         const type = formData.get("type") as string;
@@ -51,20 +85,43 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-    try {
-        const document = await prisma.vitalDocument.findUnique({ where: { id: params.id } });
-        if (!document) {
-            return NextResponse.json({ error: "Document not found" }, { status: 404 });
-        }
-
-        // ✅ Delete file from Google Cloud Storage
-        await deleteFileFromGCS(document.filePath);
-
-        await prisma.vitalDocument.delete({ where: { id: params.id } });
-
-        return NextResponse.json({ message: "Document deleted successfully" }, { status: 200 });
-    } catch (error) {
-        console.error("Error deleting document:", error);
-        return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-}
+    const userId = session.user.id;
+  
+    try {
+      const document = await prisma.vitalDocument.findUnique({
+        where: { id: params.id },
+        include: {
+          holograph: {
+            select: {
+              principals: { select: { userId: true } },
+              delegates: { select: { userId: true } },
+            },
+          },
+        },
+      });
+  
+      if (!document) {
+        return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      }
+  
+      const isOwner = document.uploadedBy === userId;
+      const isPrincipal = document.holograph.principals.some(p => p.userId === userId);
+  
+      if (!(isOwner || isPrincipal)) {
+        return NextResponse.json({ error: "Forbidden — only the owner or a principal can delete this document" }, { status: 403 });
+      }
+  
+      await deleteFileFromGCS(document.filePath);
+      await prisma.vitalDocument.delete({ where: { id: params.id } });
+  
+      return NextResponse.json({ message: "Document deleted successfully" }, { status: 200 });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });
+    }
+  }
+  

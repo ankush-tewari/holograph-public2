@@ -91,17 +91,25 @@ model HolographDelegate {
 model VitalDocument {
   id          String    @id @default(uuid())
   holographId String
-  name        String // Encrypted name of the document
-  type        String // Will, Trust, Advanced Health Directive, etc.
-  filePath    String // Path to the uploaded file
-  uploadedBy  String // User ID of the uploader
-  notes       String?   @db.Text // Encrypted notes (long text support)
+  name        String    // Encrypted with AES
+  nameKey     String    // Encrypted AES Key for `name`
+  nameIV      String    // IV for `name`
+
+  type        String    // Will, Trust, etc.
+  filePath    String    // Path to the uploaded file
+  uploadedBy  String    // User ID of the uploader
+
+  notes       String?   @db.Text   // Encrypted with AES
+  notesKey    String?              // Encrypted AES Key for `notes`
+  notesIV     String?              // IV for `notes`
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   holograph   Holograph @relation(fields: [holographId], references: [id])
 
-  @@unique([holographId, filePath]) // Ensure unique filenames within each Holograph
+  @@unique([holographId, filePath])
 }
+
 
 model Invitation {
   id          String   @id @default(uuid())

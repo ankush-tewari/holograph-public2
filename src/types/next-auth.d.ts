@@ -6,7 +6,6 @@ declare module 'next-auth' {
     user: {
       id: string;
       email: string;
-//      name?: string;
       firstName: string;           // ✅ Added
       lastName: string;            // ✅ Added
       accessToken?: string; // Optional access token

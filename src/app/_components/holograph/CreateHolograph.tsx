@@ -39,7 +39,7 @@ const CreateHolograph: React.FC<CreateHolographProps> = ({
       const response = await fetch('/api/holograph/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, userId }),
+        body: JSON.stringify({ title }),
       });
   
       if (!response.ok) {

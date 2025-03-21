@@ -30,14 +30,23 @@ export default function Navbar() {
 
   // Determine if user is authenticated
   const isAuthenticated = status === 'authenticated' && session?.user;
+  const firstName = session?.user?.firstName || "User";
+
 
   return (
     <nav className="bg-slate-400 shadow-md sticky top-0 z-50 font-sans">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
         <div className="flex justify-between items-center h-16">
-          <Link href="/dashboard" className="text-2xl font-bold text-gray-800">
-            Holograph
+        {isAuthenticated ? (
+          <Link 
+            href="/dashboard" 
+            className="text-2xl font-bold text-gray-800 hover:text-gray-600 transition"
+          >
+            Welcome {firstName}
           </Link>
+        ) : (
+          <div className="text-2xl font-bold text-gray-800">Holograph</div>
+        )}
 
           <div className="flex items-center gap-6">
             {isAuthenticated ? (

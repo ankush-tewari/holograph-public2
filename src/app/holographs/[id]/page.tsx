@@ -1,4 +1,4 @@
-// /src/app/holographs/[id]/page.tsx - Holograph detail page Dashboard/Landing Page
+// /src/app/holographs/[id]/page.tsx - Holograph detail page / landing Page
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -129,11 +129,15 @@ const HolographDetailPage = () => {
   useEffect(() => {
     const fetchDelegatePermissions = async () => {
       if (!params.id || !userId) return;
-  
       try {
+        debugLog("🟡 Fetching delegate permissions with:", {
+          userId,
+          holographId: params.id,
+        });
         const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch delegate permissions");
         const data = await response.json(); // Expected: [{ sectionId, accessLevel }]
+        debugLog("✅ Delegate Permissions Fetched:", data);
         const permissionsMap: Record<string, string> = {};
         data.forEach(({ sectionId, accessLevel }) => {
           permissionsMap[sectionId] = accessLevel;
@@ -142,6 +146,10 @@ const HolographDetailPage = () => {
         debugLog("✅ Delegate Permissions Fetched:", permissionsMap);
       } catch (err) {
         console.error("❌ Error loading delegate permissions:", err);
+        // Show detailed response if available
+        if (err instanceof Error) {
+          debugLog("❌ Fetch Error Message:", err.message);
+        }
       }
     };
   

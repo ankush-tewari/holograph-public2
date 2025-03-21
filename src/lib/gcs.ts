@@ -31,6 +31,9 @@ const storage = new Storage({
   projectId: process.env.GOOGLE_CLOUD_PROJECT,
 });
 
+export { storage };
+
+
 // ✅ Select the bucket
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME as string);
 

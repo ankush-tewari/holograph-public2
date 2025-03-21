@@ -1,6 +1,6 @@
 // /src/config/icons.ts
 
-import { FiBox, FiHome, FiFileText, FiDelete } from "react-icons/fi"; // Feather Icons
+import { FiBox, FiHome, FiFileText, FiDelete, FiInfo } from "react-icons/fi"; // Feather Icons
 import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, MdClose, MdAddCircle } from "react-icons/md"; // Material Icons
 import { FaPlus, FaTimes, FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
 import { AiFillCreditCard, AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
@@ -32,6 +32,7 @@ export const buttonIcons = {
   delete: FiTrash2, //delete icon
   users: FiUsers, //users icon
   lock: FiLock,
+  info: FiInfo,
 };
 
 export const userIcons = {

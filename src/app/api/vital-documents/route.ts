@@ -8,6 +8,12 @@ import { Duplex } from "stream";
 import { debugLog } from "../../../utils/debug";
 import { Storage } from "@google-cloud/storage";
 import crypto from "crypto";
+import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
+import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+
 
 // Disable Next.js's default body parsing so formidable can handle it
 export const config = {
@@ -19,6 +25,7 @@ export const config = {
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 
+/* no longer used
 // ✅ Function to Encrypt Data Using Public Key
 async function encryptData(holographId, data) {
   const certPath = `ssl/${holographId}.crt`;
@@ -47,7 +54,9 @@ async function encryptData(holographId, data) {
     throw new Error(`Encryption failed: ${error.message}`);
   }
 }
+*/
 
+/* no longer used
 // ✅ Function to Decrypt Data Using Private Key
 async function decryptData(holographId, encryptedData) {
   const keyPath = `ssl/${holographId}.key`;
@@ -72,9 +81,17 @@ async function decryptData(holographId, encryptedData) {
     return null; // Return null if decryption fails
   }
 }
+*/
 
 // ✅ Handle GET Requests for Fetching Vital Documents
 export async function GET(req: Request) {
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
   try {
     const { searchParams } = new URL(req.url);
     const holographId = searchParams.get("holographId");
@@ -86,6 +103,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing holographId" }, { status: 400 });
     }
 
+    // Fetch holograph with user roles
+    const holograph = await prisma.holograph.findUnique({
+      where: { id: holographId },
+      select: {
+        principals: { select: { userId: true } },
+        delegates: { select: { userId: true } },
+      },
+    });
+
+    if (!holograph) {
+      return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
+    }
+
+    const isPrincipal = holograph.principals.some(p => p.userId === userId);
+    const isDelegate = holograph.delegates.some(d => d.userId === userId);
+
+    if (!isPrincipal && !isDelegate) {
+      return NextResponse.json({ error: "Forbidden — no access to these documents" }, { status: 403 });
+    }
+    
     const documents = await prisma.vitalDocument.findMany({
       where: { holographId },
       orderBy: {
@@ -97,9 +134,23 @@ export async function GET(req: Request) {
     // ✅ Decrypt each document before returning
     const decryptedDocuments = await Promise.all(
       documents.map(async (doc) => {
-        const decryptedName = await decryptData(doc.holographId, doc.name);
-        const decryptedNotes = doc.notes ? await decryptData(doc.holographId, doc.notes) : null;
-
+        const decryptedName = await decryptFieldWithHybridEncryption(
+          doc.holographId,
+          doc.name,
+          doc.nameKey,
+          doc.nameIV
+        );
+    
+        let decryptedNotes = null;
+        if (doc.notes && doc.notesKey && doc.notesIV) {
+          decryptedNotes = await decryptFieldWithHybridEncryption(
+            doc.holographId,
+            doc.notes,
+            doc.notesKey,
+            doc.notesIV
+          );
+        }
+    
         return {
           ...doc,
           name: decryptedName || "🔒 Unable to decrypt",
@@ -107,6 +158,7 @@ export async function GET(req: Request) {
         };
       })
     );
+    
     debugLog("✅ Decrypted documents:", decryptedDocuments);
     return NextResponse.json(decryptedDocuments, { status: 200 });
 
@@ -118,6 +170,13 @@ export async function GET(req: Request) {
 
 // ✅ Handle POST Requests for Uploading & Updating Vital Documents
 export async function POST(req: Request) {
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
   // Define variables at the top level of the function scope
   let holographId = null;
   let name = null;
@@ -131,10 +190,6 @@ export async function POST(req: Request) {
   let isNewDocument = false;
 
   try {
-    if (req.method !== "POST") {
-      console.error("❌ Method Not Allowed");
-      return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
-    }
 
     // Convert the Next.js Request into a Node.js stream
     const bodyBuffer = Buffer.from(await req.arrayBuffer());
@@ -174,7 +229,7 @@ export async function POST(req: Request) {
     name = getSingleValue(fields.name);
     type = getSingleValue(fields.type);
     notes = getSingleValue(fields.notes);
-    uploadedBy = getSingleValue(fields.uploadedBy);
+    uploadedBy = userId; // Trust the session, not form input
     let existingFilePath = getSingleValue(fields.existingFilePath); // ✅ Existing file path if provided
     const fileField = files.file;
 
@@ -183,6 +238,26 @@ export async function POST(req: Request) {
     if (!holographId || !name || !type || !uploadedBy) {
       console.error("❌ Missing required fields:", { holographId, name, type, uploadedBy });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Fetch holograph with user roles
+    const holograph = await prisma.holograph.findUnique({
+      where: { id: holographId },
+      select: {
+        principals: { select: { userId: true } },
+        delegates: { select: { userId: true } },
+      },
+    });
+
+    if (!holograph) {
+      return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
+    }
+
+    const isPrincipal = holograph.principals.some(p => p.userId === userId);
+    const isDelegate = holograph.delegates.some(d => d.userId === userId);
+
+    if (!isPrincipal) {
+      return NextResponse.json({ error: "Forbidden — no access to this Holograph" }, { status: 403 });
     }
 
     filePath = existingFilePath;
@@ -270,22 +345,26 @@ export async function POST(req: Request) {
     const normalizedFilePath = newFilePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
     debugLog("📁 Normalized file path for storage:", normalizedFilePath);
 
-    // ✅ Encrypt name and notes
-    debugLog("🔐 Encrypting document name and notes...");
+    // ✅ Encrypt name and notes using hybrid encryption
+    debugLog("🔐 Encrypting document name and notes with hybrid encryption...");
+    let nameEncryptionResult = null;
+    let notesEncryptionResult = null;
+
     try {
       // Encrypt name (required)
-      encryptedName = await encryptData(holographId, name);
+      nameEncryptionResult = await encryptFieldWithHybridEncryption(holographId, name);
       debugLog("✅ Name encrypted successfully");
-      
+
       // Encrypt notes (optional)
       if (notes) {
-        encryptedNotes = await encryptData(holographId, notes);
+        notesEncryptionResult = await encryptFieldWithHybridEncryption(holographId, notes);
         debugLog("✅ Notes encrypted successfully");
       }
     } catch (encryptionError) {
       debugLog("❌ Encryption failed:", encryptionError.message || "Unknown error");
       return NextResponse.json({ error: `Encryption failed: ${encryptionError.message || "Unknown error"}` }, { status: 500 });
     }
+
 
     if (isNewDocument) {
       // ✅ Create a new document
@@ -295,13 +374,17 @@ export async function POST(req: Request) {
         const newDocument = await prisma.vitalDocument.create({
           data: {
             holographId,
-            name: encryptedName,
+            name: nameEncryptionResult.encryptedValue,
+            nameKey: nameEncryptionResult.encryptedKey,
+            nameIV: nameEncryptionResult.iv,
             type,
-            notes: encryptedNotes || null,
+            notes: notesEncryptionResult?.encryptedValue ?? null,
+            notesKey: notesEncryptionResult?.encryptedKey ?? null,
+            notesIV: notesEncryptionResult?.iv ?? null,
             filePath: normalizedFilePath,
             uploadedBy,
           },
-        });
+        });        
 
         debugLog("✅ New document created with ID:", newDocument.id);
         return NextResponse.json(newDocument, { status: 201 });
@@ -326,10 +409,13 @@ export async function POST(req: Request) {
             },
           },
           data: {
-            name: encryptedName,
+            name: nameEncryptionResult.encryptedValue,
+            nameKey: nameEncryptionResult.encryptedKey,
+            nameIV: nameEncryptionResult.iv,
             type,
-            notes: encryptedNotes || null,
-            // Only update the file path if a new file was uploaded
+            notes: notesEncryptionResult?.encryptedValue ?? null,
+            notesKey: notesEncryptionResult?.encryptedKey ?? null,
+            notesIV: notesEncryptionResult?.iv ?? null,
             ...(fileField ? { filePath: normalizedFilePath } : {}),
             uploadedBy,
           },

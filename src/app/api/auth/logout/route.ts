@@ -1,3 +1,5 @@
+// /src/api/auth/logout/route.ts
+
 import { NextResponse } from 'next/server'
 import { debugLog } from "../../../../utils/debug";
 

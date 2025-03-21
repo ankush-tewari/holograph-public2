@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import validator from 'validator';
 import { debugLog } from "../../../../utils/debug"
 
 export async function POST(req: Request) {
@@ -20,6 +21,21 @@ export async function POST(req: Request) {
   }
 
   try {
+
+    // check for valid format
+    if (!validator.isEmail(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser && existingUser.id !== session.user.id) {
+      return NextResponse.json({ error: "Email is already in use" }, { status: 400 });
+    }
+
     // ✅ Securely update user by ID
     await prisma.user.update({
       where: { id: session.user.id },  // changed from email

@@ -1,4 +1,5 @@
 // src/app/api/holograph/[id]/route.ts
+// GET, PUT and DELETE functions 
 
 import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
@@ -11,47 +12,46 @@ export async function GET(request: Request, context: { params: { id: string } })
   try {
     // Get session using NextAuth
     const session = await getServerSession(authOptions);
-    
     if (!session || !session.user) {
       console.error("❌ No authenticated session found");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    
+
     const userId = session.user.id;
-    
+
     // Keep existing URL params logic for backward compatibility
     const { searchParams } = new URL(request.url);
     const queryUserId = searchParams.get('userId');
-    
+
     // Log both session user and query user if different
     if (queryUserId && queryUserId !== userId) {
       debugLog(`⚠️ Note: Query userId (${queryUserId}) differs from session userId (${userId}). Using session userId.`);
     }
 
     // ✅ Await params before using it
-    const { id: holographId } = await context.params; 
+    const { id: holographId } = await context.params;
 
     debugLog(`🔍 Fetching Holograph ${holographId} for user ${userId}`);
 
-   // ✅ Fetch the Owner
-   const holograph = await prisma.holograph.findUnique({
-    where: { id: holographId },
-    select: {
-      id: true,
-      title: true,
-      createdAt: true,
-      updatedAt: true,
-      owner: {
-        select: { id: true, firstName: true, lastName: true },
+    // ✅ Fetch the Owner
+    const holograph = await prisma.holograph.findUnique({
+      where: { id: holographId },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
+        owner: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        principals: {
+          select: { user: { select: { id: true, firstName: true, lastName: true } } },
+        },
+        delegates: {
+          select: { user: { select: { id: true, firstName: true, lastName: true } } },
+        },
       },
-      principals: {
-        select: { user: { select: { id: true, firstName: true, lastName: true } } },
-      },
-      delegates: {
-        select: { user: { select: { id: true, firstName: true, lastName: true } } },
-      },
-    },
-  });    
+    });
 
     if (!holograph) {
       console.error(`❌ Holograph ${holographId} not found`);
@@ -61,12 +61,11 @@ export async function GET(request: Request, context: { params: { id: string } })
     debugLog(`✅ Found Holograph: ${holograph.title}`)
     debugLog(`👤 Owner Found: ${holograph.owner ? `${holograph.owner.firstName} ${holograph.owner.lastName}` : "Unknown User"}`);
 
-    // ✅ Check if the user is authorized
-    const isAuthorized =
-    holograph.principals.some(p => p.user.id === userId) ||
-    holograph.delegates.some(d => d.user.id === userId);
+    // ✅ Check if the user is authorized (Principals and Delegates)
+    const isPrincipal = holograph.principals.some(p => p.user.id === userId);
+    const isDelegate = holograph.delegates.some(d => d.user.id === userId);
 
-    if (isAuthorized) {
+    if (isPrincipal || isDelegate) {
       debugLog(`✅ User ${userId} is authorized to view full Holograph ${holographId}`);
       return NextResponse.json({
         id: holograph.id,
@@ -90,7 +89,7 @@ export async function GET(request: Request, context: { params: { id: string } })
           firstName: d.user.firstName,
           lastName: d.user.lastName,
         })),
-      });      
+      });
     }
 
     // 🚨 If user is not a Principal or Delegate, check for an invitation
@@ -136,7 +135,22 @@ export async function GET(request: Request, context: { params: { id: string } })
 // for editing a Holograph Name
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+
     const { id } = params;
+    // 🔐 Authorization: Only Principals can edit the Holograph
+    const isPrincipal = await prisma.holographPrincipal.findFirst({
+      where: { holographId: id, userId },
+    });
+    if (!isPrincipal) {
+      return NextResponse.json({ error: 'Forbidden — only Principals can edit this Holograph' }, { status: 403 });
+    }
+    
     const { title } = await req.json();
 
     if (!title) {

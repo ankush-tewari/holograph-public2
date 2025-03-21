@@ -43,9 +43,30 @@ export default function VitalDocumentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPrincipal, setIsPrincipal] = useState<boolean>(false);
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
 
 
+  // do I add this here?
+  useEffect(() => {
+    const checkPrincipalStatus = async () => {
+      if (!holographId || !userId) return;
+  
+      try {
+        const response = await axios.get(`/api/holograph/${holographId}`);
+        const holographData = response.data;
+        const isUserPrincipal = holographData.principals.some((p: any) => p.id === userId);
+        setIsPrincipal(isUserPrincipal);
+      } catch (error) {
+        console.error("❌ Error verifying principal status:", error);
+      }
+    };
+  
+    checkPrincipalStatus();
+  }, [holographId, userId]);
+  
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -198,18 +219,31 @@ export default function VitalDocumentsPage() {
       {/* Left Section: Controls & Instructions */}
       <div className="w-1/3 bg-white shadow-lg p-6 rounded-lg">
         <div className="mt-4 flex flex-col gap-4">
-          <button className="btn-primary" onClick={() => openModal(null)}>+ Add New Vital Document</button>
+          {isPrincipal && (
+            <button className="btn-primary" onClick={() => openModal(null)}>
+              + Add New Vital Document
+            </button>
+          )}
           <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
         </div>
         <div className="mt-6 text-gray-700 text-sm space-y-2">
-          <p>Upload a scanned copy of your will, trust, and advance healthcare directive documents.</p>
-          <p>You may also upload other important documents such as:</p>
-          <ul className="list-disc pl-4">
-            <li>Pet information</li>
-            <li>Location of important heirlooms</li>
-            <li>Other transition-related instructions</li>
-          </ul>
+          {isPrincipal ? (
+            <>
+              <p>Upload a scanned copy of your will, trust, and advance healthcare directive documents.</p>
+              <p>You may also upload other important documents such as:</p>
+              <ul className="list-disc pl-4">
+                <li>Pet information</li>
+                <li>Location of important heirlooms</li>
+                <li>Other transition-related instructions</li>
+              </ul>
+            </>
+          ) : (
+            <p className="italic">
+              You can view and download Vital Documents shared with you.
+            </p>
+          )}
         </div>
+
       </div>
 
       {isModalOpen && userId && (
@@ -254,28 +288,67 @@ export default function VitalDocumentsPage() {
                         </span>
                       </a>
                     </button>
-
-                    {/* ✅ Standardized Edit Button */}
-                    <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
-                      <span><buttonIcons.edit size={18} /></span>
+                    <button
+                      className="ml-2 text-gray-600 hover:text-gray-800 text-sm relative group"
+                      onClick={() => setSelectedNote(doc.notes || "No notes available")}
+                    >
+                      <span><buttonIcons.info size={18} /></span>
                       <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                        Edit Vital Document
+                        View Notes
                       </span>
                     </button>
 
-                    {/* ✅ Standardized Delete Button */}
-                    <button className="ml-2 text-red-600 hover:text-red-800 text-sm relative group" onClick={() => handleDelete(doc.id)}>
-                      <span><buttonIcons.delete size={18} /></span>
-                      <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                        Delete Vital Document
-                      </span>
-                    </button>
+                    {isPrincipal && (
+                      <>
+                        {/* Edit Button */}
+                        <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
+                          <span><buttonIcons.edit size={18} /></span>
+                          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                            Edit Vital Document
+                          </span>
+                        </button>
+
+                        {/* Delete Button */}
+                        <button className="ml-2 text-red-600 hover:text-red-800 text-sm relative group" onClick={() => handleDelete(doc.id)}>
+                          <span><buttonIcons.delete size={18} /></span>
+                          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                            Delete Vital Document
+                          </span>
+                        </button>
+                      </>
+                    )}
+
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+          {selectedNote !== null && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className={`bg-white p-6 rounded-lg shadow-lg ${isExpanded ? 'max-w-5xl w-full h-[90vh]' : 'max-w-md w-full max-h-[80vh]'} overflow-y-auto relative transition-all duration-300`}>
+                <h2 className="text-lg font-semibold mb-4">Document Notes</h2>
+                <p className="text-sm whitespace-pre-wrap">{selectedNote}</p>
+
+                {/* Toggle Buttons */}
+                <div className="mt-6 flex justify-between items-center">
+                  <button
+                    className="btn-primary"
+                    onClick={() => setSelectedNote(null)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                  >
+                    {isExpanded ? "Shrink" : "Expand"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
       </div>
     </div>
   );

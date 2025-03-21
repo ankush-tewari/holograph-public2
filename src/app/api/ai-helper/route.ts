@@ -1,8 +1,16 @@
 // /src/app/api/ai-helper/route.ts
 
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { debugLog } from "@/utils/debug";
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  
   try {
     const { question } = await req.json();
     if (!question) {

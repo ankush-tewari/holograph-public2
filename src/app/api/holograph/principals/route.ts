@@ -1,8 +1,10 @@
-// /src/app/api/holograph/principals/route.ts
+// /src/app/api/holograph/principals/route.ts 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';
 import { prisma } from '@/lib/db';
+import { removePrincipal } from '@/utils/principalHelpers';
 import { debugLog } from "../../../../utils/debug";
 
 export async function GET(request: NextRequest) {
@@ -119,74 +121,29 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Get authenticated user from session
     const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user || !session.user.id) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const authenticatedUserId = session.user.id;
-    
     const { searchParams } = new URL(request.url);
     const holographId = searchParams.get('holographId');
-    const userId = searchParams.get('userId');
+    const userIdToRemove = searchParams.get('userId');
 
-    if (!holographId || !userId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-    
-    // Security check: Either the user is removing themselves or the user is a principal of this holograph
-    if (authenticatedUserId !== userId) {
-      // Check if authenticated user is a principal of the holograph
-      const isPrincipal = await prisma.holographPrincipal.findUnique({
-        where: {
-          holographId_userId: {
-            holographId,
-            userId: authenticatedUserId,
-          },
-        },
-      });
-      
-      if (!isPrincipal) {
-        return NextResponse.json(
-          { error: 'Unauthorized to remove another user' },
-          { status: 403 }
-        );
-      }
+    if (!holographId || !userIdToRemove) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if this is the last principal
-    const principalCount = await prisma.holographPrincipal.count({
-      where: { holographId },
-    });
+    const result = await removePrincipal(holographId, userIdToRemove, authenticatedUserId);
 
-    if (principalCount <= 1) {
-      return NextResponse.json(
-        { error: 'Cannot remove last principal' },
-        { status: 400 }
-      );
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
-
-    // Remove principal
-    await prisma.holographPrincipal.delete({
-      where: {
-        holographId_userId: {
-          holographId,
-          userId,
-        },
-      },
-    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error removing principal:', error);
-    return NextResponse.json(
-      { error: 'Failed to remove principal' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to remove principal' }, { status: 500 });
   }
 }

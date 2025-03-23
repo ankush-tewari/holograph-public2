@@ -43,6 +43,19 @@ interface Invitation {
   inviterLastName?: string;
 }
 
+interface RemovalRequest {
+  id: string;
+  holographId: string;
+  holographTitle: string;
+  requestedBy: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
+
 const HolographDashboard = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -61,6 +74,9 @@ const HolographDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [removalRequests, setRemovalRequests] = useState([]);
+
+  
 
   // Log session status for debugging
   useEffect(() => {
@@ -76,6 +92,18 @@ const HolographDashboard = () => {
       router.push('/login');
     }
   }, [status, router]);
+
+  // fetch removal requests
+  const fetchRemovalRequests = async () => {
+    try {
+      const response = await fetch(`/api/holograph/principal-removal-requests`);
+      if (!response.ok) throw new Error("Failed to fetch removal requests");
+      const data = await response.json();
+      setRemovalRequests(data);
+    } catch (error) {
+      console.error("❌ Error fetching removal requests:", error);
+    }
+  };
 
   // Fetch Holographs & Invitations after authentication
   useEffect(() => {
@@ -138,6 +166,7 @@ const HolographDashboard = () => {
       }
     };
 
+
     const fetchInvitations = async () => {
       debugLog("🔍 Fetching invitations for user:", userId);
       try {
@@ -152,8 +181,11 @@ const HolographDashboard = () => {
       }
     };
 
+    
+
     fetchHolographs();
     fetchInvitations();
+    fetchRemovalRequests();
   }, [status, session, router]);
 
   const handleCreateSuccess = async (newHolograph: Holograph): Promise<void> => {
@@ -204,6 +236,34 @@ const HolographDashboard = () => {
       console.error('Error declining invitation:', error);
     }
   };
+
+  const handleRemovalResponse = async (removalId, holographId, action) => {
+    const confirmMsg = action === "accept"
+      ? "Accept removal and lose access to this Holograph?"
+      : "Decline and remain a Principal?";
+    if (!window.confirm(confirmMsg)) return;
+  
+    try {
+      const response = await fetch(`/api/holograph/${holographId}/principals/remove/${removalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+  
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message);
+        fetchRemovalRequests(); // Refresh list
+        router.refresh(); // Ensure access updates
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("Error responding to removal:", err);
+      alert("Failed to process request.");
+    }
+  };
+  
 
   // Handle clicking on a holograph - update the current holograph ID in the session
   const handleHolographClick = async (holographId: string) => {
@@ -274,12 +334,12 @@ const HolographDashboard = () => {
                 🤝 Delegated to Me
               </button>
               <button
-                onClick={() => setActiveTab('invitations')}
+                onClick={() => setActiveTab('messages')}
                 className={`px-4 py-2 font-medium ${
-                  activeTab === 'invitations' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'
+                  activeTab === 'messages' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                📩 Invitations
+                📩 Messages
               </button>
             </div>
 
@@ -323,23 +383,58 @@ const HolographDashboard = () => {
                   </div>
                 )}
 
-                {activeTab === 'invitations' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                   {pendingInvitations.length > 0 ? (
+                {activeTab === 'messages' && (
+                  <div className="grid gap-4 md:grid-cols-1">
+                    {/* Invitations Section */}
+                    <h3 className="text-lg font-semibold">Invitations</h3>
+                    {pendingInvitations.length > 0 ? (
                       pendingInvitations.map(invitation => (
-                        <div key={invitation.id} className="holograph-item flex flex-wrap justify-between items-center w-full">
-                          <span className="truncate">Invitation to join Holograph: "{invitation.holographTitle}" as a { invitation.role } by {invitation.inviterFirstName} {invitation.inviterLastName}</span>
+                        <div key={invitation.id} className="holograph-item flex justify-between items-center">
+                          <span>
+                            Invitation to "{invitation.holographTitle}" as {invitation.role} by {invitation.inviterFirstName} {invitation.inviterLastName}
+                          </span>
                           <div className='flex gap-2'>
-                            <button className="px-3 py-1 bg-green-600 text-white rounded mr-2 hover:bg-green-700" onClick={() => handleAcceptInvite(invitation.id,invitation.holographId)}>Accept</button>
-                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDeclineInvite(invitation.id)}>Decline</button>
+                            <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                              onClick={() => handleAcceptInvite(invitation.id, invitation.holographId)}>
+                              Accept
+                            </button>
+                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                              onClick={() => handleDeclineInvite(invitation.id)}>
+                              Decline
+                            </button>
                           </div>
                         </div>
                       ))
                     ) : (
                       <p className="text-gray-500">No pending invitations.</p>
                     )}
+
+                    {/* Principal Removal Requests Section */}
+                    <h3 className="text-lg font-semibold mt-6">Principal Removal Requests</h3>
+                    {removalRequests.length > 0 ? (
+                      removalRequests.map(req => (
+                        <div key={req.id} className="holograph-item flex justify-between items-center">
+                          <span>
+                            You are being removed from "{req.holographTitle}" by {req.requestedBy.firstName} {req.requestedBy.lastName}
+                          </span>
+                          <div className='flex gap-2'>
+                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                              onClick={() => handleRemovalResponse(req.id, req.holographId, "accept")}>
+                              Accept
+                            </button>
+                            <button className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                              onClick={() => handleRemovalResponse(req.id, req.holographId, "decline")}>
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No pending removal requests.</p>
+                    )}
                   </div>
                 )}
+
               </>
             )}
           </div>

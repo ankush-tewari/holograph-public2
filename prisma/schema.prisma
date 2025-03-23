@@ -31,6 +31,10 @@ model User {
   ownedHolographs  Holograph[]         @relation("HolographOwner")
   oldOwnedLogs     OwnershipAuditLog[] @relation("OldOwnerRelation")
   currentOwnedLogs OwnershipAuditLog[] @relation("CurrentOwnerRelation") // ✅ Renamed from newOwnedLogs
+
+  // Add these for PendingPrincipalRemoval relations:
+  pendingRemovalsAsTarget   PendingPrincipalRemoval[] @relation("TargetUserRelation")
+  pendingRemovalsAsRequester PendingPrincipalRemoval[] @relation("RequestedByRelation")
 }
 
 model Holograph {
@@ -51,6 +55,8 @@ model Holograph {
   ownerId            String
   owner              User                @relation("HolographOwner", fields: [ownerId], references: [id])
   ownershipAuditLogs OwnershipAuditLog[]
+
+  pendingPrincipalRemovals PendingPrincipalRemoval[] // removing principals
 }
 
 // establishes an owner for the holograph who is responsible for payment
@@ -126,6 +132,22 @@ model Invitation {
 
   @@unique([holographId, inviteeId]) // Updated to use inviteeId
 }
+
+model PendingPrincipalRemoval {
+  id             String   @id @default(uuid())
+  holographId    String
+  targetUserId   String
+  requestedById  String
+  status         String   @default("Pending")
+  createdAt      DateTime @default(now())
+
+  holograph     Holograph @relation(fields: [holographId], references: [id])
+  targetUser    User      @relation("TargetUserRelation", fields: [targetUserId], references: [id])
+  requestedBy   User      @relation("RequestedByRelation", fields: [requestedById], references: [id])
+
+  @@unique([holographId, targetUserId])
+}
+
 
 // Table for Holograph sections so they can be added dynamically
 model Section {

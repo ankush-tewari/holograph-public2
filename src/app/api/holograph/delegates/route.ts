@@ -1,4 +1,4 @@
-// /src/app/api/holograph/delegates/route.ts
+// /src/app/api/holograph/delegates/route.ts - GET function
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
@@ -176,6 +176,14 @@ export async function DELETE(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // ✅ Delete delegate's permissions
+    await prisma.delegatePermissions.deleteMany({
+      where: {
+        holographId,
+        delegateId,
+      },
+    });
 
     // Remove delegate
     await prisma.holographDelegate.delete({

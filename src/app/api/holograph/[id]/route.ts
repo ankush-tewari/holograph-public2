@@ -41,6 +41,7 @@ export async function GET(request: Request, context: { params: { id: string } })
         title: true,
         createdAt: true,
         updatedAt: true,
+        ownerId: true,  
         owner: {
           select: { id: true, firstName: true, lastName: true },
         },
@@ -72,6 +73,7 @@ export async function GET(request: Request, context: { params: { id: string } })
         title: holograph.title,
         createdAt: holograph.createdAt.toISOString(),
         updatedAt: holograph.updatedAt.toISOString(),
+        ownerId: holograph.ownerId,
         owner: holograph.owner
           ? {
               id: holograph.owner.id,
@@ -180,13 +182,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     debugLog(`🔍 User ${userId} attempting to delete Holograph with ID: ${id}`);
 
-    // 🔐 Authorization: Only Principals can delete the Holograph
-    const isPrincipal = await prisma.holographPrincipal.findFirst({
-      where: { holographId: id, userId },
+    // 🔐 Fetch Holograph Owner and cert paths
+    const holograph = await prisma.holograph.findUnique({
+      where: { id },
+      select: { ownerId: true, sslCertPath: true, sslKeyPath: true },
     });
 
-    if (!isPrincipal) {
-      return NextResponse.json({ error: 'Forbidden — only Principals can delete this Holograph' }, { status: 403 });
+    if (!holograph) {
+      return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
+    }
+
+    // 🔐 Verify Owner
+    if (holograph.ownerId !== userId) {
+      return NextResponse.json({ error: 'Forbidden — only the Owner can delete this Holograph' }, { status: 403 });
     }
 
     // ✅ Step 1: Delete related Sections from `HolographSection`
@@ -195,10 +203,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // ✅ Step 2: Delete SSL Certificates from Google Cloud Storage
     debugLog("🔍 Fetching SSL certificate paths for deletion...");
-    const holograph = await prisma.holograph.findUnique({
-      where: { id },
-      select: { sslCertPath: true, sslKeyPath: true },
-    });
 
     if (holograph?.sslCertPath) {
       await deleteFileFromGCS(holograph.sslCertPath);

@@ -38,4 +38,5 @@ export const buttonIcons = {
 export const userIcons = {
   addPrincipal: FiUserPlus,
   addDelegate: FiUsers,
+  transferOwnership: FaUserShield,  // ✅ Added for ownership transfer
 };

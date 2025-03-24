@@ -121,9 +121,9 @@ export default function DelegatePermissions({ holographId }) {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-4 mt-4">
-  <h2 className="text-lg font-semibold">Manage Delegate Permissions</h2>
-  
-    {(Array.isArray(delegates) ? delegates : []).map((delegate) => (
+      <h2 className="text-lg font-semibold">Manage Delegate Permissions</h2>
+
+      {(Array.isArray(delegates) ? delegates.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)) : []).map((delegate) => (
       <div key={delegate.id} className="mt-2">
         <h3 className="font-medium">
           {delegate.firstName} {delegate.lastName} ({delegate.email})

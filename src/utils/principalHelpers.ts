@@ -75,5 +75,17 @@ export async function removePrincipal(holographId: string, userIdToRemove: strin
     },
   });
 
+  debugLog(`🗑 Removed principal ${userIdToRemove} from Holograph ${holographId}`);
+
+   // ✅ Delete invitations for this user in this Holograph
+   await prisma.invitation.deleteMany({
+    where: {
+      holographId,
+      inviteeId: userIdToRemove,
+    },
+  });
+
+  debugLog(`🗑 Deleted invitations for ${userIdToRemove} in Holograph ${holographId}`);
+
   return { success: true };
 }

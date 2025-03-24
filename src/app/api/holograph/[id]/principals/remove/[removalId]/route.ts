@@ -43,24 +43,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     if (action === "accept") {
-      // ✅ Remove the Principal
-      const result = await removePrincipal(holographId, userId, userId); // Self-removal
+      // ✅ Remove the Principal (includes invitation cleanup)
+      const result = await removePrincipal(holographId, userId, userId);
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 400 });
       }
 
-      // ✅ Delete all invitations for this user for this Holograph
-      await prisma.invitation.deleteMany({
-        where: {
-          holographId,
-          inviteeId: userId,
-        },
-      });
-
       // ✅ Delete the pending removal request
       await prisma.pendingPrincipalRemoval.delete({
         where: { id: removalId },
-      });      
+      });
 
       return NextResponse.json({ message: 'You have been removed from the Holograph.' }, { status: 200 });
     }

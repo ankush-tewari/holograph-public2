@@ -1,11 +1,11 @@
 // /src/app/dashboard/page.tsx - this is the REAL User Dashboard page, the one that incorporates 
-// \_components\HolographDashboard.tsx where a user sees all of their holographs
+// /_components\UserDashboard.tsx where a user sees all of their owned and delegated holographs, invitations, etc.
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import React from 'react'
-import HolographDashboard from '../_components/HolographDashboard'
+import UserDashboard from '../_components/UserDashboard'
 import { debugLog } from "../../utils/debug";
 import { buttonIcons } from '../../config/icons'; // ✅ Import standardized icons
 
@@ -36,7 +36,7 @@ export default async function Dashboard() {
             <div className="flex justify-between items-center mb-6">
           </div>
             {/* Holograph Dashboard */}
-            {user && <HolographDashboard userId={user.id} />}
+            {user && <UserDashboard userId={user.id} />}
           </div>
         </div>
     </div>

@@ -19,16 +19,16 @@ interface HolographUser {
   lastName: string;
 }
 
-
 interface Holograph {
   id: string;
   title: string;
   createdAt: string;
   updatedAt: string;
-  principals: HolographUser[];  // ✅ Now includes user.id
-  delegates: HolographUser[];  // ✅ Same here
+  ownerId: string; // ✅ Add this for direct access
+  owner?: HolographUser; // Optional: full owner info
+  principals: HolographUser[];
+  delegates: HolographUser[];
 }
-
 
 interface Section {
   sectionId: string;  // ✅ Add this
@@ -211,13 +211,14 @@ const HolographDetailPage = () => {
   if (!holograph) return <p className="text-center text-gray-600 text-lg">No Holograph found.</p>;
 
   const isPrincipal = holograph?.principals?.some(p => p.id === userId) || false;
+  const isOwner = holograph?.ownerId === userId;
+
   debugLog("👑 Holograph Principals:", holograph?.principals);
   debugLog("🧑‍💻 Current User ID:", userId);
   debugLog("🔐 delegatePermissions Map:", delegatePermissions);
   debugLog("🕵️ isPrincipal?", isPrincipal);
   debugLog("📦 Sections Loaded:", sections);
-
-
+  debugLog("🛡️ isOwner?", isOwner); // Add this debug too
 
   return (
     <div className="p-8 max-w-full mx-auto bg-stone-50 text-black min-h-screen">
@@ -268,13 +269,15 @@ const HolographDetailPage = () => {
                   </span>
                 </button>
 
-                {/* Delete Holograph */}
-                <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
-                  <span><buttonIcons.delete size={18} /></span>
-                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                    Delete Holograph (Caution!)
-                  </span>
-                </button>
+                {/* Delete Holograph if Owner */}
+                {isOwner && (
+                  <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
+                    <span><buttonIcons.delete size={18} /></span>
+                    <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                      Delete Holograph (Caution!)
+                    </span>
+                  </button>
+                )}
               </>
             )}
           </>

@@ -1,4 +1,4 @@
-// src/app/_components/HolographDashboard.tsx - this is the main user dashboard - shows ALL Holographs for a user
+// src/app/_components/UserDashboard.tsx - this is the main user dashboard - shows ALL Holographs for a user
 
 "use client";
 
@@ -56,7 +56,7 @@ interface RemovalRequest {
 }
 
 
-const HolographDashboard = () => {
+const UserDashboard = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { setCurrentHolographId } = useHolograph();
@@ -444,4 +444,4 @@ const HolographDashboard = () => {
   );
 };
 
-export default HolographDashboard;
+export default UserDashboard;

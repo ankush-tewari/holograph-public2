@@ -47,7 +47,7 @@
 │   ├── ./src/app
 │   │   ├── ./src/app/_components
 │   │   │   ├── ./src/app/_components/HelpDialog.tsx
-│   │   │   ├── ./src/app/_components/HolographDashboard.tsx
+│   │   │   ├── ./src/app/_components/UserDashboard.tsx
 │   │   │   ├── ./src/app/_components/SessionDebug.tsx
 │   │   │   ├── ./src/app/_components/holograph
 │   │   │   │   ├── ./src/app/_components/holograph/CreateHolograph.tsx

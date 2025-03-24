@@ -229,11 +229,11 @@ export default function VitalDocumentsPage() {
         <div className="mt-6 text-gray-700 text-sm space-y-2">
           {isPrincipal ? (
             <>
-              <p>Upload a scanned copy of your will, trust, and advance healthcare directive documents.</p>
+              <p>Upload a scanned copy of your will, trust, funeral plan, and advance healthcare directive documents.</p>
               <p>You may also upload other important documents such as:</p>
               <ul className="list-disc pl-4">
                 <li>Pet information</li>
-                <li>Location of important heirlooms</li>
+                <li>Medical care documents</li>
                 <li>Other transition-related instructions</li>
               </ul>
             </>

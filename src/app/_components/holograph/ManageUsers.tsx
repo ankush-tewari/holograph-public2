@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { useHolograph } from "@/hooks/useHolograph";
 import InviteUserModal from "./InviteUserModal";
+import TransferOwnershipModal from "./TransferOwnershipModal";
 import DelegatePermissions from "./DelegatePermissions";
 import { useRouter, useParams } from "next/navigation";
 import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
@@ -44,10 +45,7 @@ export default function ManageUsers() {
   const [isPrincipal, setIsPrincipal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ownerId, setOwnerId] = useState<string | null>(null);
-
-  
-
-
+  const [isOwnershipModalOpen, setIsOwnershipModalOpen] = useState(false);
   
   useEffect(() => {
     if (!currentHolographId) {
@@ -78,7 +76,8 @@ export default function ManageUsers() {
         const principals = data.principals || [];
         const isCurrentPrincipal = principals.some((p: any) => p.id === userId);
         setIsPrincipal(isCurrentPrincipal);
-        setOwnerId(data.ownerId); // ✅ Save ownerId
+        debugLog("Fetched ownerId:", data.ownerId); // 🔍 Log the fetched value
+        setOwnerId(data.owner?.id);  // ✅ Fix: access nested owner.id
         setIsLoading(false);
       })
       .catch(() => {
@@ -155,6 +154,31 @@ export default function ManageUsers() {
     }
   };
   
+  const handleTransferOwnership = async (newOwnerId: string) => {
+    const confirmTransfer = window.confirm("Confirm ownership transfer?");
+    if (!confirmTransfer) return;
+  
+    try {
+      const response = await fetch(`/api/holograph/${currentHolographId}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOwnerId }),
+      });
+  
+      if (response.ok) {
+        alert("Ownership transferred.");
+        setOwnerId(newOwnerId);
+        setIsOwnershipModalOpen(false);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error transferring ownership:", error);
+      alert("Failed to transfer ownership.");
+    }
+  };
+  
   
   if (isLoading) return <p className="text-center text-gray-500">Loading...</p>;
 
@@ -199,24 +223,45 @@ export default function ManageUsers() {
                 Add Principal
               </span>
             </button>
+            {userId === ownerId && (
+              <button
+                className="text-purple-600 hover:text-purple-800 relative group ml-4"
+                onClick={() => setIsOwnershipModalOpen(true)}
+              >
+                <userIcons.transferOwnership size={18} />
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                  Transfer Ownership
+                </span>
+              </button>
+            )}
+
           </h2>
 
           <div className="space-y-4">
-            {users.filter(user => user.role === "Principal").map(user => (
-              <div
-                key={user.id}
-                className="bg-white border border-gray-300 shadow-md rounded-lg p-4 flex justify-between items-center"
-              >
+            {users
+              .filter(user => user.role === "Principal")
+              .sort((a, b) => a.lastName.localeCompare(b.lastName))
+              .map(user => (
+                <div
+                  key={user.id}
+                  className={`bg-white shadow-md rounded-lg p-4 flex justify-between items-center ${
+                    user.id === userId
+                      ? "border-2 border-blue-500 bg-blue-50 ring-2 ring-blue-200"
+                      : "border border-gray-300"
+                  }`}                  
+                > 
                 <p className="font-medium text-gray-800">
                   {user.firstName} {user.lastName}{" "}
                   <span className="text-gray-500">({user.email})</span>
+                  <span className="text-sm ml-2 text-gray-600">
+                  
                   {user.id === ownerId && (
-                    <span className="text-blue-600 text-sm ml-2">(Owner)</span>
+                    <span className="text-sm ml-2 text-gray-600">(Owner)</span>
                   )}
-                  {user.id === userId && (
-                    <span className="text-green-600 text-sm ml-2">(You)</span>
-                  )}
+
+                  </span>
                 </p>
+
                 {user.id !== ownerId && (
                   <button
                     className="text-red-600 hover:text-red-800 relative group"
@@ -251,11 +296,17 @@ export default function ManageUsers() {
             </button>
           </h2>
           <div className="space-y-4">
-            {users.filter(user => user.role === "Delegate").map(user => (
-              <div
-                key={user.id}
-                className="bg-white border border-gray-300 shadow-md rounded-lg p-4 flex justify-between items-center"
-              >
+            {users
+              .filter(user => user.role === "Delegate")
+              .sort((a, b) => a.lastName.localeCompare(b.lastName))
+              .map(user => (
+                <div
+                  key={user.id}
+                  className={`bg-white shadow-md rounded-lg p-4 flex justify-between items-center ${
+                    user.id === userId ? "border-2 border-blue-500" : "border border-gray-300"
+                  }`}
+                >
+
                 <p className="font-medium text-gray-800">
                   {user.firstName} {user.lastName}{" "}
                   <span className="text-gray-500">({user.email})</span>
@@ -287,6 +338,17 @@ export default function ManageUsers() {
           }}
         />
       )}
+
+      {/* ✅ TransferOwnershipModal */}
+      {isOwnershipModalOpen && (
+        <TransferOwnershipModal
+          principals={users.filter(user => user.role === "Principal")}
+          ownerId={ownerId}
+          onClose={() => setIsOwnershipModalOpen(false)}
+          onTransfer={handleTransferOwnership}
+        />
+      )}
+
   
       <hr className="my-6 border-t border-gray-300" />
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Delegate Permissions</h2>

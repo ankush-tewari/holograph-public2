@@ -1,151 +1,128 @@
-# Holograph Project Summary
+# Holograph Project Summary (2025 Edition)
 
 ## Overview
-**Holograph** is a **web-based end-of-life planning application** that helps users organize and store crucial legal and financial documents, as well as provide transition instructions for accounts and assets. The application allows users to create a **Holograph**, which serves as a digital estate plan.
+Holograph is a web-based end-of-life planning application that enables users to organize legal, financial, and digital estate plans in one place. Users can create a Holograph, a digital estate plan containing legal documents (wills, trusts), advanced health directives, and account transition instructions.
 
-Each **Holograph** contains:
-- Legal documents like wills and trusts.
-- Advanced health directives.
-- Instructions for handling financial, insurance, and digital service accounts.
+## Core Concepts
+User Roles
+1. Principals – Owners of a Holograph. They have full control, can manage content, add/remove users, and manage permissions.
+2. Delegates – Appointed by Principals to manage the Holograph after the Principal’s passing. Delegates have read-only access, customized per section.
 
-The **two main user roles** in the system are:
-1. **Principals** – Owners of the Holograph with full control over its contents.
-2. **Delegates** – Users assigned to manage the Holograph after the Principal’s passing.
+## Security Model
+- Holograph Data Encryption: All text fields are encrypted using an SSL certificate unique to each **Holograph**.
+- File Storage: Files are stored in Google Cloud Storage (GCS) using signed URLs and authenticated downloads.
+- Authentication: Implemented via NextAuth.js. Only authorized users can view or manage Holographs.
+- Delegate Permissions: Principals can set per-section access for Delegates (None or View-Only).
 
-### Security
-- **Encryption Requirement**: Every user's data is encrypted using **a unique SSL certificate per user**.  
-- **File Storage**: All uploaded files are stored in **Google Cloud Storage (GCS)** and must be secured with proper **access control** mechanisms.
-- **API Authentication**: Sensitive documents require **authenticated API proxy** downloads to ensure files are accessible **only to authorized users**.
-
----
-
-## Current Codebase & Architecture
-### Technology Stack
-- **Frontend**: React.js (Next.js framework)
-- **Backend**: Node.js with Prisma ORM
-- **Database**: PostgreSQL (hosted via Prisma)
-- **File Storage**: Google Cloud Storage (GCS)
-- **Authentication**: NextAuth.js
-- **UI Framework**: Tailwind CSS
-
----
+## Technology Stack
+- Frontend: React.js (Next.js)
+- Backend: Node.js with Prisma ORM
+- Database: PostgreSQL (schema managed by Prisma)
+- File Storage: Google Cloud Storage (GCS)
+- Authentication: NextAuth.js
+- Styling: Tailwind CSS
+- Icons: react-icons (Lucide), react-icons/fi
 
 ## Key Features & Implementation
-### 1. User Authentication & Access Control
-- **Login, Registration, Logout**
-  - Implemented using NextAuth.js.
-  - API endpoints for authentication:
-    - `/api/auth/login`
-    - `/api/auth/logout`
-    - `/api/auth/register`
-- **User Model (`User`)** stores user details, linked to **Holographs** through **Principals & Delegates**.
+1. User Authentication
+- Managed by NextAuth.js.
+- Session management handled in /hooks/useHolograph.ts.
 
-### 2. Holograph Creation & Management
-- **Users can create multiple Holographs** and assign other users as **Principals** or **Delegates**.
-- **Database Models:**
-  - `Holograph` (Main entity)
-  - `HolographPrincipal` (User with ownership access)
-  - `HolographDelegate` (User with read-only access)
-- **API Routes:**
-  - `/api/holograph/create` – Creates a new Holograph.
-  - `/api/holograph/[id]` – Fetches a specific Holograph.
-  - `/api/holograph/principals` – Manages Principals.
-  - `/api/holograph/delegates` – Manages Delegates.
+2. Holograph Management
+- Users can create Holographs and invite others as Principals or Delegates.
+- Owner field in each Holograph ensures traceable ownership (linked to billing and permissions).
 
-### 3. Document Management (Vital Documents)
-- Users can **upload, view, edit, and delete** vital documents like **wills, trusts, and health directives**.
-- **Database Model:**
-  - `VitalDocument`
-    - `id`: Unique ID
-    - `holographId`: The associated Holograph
-    - `name`: Document name
-    - `type`: Document category (Will, Trust, etc.)
-    - `filePath`: Path to the file in **Google Cloud Storage (GCS)**
-    - `notes`: Additional notes from the user
-    - `uploadedBy`: User who uploaded the file
-- **API Routes:**
-  - `/api/vital-documents/` – Create & fetch documents.
-  - `/api/vital-documents/[id]` – Edit & delete a document.
-  - `/api/vital-documents/download` – Secure download endpoint (requires authentication).
+Related Tables:
+- Holograph
+- HolographPrincipal
+- HolographDelegate
+- OwnershipAuditLog
 
-### 4. Invitation System
-- **Principals can invite others** to join their Holograph as **Principals or Delegates**.
-- **Invitation Model:**
-  - `holographId`: The Holograph being shared.
-  - `inviterId`: The user sending the invite.
-  - `inviteeEmail`: The email of the invitee.
-  - `role`: Either `"Principal"` or `"Delegate"`.
-  - `status`: `"Pending"`, `"Accepted"`, or `"Declined"`.
-- **API Routes:**
-  - `/api/invitations/user/[userId]` – Fetch invitations for a user.
-  - `/api/invitations/[id]` – Accept or decline an invitation.
+API Routes:
+- /api/holograph/create
+- /api/holograph/[id]
+- /api/holograph/principals
+- /api/holograph/delegates
 
-### 5. Google Cloud Storage (GCS) Integration
-- **File uploads** use **signed URLs** to securely upload and retrieve files.
-- **Ensuring security**:
-  - Only **Principals & Delegates** can access files.
-  - Downloads require **authentication**.
-- **API Route**:
-  - `/api/vital-documents/download` – Authenticated download endpoint.
+3. Document Management
+- Users upload vital documents (e.g., wills, trusts, directives).
+- Stored securely in GCS; only authorized users get access.
 
----
+Model: VitalDocument
+- Encrypted fields: name, notes
+- GCS file path stored in filePath
+- Enforced uniqueness: one filePath per Holograph
 
-## Project Directory Structure
-```
-holograph
-├─ src
-│  ├─ app
-│  │  ├─ api
-│  │  │  ├─ auth
-│  │  │  │  ├─ login (route.ts)
-│  │  │  │  ├─ logout (route.ts)
-│  │  │  │  ├─ register (route.ts)
-│  │  │  ├─ holograph
-│  │  │  │  ├─ [id] (route.ts)
-│  │  │  │  ├─ create (route.ts)
-│  │  │  │  ├─ principals (route.ts)
-│  │  │  │  ├─ delegates (route.ts)
-│  │  │  ├─ invitations
-│  │  │  │  ├─ [id] (route.ts)
-│  │  │  │  ├─ user/[userId] (route.ts)
-│  │  │  ├─ vital-documents
-│  │  │  │  ├─ [id] (route.ts)
-│  │  │  │  ├─ download.ts
-│  │  │  │  ├─ route.ts (handles document CRUD)
-│  │  ├─ components
-│  │  │  ├─ HolographDashboard.tsx
-│  │  │  ├─ vital-documents
-│  │  │  │  └─ VitalDocumentModal.tsx
-│  │  ├─ dashboard
-│  │  │  ├─ page.tsx
-│  │  ├─ holographs
-│  │  │  ├─ [id] (page.tsx)
-│  │  │  ├─ [id]/vital-documents (page.tsx)
-│  ├─ lib
-│  │  ├─ db.ts (Prisma DB connection)
-│  │  ├─ gcs.ts (Google Cloud Storage integration)
-│  ├─ prisma
-│  │  ├─ schema.prisma (Database schema)
-│  ├─ public
-│  ├─ utils
-│  ├─ pages
-│  ├─ tsconfig.json
-│  ├─ tailwind.config.ts
-│  ├─ next.config.ts
-└── package.json
-```
+API:
+- /api/vital-documents/
+- /api/vital-documents/download
 
----
+4. Invitations System
+- Principals invite users to Holographs with a role (Principal or Delegate).
+- Invitations are deleted when declined or after removal from the Holograph.
+
+Model: Invitation
+- Fields: holographId, inviterId, inviteeId, role, status
+- Enforced uniqueness: one invite per user per Holograph
+
+API Routes:
+- /api/invitations?userId=xyz
+- /api/invitations/[id]
+
+5. Principal Removal Workflow
+- Principals can remove themselves or request removal of another Principal.
+- Owner cannot be removed.
+- Non-owner removals require approval (Pending → Accept/Decline).
+
+Model: PendingPrincipalRemoval
+- Fields: holographId, targetUserId, requestedById, status
+- Automatically deleted after Accept or Decline
+- Invitations linked to the user are deleted after Accept
+
+API Routes:
+- POST /api/holograph/[id]/principals/remove
+- PATCH /api/holograph/[id]/principals/remove/[removalId]
+
+6. Delegate Permissions Per Section
+- Sections are dynamically linked to Holographs.
+- Principals set Delegate access per section.
+
+Models:
+- Section
+- HolographSection
+- DelegatePermissions
+
+## Project File Structure (GitHub)
+src/
+├── app/
+│   ├── dashboard/                     # User dashboard
+│   │   └── user-profile/             # User profile management
+│   ├── holographs/                   # Holograph detail pages
+│   │   └── [id]/                     # Dynamic Holograph ID route
+│   │       ├── manage-users/         # Manage Principals & Delegates
+│   │       └── vital-documents/      # Manage Vital Documents per Holograph
+│   └── api/                          # API Routes (RESTful)
+│       ├── holograph/                # Holograph CRUD and user management
+│       │   └── [id]/                 # Dynamic Holograph API routes
+│       │       └── principals/remove/[removalId]/route.ts  # Accept/Decline removal
+│       ├── invitations/              # Invitation handling
+│       │   └── [id]/                 # Accept/Decline invitation
+│       ├── vital-documents/         # Document CRUD and download
+│       └── auth/                     # NextAuth routes
+├── hooks/                            # Session and user context hooks
+│   └── useHolograph.ts               # Custom hook for current Holograph/user
+├── utils/                            # Helpers (debug, encryption)
+├── lib/                              # Prisma db client, auth options
+├── config/                           # Icon sets, constants
+├── prisma/                           # Prisma schema file
 
 ## Next Development Priorities
-1. **Fix Bug**: Editing a document without uploading a new file currently throws an error.
-2. **Enhance UI**: Apply a **clean, modern, and somber theme** suitable for the end-of-life topic.
-3. **Expand Features**: Add support for **financial accounts & digital assets**.
-4. **Improve Security**: Strengthen **file encryption** and **download authentication**.
-5. **Fix Refresh Issues**: Some UI elements don’t update correctly after changes.
-
----
+1. Section Expansion: Add Financial Accounts, Digital Assets, etc.
+2. Holograph Ownership Transfer: Ability to reassign Holograph owner.
+3. Audit Logs: Track user actions for legal/logging integrity.
+4. UI Enhancements: Finalize Help Dialog with AI support.
+5. Security: Enforce per-Holograph SSL certs for text field encryption.
 
 ## Conclusion
-The Holograph project is well-structured, with a **clear security model, document management system, and invitation workflow**. The **Prisma schema, API routes, and Google Cloud integration** ensure a robust backend, while the **Next.js UI components** provide an intuitive user experience.
+Holograph is a scalable estate planning platform with dynamic user and permissions management, secure document handling, and a flexible section model. Its structure supports AI integrations, secure file handling, and dynamic user roles, while maintaining strict encryption and authentication standards per Holograph.
 

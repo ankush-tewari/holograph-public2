@@ -225,7 +225,7 @@ export default function ManageUsers() {
             </button>
             {userId === ownerId && (
               <button
-                className="text-purple-600 hover:text-purple-800 relative group ml-4"
+                className="text-red-600 hover:text-red-800 relative group ml-4"
                 onClick={() => setIsOwnershipModalOpen(true)}
               >
                 <userIcons.transferOwnership size={18} />

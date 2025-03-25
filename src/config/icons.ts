@@ -1,11 +1,11 @@
 // /src/config/icons.ts
 
-import { FiBox, FiHome, FiFileText, FiDelete, FiInfo } from "react-icons/fi"; // Feather Icons
-import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, MdClose, MdAddCircle } from "react-icons/md"; // Material Icons
-import { FaPlus, FaTimes, FaUserShield, FaCar, FaWifi, FaGift, FaUserFriends, FaBox } from "react-icons/fa"; // FontAwesome
-import { AiFillCreditCard, AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
-import { GiOpenTreasureChest, GiGemPendant } from "react-icons/gi"; // Game Icons for valuables
-import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink, FiLock } from "react-icons/fi"; // Import these for user roles
+import { FiHome, FiFileText, FiInfo } from "react-icons/fi"; // Feather Icons
+import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, MdClose, MdAddCircle, MdLibraryAdd } from "react-icons/md"; // Material Icons
+import { FaPlus, FaTimes, FaUserShield, FaWifi, FaGift, FaUserFriends, FaUserEdit, FaUser, FaUsersCog } from "react-icons/fa"; // FontAwesome
+import { AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
+//import { GiOpenTreasureChest, GiGemPendant, GiScrollQuill } from "react-icons/gi"; // Game Icons for valuables
+import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink, FiLock, FiUser } from "react-icons/fi"; // Import these for user roles
 
 
 export const sectionIcons = {
@@ -26,6 +26,7 @@ export const buttonIcons = {
   create: FaPlus, // ✅ Create new items
   close: FaTimes, // ✅ Close modals
   add: MdAddCircle, // ✅ Alternative for create
+  "create-holograph": MdLibraryAdd, // Add Holograph 
   remove: MdClose, // ✅ Alternative for close
   link: FiLink, // link icon
   edit: FiEdit, // edit icon
@@ -37,6 +38,8 @@ export const buttonIcons = {
 
 export const userIcons = {
   addPrincipal: FiUserPlus,
-  addDelegate: FiUsers,
-  transferOwnership: FaUserShield,  // ✅ Added for ownership transfer
+  addDelegate: FiUserPlus,
+  transferOwnership: FaUsersCog,  // ✅ Added for ownership transfer
+  "holograph-principals": FaUserEdit, // Represents a collection of planning documents
+  "holograph-delegates": FaUser, // Represents secure, trusted delegation
 };

@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useHolograph } from '../../hooks/useHolograph';
 import { format } from "date-fns";
+import { userIcons, buttonIcons } from '@/config/icons';
 import { debugLog } from "../../utils/debug";
 
 // Define types for our data
@@ -75,6 +76,9 @@ const UserDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [removalRequests, setRemovalRequests] = useState([]);
+  const HolographIcon = userIcons["holograph-principals"];
+  const DelegatedIcon = userIcons["holograph-delegates"];
+  const CreateIcon = buttonIcons["create-holograph"];
 
   
 
@@ -286,162 +290,132 @@ const UserDashboard = () => {
 
   
   const pendingInvitations = invitations.filter(invite => invite.status === "Pending");
+  const hasMessages = pendingInvitations.length > 0 || removalRequests.length > 0;
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
-      {showCreateForm ? (
+      {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="relative w-full max-w-2xl bg-white rounded-lg">
-            <button 
-              onClick={() => setShowCreateForm(false)}
-              className="btn-secondary absolute right-4 top-4 p-2"
-            >
+            <button onClick={() => setShowCreateForm(false)} className="btn-secondary absolute right-4 top-4 p-2">
               <X size={20} />
             </button>
-            <CreateHolograph 
-              userId={session?.user?.id}
-              onSuccess={() => router.refresh()}
-            />
+            <CreateHolograph userId={session?.user?.id} onSuccess={() => router.refresh()} />
           </div>
         </div>
-      ) : (
-        <>
-          <div className="w-full">
-            <div className="flex justify-between items-center mb-6">
-              <button 
-                onClick={() => setShowCreateForm(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus size={16} /> Create New Holograph
-              </button>
-            </div>
-
-            <div className="flex gap-4 border-b mb-6">
-              <button
-                onClick={() => setActiveTab('owned')}
-                className={`px-4 py-2 font-medium ${
-                  activeTab === 'owned' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                📜 My Holographs
-              </button>
-              <button
-                onClick={() => setActiveTab('delegated')}
-                className={`px-4 py-2 font-medium ${
-                  activeTab === 'delegated' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                🤝 Delegated to Me
-              </button>
-              <button
-                onClick={() => setActiveTab('messages')}
-                className={`px-4 py-2 font-medium ${
-                  activeTab === 'messages' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                📩 Messages
-              </button>
-            </div>
-
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : (
-              <>
-                {activeTab === 'owned' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {holographs.owned.map(holograph => (
-                      <div 
-                        key={holograph.id} 
-                        className="holograph-item cursor-pointer"
-                        onClick={() => router.push(`/holographs/${holograph.id}`)}
-                      >
-                        <h3 className="text-lg font-semibold text-blue-700">📜 {holograph.title}</h3>
-                        <p className="text-sm text-gray-600">Last modified: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 'delegated' && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {holographs.delegated.length > 0 ? (
-                      holographs.delegated.map(holograph => (
-                        <div 
-                          key={holograph.id} 
-                          className="holograph-item cursor-pointer"
-                          onClick={() => router.push(`/holographs/${holograph.id}`)}
-                        >
-                          <h3 className="text-lg font-semibold text-green-700">🤝 {holograph.title}</h3>
-                          <p className="text-sm text-gray-600">Delegated On: {holograph.assignedAt ? format(new Date(holograph.assignedAt), "MMM d, yyyy") : "Unknown"}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500">No delegated Holographs found.</p>
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'messages' && (
-                  <div className="grid gap-4 md:grid-cols-1">
-                    {/* Invitations Section */}
-                    <h3 className="text-lg font-semibold">Invitations</h3>
-                    {pendingInvitations.length > 0 ? (
-                      pendingInvitations.map(invitation => (
-                        <div key={invitation.id} className="holograph-item flex justify-between items-center">
-                          <span>
-                            Invitation to "{invitation.holographTitle}" as {invitation.role} by {invitation.inviterFirstName} {invitation.inviterLastName}
-                          </span>
-                          <div className='flex gap-2'>
-                            <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                              onClick={() => handleAcceptInvite(invitation.id, invitation.holographId)}>
-                              Accept
-                            </button>
-                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                              onClick={() => handleDeclineInvite(invitation.id)}>
-                              Decline
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500">No pending invitations.</p>
-                    )}
-
-                    {/* Principal Removal Requests Section */}
-                    <h3 className="text-lg font-semibold mt-6">Principal Removal Requests</h3>
-                    {removalRequests.length > 0 ? (
-                      removalRequests.map(req => (
-                        <div key={req.id} className="holograph-item flex justify-between items-center">
-                          <span>
-                            You are being removed from "{req.holographTitle}" by {req.requestedBy.firstName} {req.requestedBy.lastName}
-                          </span>
-                          <div className='flex gap-2'>
-                            <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                              onClick={() => handleRemovalResponse(req.id, req.holographId, "accept")}>
-                              Accept
-                            </button>
-                            <button className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
-                              onClick={() => handleRemovalResponse(req.id, req.holographId, "decline")}>
-                              Decline
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500">No pending removal requests.</p>
-                    )}
-                  </div>
-                )}
-
-              </>
-            )}
-          </div>
-        </>
       )}
+  
+      {hasMessages && (
+        <div className="bg-white p-4 rounded-lg shadow border border-purple-300 mb-6">
+          <h3 className="text-lg font-semibold mb-4">📩 Messages</h3>
+  
+          {/* Invitations Section */}
+          <h4 className="text-md font-semibold mb-2">Invitations</h4>
+          {pendingInvitations.length > 0 ? (
+            pendingInvitations.map(invitation => (
+              <div key={invitation.id} className="holograph-item flex justify-between items-center mb-2">
+                <span>
+                  Invitation to "{invitation.holographTitle}" as {invitation.role} by {invitation.inviterFirstName} {invitation.inviterLastName}
+                </span>
+                <div className='flex gap-2'>
+                  <button
+                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                    onClick={() => handleAcceptInvite(invitation.id)}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    onClick={() => handleDeclineInvite(invitation.id)}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 mb-4">No pending invitations.</p>
+          )}
+  
+          {/* Principal Removal Requests Section */}
+          <h4 className="text-md font-semibold mt-4 mb-2">Principal Removal Requests</h4>
+          {removalRequests.length > 0 ? (
+            removalRequests.map(req => (
+              <div key={req.id} className="holograph-item flex justify-between items-center mb-2">
+                <span>
+                  You are being removed from "{req.holographTitle}" by {req.requestedBy.firstName} {req.requestedBy.lastName}
+                </span>
+                <div className='flex gap-2'>
+                  <button
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    onClick={() => handleRemovalResponse(req.id, req.holographId, 'accept')}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                    onClick={() => handleRemovalResponse(req.id, req.holographId, 'decline')}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No pending removal requests.</p>
+          )}
+        </div>
+      )}
+  
+    {isLoading ? (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    ) : (
+      <>
+        {/* My Holographs Section */}
+        <div className="flex items-center mb-4">
+          <h2 className="text-xl font-bold text-blue-800 flex items-center">
+            <HolographIcon className="inline-block mr-2" /> My Holographs
+          </h2>
+          <button onClick={() => setShowCreateForm(true)} className="ml-4 text-black-600 hover:text-black-800 relative group">
+            <CreateIcon className="inline-block" />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+              Create New Holograph
+            </span>
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {holographs.owned.map(holograph => (
+            <div key={holograph.id} onClick={() => handleHolographClick(holograph.id)}
+              className="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg hover:scale-105 transition transform cursor-pointer min-h-[200px]">
+              <h3 className="text-blue-800 font-bold text-lg mb-2">{holograph.title}</h3>
+              <p className="text-sm text-gray-600 mb-1">Last modified: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
+              <p className="text-sm text-blue-900 font-semibold">🏠 Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
+              <p className="text-sm text-blue-700">📝 Principals: [List Here]</p>
+              <p className="text-sm text-green-700">🤝 Delegates: [List Here]</p>
+            </div>
+          ))}
+        </div>
+
+        {/* 🤝 Delegated Holographs Section */}
+        <h2 className="text-xl font-bold text-green-800 mb-4"> <DelegatedIcon className="inline-block mr-2" /> Delegated Holographs</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {holographs.delegated.map(holograph => (
+            <div key={holograph.id} onClick={() => handleHolographClick(holograph.id)}
+              className="bg-green-100 p-6 rounded-lg shadow hover:shadow-lg hover:scale-105 transition transform cursor-pointer min-h-[200px]">
+              <h3 className="text-green-800 font-bold text-lg mb-2">{holograph.title}</h3>
+              <p className="text-sm text-gray-600 mb-1">Delegated On: {holograph.assignedAt ? format(new Date(holograph.assignedAt), "MMM d, yyyy") : "Unknown"}</p>
+              <p className="text-sm text-blue-900 font-semibold">🏠 Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
+              <p className="text-sm text-blue-700">📝 Principals: [List Here]</p>
+              <p className="text-sm text-green-700">🤝 Delegates: [List Here]</p>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
     </div>
-  );
+  );  
 };
 
 export default UserDashboard;

@@ -29,12 +29,6 @@ export default async function Dashboard() {
     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-10 bg-gray-50 min-h-screen font-sans">
         <div className="grid grid-cols-1 gap-8">
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Welcome {user?.firstName || 'User'}!
-            </h2>
-            <p className="text-gray-600 text-lg">Email: {user?.email}</p>
-            <div className="flex justify-between items-center mb-6">
-          </div>
             {/* Holograph Dashboard */}
             {user && <UserDashboard userId={user.id} />}
           </div>

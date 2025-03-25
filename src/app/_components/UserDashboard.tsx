@@ -24,13 +24,25 @@ interface User {
 interface Holograph {
   id: string;
   title: string;
+  geography?: string;
   updatedAt: string;
   owner?: {
     id: string;
     firstName: string;
     lastName: string;
   };
+  principals?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  }[];
+  delegates?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  }[];
 }
+
 
 
 interface Invitation {
@@ -139,18 +151,20 @@ const UserDashboard = () => {
             owner: holo.owner
               ? {
                   id: holo.owner.id,
-                  name: `${holo.owner.firstName} ${holo.owner.lastName}`,
+                  firstName: holo.owner.firstName,
+                  lastName: holo.owner.lastName,
                 }
-              : { id: "unknown", name: "Unknown" },
+              : { id: "unknown", firstName: "Unknown", lastName: "" },
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
             owner: holo.owner
               ? {
                   id: holo.owner.id,
-                  name: `${holo.owner.firstName} ${holo.owner.lastName}`,
+                  firstName: holo.owner.firstName,
+                  lastName: holo.owner.lastName,
                 }
-              : { id: "unknown", name: "Unknown" },
+              : { id: "unknown", firstName: "Unknown", lastName: "" },
           })),
         });
         
@@ -184,9 +198,6 @@ const UserDashboard = () => {
         console.error("❌ Error fetching invitations:", error);
       }
     };
-
-    
-
     fetchHolographs();
     fetchInvitations();
     fetchRemovalRequests();
@@ -402,15 +413,27 @@ const UserDashboard = () => {
             </span>
           </button>
         </div>
+
+        {/* Owned Holographs Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {holographs.owned.map(holograph => (
             <div key={holograph.id} onClick={() => handleHolographClick(holograph.id)}
-              className="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg hover:scale-105 transition transform cursor-pointer min-h-[200px]">
+            className="bg-white border-l-8 border-blue-500 p-6 rounded-xl shadow-md hover:bg-blue-50 hover:shadow-lg hover:scale-105 transition-transform cursor-pointer min-h-[200px]">
               <h3 className="text-blue-800 font-bold text-lg mb-2">{holograph.title}</h3>
+              <p className="text-sm text-blue-900 font-semibold">Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
+              <p className="text-sm text-blue-700">
+                Principals:{" "}
+                {holograph.principals.length > 0
+                  ? holograph.principals.map(p => `${p.firstName} ${p.lastName}`).join(", ")
+                  : "None"}
+              </p>
+              <p className="text-sm text-green-700">
+                Delegates:{" "}
+                {holograph.delegates.length > 0
+                  ? holograph.delegates.map(d => `${d.firstName} ${d.lastName}`).join(", ")
+                  : "None"}
+              </p>
               <p className="text-sm text-gray-600 mb-1">Last modified: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
-              <p className="text-sm text-blue-900 font-semibold">🏠 Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
-              <p className="text-sm text-blue-700">📝 Principals: [List Here]</p>
-              <p className="text-sm text-green-700">🤝 Delegates: [List Here]</p>
             </div>
           ))}
         </div>
@@ -418,16 +441,35 @@ const UserDashboard = () => {
         {/* 🤝 Delegated Holographs Section */}
         <h2 className="text-xl font-bold text-green-800 mb-4"> <DelegatedIcon className="inline-block mr-2" /> Delegated Holographs</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {holographs.delegated.map(holograph => (
-            <div key={holograph.id} onClick={() => handleHolographClick(holograph.id)}
-              className="bg-green-100 p-6 rounded-lg shadow hover:shadow-lg hover:scale-105 transition transform cursor-pointer min-h-[200px]">
-              <h3 className="text-green-800 font-bold text-lg mb-2">{holograph.title}</h3>
-              <p className="text-sm text-gray-600 mb-1">Delegated On: {holograph.assignedAt ? format(new Date(holograph.assignedAt), "MMM d, yyyy") : "Unknown"}</p>
-              <p className="text-sm text-blue-900 font-semibold">🏠 Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
-              <p className="text-sm text-blue-700">📝 Principals: [List Here]</p>
-              <p className="text-sm text-green-700">🤝 Delegates: [List Here]</p>
-            </div>
-          ))}
+        {holographs.delegated.map(holograph => (
+          <div
+            key={holograph.id}
+            onClick={() => handleHolographClick(holograph.id)}
+            className="bg-white border-l-8 border-green-500 p-6 rounded-xl shadow-md hover:bg-green-50 hover:shadow-lg hover:scale-105 transition-transform cursor-pointer min-h-[200px]">
+            <h3 className="text-green-800 font-bold text-lg mb-2">{holograph.title}</h3>
+            <p className="text-sm text-blue-900 font-semibold">
+              Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}
+            </p>
+            <p className="text-sm text-blue-700">
+              Principals:{" "}
+              {holograph.principals?.length > 0
+                ? holograph.principals.map(p => `${p.firstName} ${p.lastName}`).join(", ")
+                : "None"}
+            </p>
+            <p className="text-sm text-green-700">
+              Delegates:{" "}
+              {holograph.delegates?.length > 0
+                ? holograph.delegates.map(d => `${d.firstName} ${d.lastName}`).join(", ")
+                : "None"}
+            </p>
+            <p className="text-sm text-gray-600 mb-1">
+              Delegated On:{" "}
+              {holograph.assignedAt
+                ? format(new Date(holograph.assignedAt), "MMM d, yyyy")
+                : "Unknown"}
+            </p>
+          </div>
+        ))}
         </div>
       </>
     )}

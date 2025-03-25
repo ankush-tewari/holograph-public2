@@ -28,10 +28,52 @@ export async function GET(request: NextRequest) {
         principals: {
           some: { userId: userId }
         }
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          }
+        },
+        principals: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        },
+        delegates: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        }
       }
     });
-
+    
     debugLog("✅ Returning", ownedHolographs.length, "holographs");
+    const result = ownedHolographs.map(holo => ({
+      id: holo.id,
+      title: holo.title,
+      updatedAt: holo.updatedAt,
+      owner: holo.owner,
+      principals: holo.principals.map(p => p.user),
+      delegates: holo.delegates.map(d => d.user),
+    }));
+    
+    return NextResponse.json(result);
+    
     return NextResponse.json(ownedHolographs);
   } catch (error) {
     console.error('Error fetching owned holographs:', error);

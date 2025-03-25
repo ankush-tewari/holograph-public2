@@ -185,7 +185,16 @@ export async function DELETE(request: NextRequest) {
       },
     });
 
-    // Remove delegate
+    // ✅ Delete delegate's invitations for this holograph
+    await prisma.invitation.deleteMany({
+      where: {
+        holographId,
+        inviteeId: delegateId,
+      },
+    });
+
+
+    // ✅ Remove delegate from HolographDelegate
     await prisma.holographDelegate.delete({
       where: {
         holographId_userId: {

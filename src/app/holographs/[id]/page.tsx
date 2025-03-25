@@ -54,6 +54,8 @@ const HolographDetailPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [delegatePermissions, setDelegatePermissions] = useState<Record<string, string>>({});
+  const SaveIcon = buttonIcons.save;
+  const CloseIcon = buttonIcons.close;
 
 
   useEffect(() => {
@@ -226,8 +228,8 @@ const HolographDetailPage = () => {
         {isEditing ? (
           <>
             <input className="border p-2" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-            <button className="ml-2 btn-primary" onClick={handleEdit}>Submit</button>
-            <button className="ml-2 btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
+            <button className="btn-cancel" onClick={() => setIsEditing(false)}><CloseIcon className="w-4 h-4" />Cancel</button>
+            <button className="btn-save-conditional" onClick={handleEdit}><SaveIcon className="w-4 h-4" />Save</button>
           </>
         ) : (
           <>

@@ -5,7 +5,7 @@ import { MdInventory, MdAccountBalance, MdHealthAndSafety, MdRealEstateAgent, Md
 import { FaPlus, FaTimes, FaUserShield, FaWifi, FaGift, FaUserFriends, FaUserEdit, FaUser, FaUsersCog } from "react-icons/fa"; // FontAwesome
 import { AiOutlineShoppingCart } from "react-icons/ai"; // Ant Design Icons
 //import { GiOpenTreasureChest, GiGemPendant, GiScrollQuill } from "react-icons/gi"; // Game Icons for valuables
-import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink, FiLock, FiUser } from "react-icons/fi"; // Import these for user roles
+import { FiUserPlus, FiUsers, FiEdit, FiTrash2, FiLink, FiLock, FiUser, FiSave } from "react-icons/fi"; // Import these for user roles
 
 
 export const sectionIcons = {
@@ -24,6 +24,7 @@ export const sectionIcons = {
 // ✅ Standardized button icons
 export const buttonIcons = {
   create: FaPlus, // ✅ Create new items
+  save: FiSave, // ✅ Save icon
   close: FaTimes, // ✅ Close modals
   add: MdAddCircle, // ✅ Alternative for create
   "create-holograph": MdLibraryAdd, // Add Holograph 

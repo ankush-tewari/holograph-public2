@@ -146,3 +146,34 @@ input, textarea {
   }
 }
 
+/* Utility-style icon buttons (same look, reusable in Tailwind JSX) */
+.btn-cancel {
+  @apply flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition disabled:opacity-50;
+}
+
+.btn-save {
+  @apply flex items-center gap-2 px-4 py-2 text-white rounded transition disabled:opacity-50;
+  background-color: #4972A1;
+}
+.btn-save:hover {
+  background-color: #345980;
+}
+
+.btn-save-conditional {
+  @apply flex items-center gap-2 px-4 py-2 text-white rounded transition;
+}
+
+.btn-save-conditional:disabled {
+  background-color: #7d98b3; /* softer blue-grey */
+  @apply cursor-not-allowed opacity-70;
+}
+
+.btn-save-conditional:not(:disabled) {
+  background-color: #4972A1;
+}
+
+.btn-save-conditional:not(:disabled):hover {
+  background-color: #345980;
+}
+
+

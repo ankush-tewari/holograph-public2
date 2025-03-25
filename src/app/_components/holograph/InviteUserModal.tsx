@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { debugLog } from "../../../utils/debug";
 import { useSession } from "next-auth/react";
+import { buttonIcons } from '@/config/icons';
 
 
 interface InviteUserModalProps {
@@ -19,6 +20,8 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const SaveIcon = buttonIcons.save;
+  const CloseIcon = buttonIcons.close;
 
   const handleInvite = async () => {
     setIsLoading(true);
@@ -95,15 +98,26 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
         />
         {error && <p className="text-red-500 mb-2">{error}</p>}
         {success && <p className="text-green-500 mb-2">{success}</p>}
-        <div className="flex justify-end gap-2">
-          <button className="px-4 py-2 bg-gray-500 text-white rounded" onClick={onClose}>Cancel</button>
+        <div className="flex justify-end gap-4 mt-6">
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            type="button"
+            onClick={onClose}
+            className="btn-cancel"
+            disabled={isLoading}
+          >
+            <CloseIcon className="w-4 h-4" />
+            Cancel
+          </button>
+          <button
+            type="button"
             onClick={handleInvite}
+            className="btn-save-conditional"
             disabled={isLoading || !email}
           >
+            <SaveIcon className="w-4 h-4" />
             {isLoading ? 'Sending...' : 'Send Invitation'}
           </button>
+
         </div>
       </div>
     </div>

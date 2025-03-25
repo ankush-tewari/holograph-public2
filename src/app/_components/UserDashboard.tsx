@@ -294,16 +294,32 @@ const UserDashboard = () => {
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
-      {showCreateForm && (
+     {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="relative w-full max-w-2xl bg-white rounded-lg">
-            <button onClick={() => setShowCreateForm(false)} className="btn-secondary absolute right-4 top-4 p-2">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-lg p-6">
+            {/* Close (X) Button */}
+            <button
+              onClick={() => setShowCreateForm(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition"
+            >
               <X size={20} />
             </button>
-            <CreateHolograph userId={session?.user?.id} onSuccess={() => router.refresh()} />
+
+            {/* Modal Content */}
+            <CreateHolograph
+              userId={session?.user?.id}
+              onSuccess={() => {
+                setShowCreateForm(false);
+                router.refresh();
+              }}
+              onCancel={() => setShowCreateForm(false)}
+            />
           </div>
         </div>
       )}
+
+
+
   
       {hasMessages && (
         <div className="bg-white p-4 rounded-lg shadow border border-purple-300 mb-6">

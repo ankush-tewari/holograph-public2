@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from "next-auth/react";
 import { useParams, useRouter } from 'next/navigation';
 import InviteUserModal from '../../_components/holograph/InviteUserModal';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { debugLog } from "../../../utils/debug";
 import { format } from "date-fns";
 import { sectionIcons, buttonIcons } from "@/config/icons"; // Import the dynamic icons
 import AccessDeniedModalDashboardRedirect from "../../_components/AccessDeniedModalDashboardRedirect";
-
+import HolographForm from "@/app/_components/holograph/HolographForm";
 
 
 interface HolographUser {
@@ -22,6 +23,7 @@ interface HolographUser {
 interface Holograph {
   id: string;
   title: string;
+  geography?: string;
   createdAt: string;
   updatedAt: string;
   ownerId: string; // ✅ Add this for direct access
@@ -54,6 +56,10 @@ const HolographDetailPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [delegatePermissions, setDelegatePermissions] = useState<Record<string, string>>({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const { data: session } = useSession();
+
+
   const SaveIcon = buttonIcons.save;
   const CloseIcon = buttonIcons.close;
 
@@ -224,67 +230,75 @@ const HolographDetailPage = () => {
 
   return (
     <div className="p-8 max-w-full mx-auto bg-stone-50 text-black min-h-screen">
-      <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-2">
-        {isEditing ? (
-          <>
-            <input className="border p-2" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-            <button className="btn-cancel" onClick={() => setIsEditing(false)}><CloseIcon className="w-4 h-4" />Cancel</button>
-            <button className="btn-save-conditional" onClick={handleEdit}><SaveIcon className="w-4 h-4" />Save</button>
-          </>
-        ) : (
-          <>
-            {holograph.title}
-             {/* Info Icon with smaller size */}
-             <span className="ml-2 text-sm relative group cursor-pointer">
-              <span className="text-lg">ℹ️</span>
-              <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block">
-                <p><span className="font-semibold">Principals:</span> 
-                  {holograph.principals && holograph.principals.length > 0 
-                    ? holograph.principals.map(p => `${p.firstName} ${p.lastName}`).join(", ")
-                    : 'None' }
-                </p>
-                <p><span className="font-semibold">Delegates:</span> 
-                  {holograph.delegates && holograph.delegates.length > 0 
-                    ? holograph.delegates.map(d => `${d.firstName} ${d.lastName}`).join(", ")
-                    : 'None' }
-                </p>
-                <p className="mt-2 text-xs text-gray-500">Created: {format(new Date(holograph.createdAt), "MMM d, yyyy")}</p>
-                <p className="text-xs text-gray-500">Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}</p>
-              </div>
-            </span>
-            
-            {isPrincipal && (
-              <>
-                {/* Edit Holograph Name */}
-                <button className="ml-2 text-yellow-600 text-sm relative group" onClick={() => setIsEditing(true)}>
-                  <span><buttonIcons.edit size={18} /></span>
-                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                    Edit Holograph Name
-                  </span>
-                </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="text-4xl font-bold text-gray-800">
+          {holograph.title}
+        </h1>
 
-                {/* Manage Users */}
-                <button className="ml-2 text-blue-600 text-sm relative group" onClick={() => router.push(`/holographs/${holograph.id}/manage-users`)}>
-                  <span><buttonIcons.users size={18} /></span>
-                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-blue-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                    Manage Users for this Holograph
-                  </span>
-                </button>
+        {/* Info Icon */}
+        <span className="text-sm relative group cursor-pointer">
+          <span className="text-lg">ℹ️</span>
+          <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block z-50">
+            <p>
+              <span className="font-semibold">Principals:</span>{" "}
+              {holograph.principals?.length > 0
+                ? holograph.principals.map((p) => `${p.firstName} ${p.lastName}`).join(", ")
+                : "None"}
+            </p>
+            <p>
+              <span className="font-semibold">Delegates:</span>{" "}
+              {holograph.delegates?.length > 0
+                ? holograph.delegates.map((d) => `${d.firstName} ${d.lastName}`).join(", ")
+                : "None"}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Created: {format(new Date(holograph.createdAt), "MMM d, yyyy")}
+            </p>
+            <p className="text-xs text-gray-500">
+              Last Updated: {format(new Date(holograph.updatedAt), "MMM d, yyyy")}
+            </p>
+          </div>
+        </span>
 
-                {/* Delete Holograph if Owner */}
-                {isOwner && (
-                  <button className="ml-2 text-red-600 text-sm relative group" onClick={handleDelete}>
-                    <span><buttonIcons.delete size={18} /></span>
-                    <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                      Delete Holograph (Caution!)
-                    </span>
-                  </button>
-                )}
-              </>
+        {isPrincipal && (
+          <>
+            {/* Edit Holograph Name */}
+            <button
+              className="ml-2 text-yellow-600 text-sm relative group"
+              onClick={() => setShowEditModal(true)}
+            >
+              <span><buttonIcons.edit size={18} /></span>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                Edit Holograph Name or State
+              </span>
+            </button>
+
+            {/* Manage Users */}
+            <button
+              className="ml-2 text-blue-600 text-sm relative group"
+              onClick={() => router.push(`/holographs/${holograph.id}/manage-users`)}
+            >
+              <span><buttonIcons.users size={18} /></span>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-blue-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                Manage Users for this Holograph
+              </span>
+            </button>
+
+            {/* Delete Holograph */}
+            {isOwner && (
+              <button
+                className="ml-2 text-red-600 text-sm relative group"
+                onClick={handleDelete}
+              >
+                <span><buttonIcons.delete size={18} /></span>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                  Delete Holograph (Caution!)
+                </span>
+              </button>
             )}
           </>
         )}
-      </h1>
+      </div>
       <div className="flex gap-4">
           <button
             onClick={() => router.push(`/dashboard`)}
@@ -299,6 +313,33 @@ const HolographDetailPage = () => {
       {showInviteModal && inviteRole && (
         <InviteUserModal holographId={holograph.id} role={inviteRole} onClose={() => setShowInviteModal(false)} />
       )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-xl">
+            <HolographForm
+              mode="edit"
+              userId={session?.user?.id || ""}
+              holographId={holograph.id}
+              initialData={{
+                title: holograph.title,
+                geography: holograph.geography || "",
+              }}
+              onSuccess={async (updated) => {
+                debugLog("✅ Holograph updated:", updated);
+              
+                const res = await fetch(`/api/holograph/${holograph.id}`);
+                const fresh = await res.json();
+                setHolograph(fresh); // ✅ update local state with new data
+              
+                setShowEditModal(false);
+              }}              
+              onCancel={() => setShowEditModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
       {sections.map((section) => {

@@ -6,8 +6,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { createPortal } from "react-dom";
 import React from "react"; // ✅ Ensure React is imported
-import { DOCUMENT_TYPES } from "../../../config/documentType";
-import { debugLog } from "../../../utils/debug";
+import { VITAL_DOCUMENT_TYPES } from "@/config/dropdowns";
+import { debugLog } from "@/utils/debug";
+import { buttonIcons } from '@/config/icons';
 
 
 interface VitalDocument {
@@ -32,7 +33,9 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
 
   const [mounted, setMounted] = useState(false); 
   // Only run on client-side after component mounts
-
+  
+  const SaveIcon = buttonIcons.save;
+  const CloseIcon = buttonIcons.close;
   const sectionKey = "vitalDocuments"; //for the contents of the Vital Document Type drop-down list
   
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   
   const [formData, setFormData] = useState({
     name: docData?.name || "",
-    type: docData?.type || DOCUMENT_TYPES.vitalDocuments[0].value, // Set default to first option
+    type: docData?.type || VITAL_DOCUMENT_TYPES.vitalDocuments[0].value, // Set default to first option
     notes: docData?.notes || "",
     file: null as File | null,
     filePath: docData?.filePath || "",  // ✅ Ensure existing file path is included
@@ -153,7 +156,7 @@ const modalContent = (
           onChange={(e) => setFormData({ ...formData, type: e.target.value })}
           className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
         >
-          {DOCUMENT_TYPES[sectionKey].map((option) => (
+          {VITAL_DOCUMENT_TYPES[sectionKey].map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
@@ -182,14 +185,16 @@ const modalContent = (
         <div className="mt-6 flex justify-end gap-4">
           <button
             onClick={handleSubmit}
-            className="btn-primary"
+            className="btn-save"
           >
+            <SaveIcon className="w-4 h-4" />
             {docData ? "Update" : "Upload"}
           </button>
           <button
             onClick={onClose}
-            className="btn-secondary"
+            className="btn-cancel"
           >
+            <CloseIcon className="w-4 h-4" />
             Cancel
           </button>
         </div>

@@ -1,6 +1,6 @@
 // /src/config/documentType.ts
  
-export const DOCUMENT_TYPES = {
+export const VITAL_DOCUMENT_TYPES = {
     vitalDocuments: [
       { label: "Will", value: "will" },
       { label: "Trust", value: "trust" },
@@ -9,4 +9,3 @@ export const DOCUMENT_TYPES = {
       { label: "Other", value: "other" },
     ] //, when you add more later put this comma back in
   };
-  

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import VitalDocumentModal from "../../../_components/vital-documents/VitalDocumentModal";
-import { DOCUMENT_TYPES } from "../../../../config/documentType";
+import { VITAL_DOCUMENT_TYPES } from "../../../../config/vitalDocumentType";
 import { useSession } from "next-auth/react";
 import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolograph hook
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
@@ -276,7 +276,7 @@ export default function VitalDocumentsPage() {
               {documents.map((doc) => (
                 <tr key={doc.id} className="border-t">
                   <td className="p-3 border border-gray-300">{doc.name}</td>
-                  <td className="p-3 border border-gray-300">{DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</td>
+                  <td className="p-3 border border-gray-300">{VITAL_DOCUMENT_TYPES.vitalDocuments.find((d) => d.value === doc.type)?.label || doc.type}</td>
                   <td className="p-3 border border-gray-300 flex gap-3">
 
                     {/* ✅ Standardized Download Button */}
@@ -333,13 +333,13 @@ export default function VitalDocumentsPage() {
                 {/* Toggle Buttons */}
                 <div className="mt-6 flex justify-between items-center">
                   <button
-                    className="btn-primary"
+                    className="btn-save"
                     onClick={() => setSelectedNote(null)}
                   >
                     Close
                   </button>
                   <button
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                    className="btn-cancel"
                     onClick={() => setIsExpanded(!isExpanded)}
                   >
                     {isExpanded ? "Shrink" : "Expand"}

@@ -29,7 +29,11 @@ export async function GET(request: NextRequest) {
           some: { userId: userId }
         }
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+        geography: true, // ✅ Add this line
         owner: {
           select: {
             id: true,
@@ -62,10 +66,12 @@ export async function GET(request: NextRequest) {
       }
     });
     
+    
     debugLog("✅ Returning", ownedHolographs.length, "holographs");
     const result = ownedHolographs.map(holo => ({
       id: holo.id,
       title: holo.title,
+      geography: holo.geography,
       updatedAt: holo.updatedAt,
       owner: holo.owner,
       principals: holo.principals.map(p => p.user),

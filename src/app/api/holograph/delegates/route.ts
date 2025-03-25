@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             title: true,
+            geography: true,
             updatedAt: true,
             owner: {
               select: {
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
       return {
         id: holo.id,
         title: holo.title,
+        geography: holo.geography ?? "Not specified",
         updatedAt: holo.updatedAt,
         assignedAt: dh.assignedAt.toISOString(),
         owner: holo.owner || null,

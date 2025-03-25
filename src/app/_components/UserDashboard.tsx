@@ -155,6 +155,7 @@ const UserDashboard = () => {
                   lastName: holo.owner.lastName,
                 }
               : { id: "unknown", firstName: "Unknown", lastName: "" },
+              geography: holo.geography ?? "Not specified", // ✅ Add this line
           })),
           delegated: delegatedData.map((holo: Holograph) => ({
             ...holo,
@@ -165,6 +166,7 @@ const UserDashboard = () => {
                   lastName: holo.owner.lastName,
                 }
               : { id: "unknown", firstName: "Unknown", lastName: "" },
+              geography: holo.geography ?? "Not specified", // ✅ Add this line
           })),
         });
         
@@ -421,6 +423,7 @@ const UserDashboard = () => {
             className="bg-white border-l-8 border-blue-500 p-6 rounded-xl shadow-md hover:bg-blue-50 hover:shadow-lg hover:scale-105 transition-transform cursor-pointer min-h-[200px]">
               <h3 className="text-blue-800 font-bold text-lg mb-2">{holograph.title}</h3>
               <p className="text-sm text-blue-900 font-semibold">Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}</p>
+              <p className="text-sm text-blue-900 font-semibold">Location: {holograph.geography}</p>
               <p className="text-sm text-blue-700">
                 Principals:{" "}
                 {holograph.principals.length > 0
@@ -450,6 +453,7 @@ const UserDashboard = () => {
             <p className="text-sm text-blue-900 font-semibold">
               Owner: {holograph.owner?.firstName} {holograph.owner?.lastName}
             </p>
+            <p className="text-sm text-blue-900 font-semibold">Location: {holograph.geography}</p>
             <p className="text-sm text-blue-700">
               Principals:{" "}
               {holograph.principals?.length > 0

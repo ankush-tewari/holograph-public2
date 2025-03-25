@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     debugLog("✅ Session verified. User ID:", session.user.id);
 
     // Extract request data
-    const { title } = await request.json();
+    const { title, geography } = await request.json();
     debugLog("📌 Received request with title:", title);
 
     // Validate input
@@ -117,6 +117,7 @@ export async function POST(request: Request) {
     const holograph = await tx.holograph.create({
       data: {
         title,
+        geography,
         ownerId: session.user.id,  // ✅ Set ownerId to creator
       },
     });
@@ -192,6 +193,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     id: result.id,
     title: result.title,
+    geography: result.geography, 
     sslCertPath: result.sslCertPath,
     sslKeyPath: result.sslKeyPath,
     lastModified: result.updatedAt.toISOString(),

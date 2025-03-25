@@ -57,5 +57,7 @@ export const US_STATES = [
     { label: "West Virginia", value: "West Virginia", slug: "west-virginia" },
     { label: "Wisconsin", value: "Wisconsin", slug: "wisconsin" },
     { label: "Wyoming", value: "Wyoming", slug: "wyoming" },
+    { label: "Other", value: "Other", slug: "other" },
+    { label: "Not Applicable", value: "Not Applicable", slug: "not-applicable" },
   ];
   

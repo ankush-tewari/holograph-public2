@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Share2, X } from 'lucide-react';
 import Link from 'next/link';
-import CreateHolograph from './holograph/CreateHolograph';
+import HolographForm from './holograph/HolographForm';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useHolograph } from '../../hooks/useHolograph';
@@ -306,7 +306,8 @@ const UserDashboard = () => {
             </button>
 
             {/* Modal Content */}
-            <CreateHolograph
+            <HolographForm
+              mode="create"
               userId={session?.user?.id}
               onSuccess={() => {
                 setShowCreateForm(false);

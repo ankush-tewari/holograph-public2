@@ -39,6 +39,7 @@ export async function GET(request: Request, context: { params: { id: string } })
       select: {
         id: true,
         title: true,
+        geography: true,
         createdAt: true,
         updatedAt: true,
         ownerId: true,  
@@ -71,6 +72,7 @@ export async function GET(request: Request, context: { params: { id: string } })
       return NextResponse.json({
         id: holograph.id,
         title: holograph.title,
+        geography: holograph.geography,
         createdAt: holograph.createdAt.toISOString(),
         updatedAt: holograph.updatedAt.toISOString(),
         ownerId: holograph.ownerId,

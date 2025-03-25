@@ -269,7 +269,7 @@ const HolographDetailPage = () => {
             >
               <span><buttonIcons.edit size={18} /></span>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                Edit Holograph Name or State
+                Edit Holograph Name or Location
               </span>
             </button>
 

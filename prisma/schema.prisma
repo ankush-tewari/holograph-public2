@@ -27,7 +27,7 @@ model User {
 
   delegatePermissions DelegatePermissions[]
 
-  // 🔽 Corrected back-relations
+  // 🔽 back-relations
   ownedHolographs  Holograph[]         @relation("HolographOwner")
   oldOwnedLogs     OwnershipAuditLog[] @relation("OldOwnerRelation")
   currentOwnedLogs OwnershipAuditLog[] @relation("CurrentOwnerRelation") // ✅ Renamed from newOwnedLogs
@@ -47,17 +47,21 @@ model Holograph {
   sslKeyPath          String?
   delegates           HolographDelegate[]
   principals          HolographPrincipal[]
-  vitalDocuments      VitalDocument[]
-  invitations         Invitation[]
   sections            HolographSection[]
   delegatePermissions DelegatePermissions[]
 
-  // 🔽 Ownership (required again)
+  // Ownership
   ownerId            String
   owner              User                @relation("HolographOwner", fields: [ownerId], references: [id])
   ownershipAuditLogs OwnershipAuditLog[]
 
+  //adding and removing delegates and principals
+  invitations         Invitation[]
   pendingPrincipalRemovals PendingPrincipalRemoval[] // removing principals
+
+  //holograph sections
+  vitalDocuments      VitalDocument[]
+  financialAccounts FinancialAccount[] // ✅ Add this line
 }
 
 // establishes an owner for the holograph who is responsible for payment
@@ -95,29 +99,6 @@ model HolographDelegate {
   @@unique([holographId, userId])
 }
 
-model VitalDocument {
-  id          String    @id @default(uuid())
-  holographId String
-  name        String    // Encrypted with AES
-  nameKey     String    // Encrypted AES Key for `name`
-  nameIV      String    // IV for `name`
-
-  type        String    // Will, Trust, etc.
-  filePath    String    // Path to the uploaded file
-  uploadedBy  String    // User ID of the uploader
-
-  notes       String?   @db.Text   // Encrypted with AES
-  notesKey    String?              // Encrypted AES Key for `notes`
-  notesIV     String?              // IV for `notes`
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  holograph   Holograph @relation(fields: [holographId], references: [id])
-
-  @@unique([holographId, filePath])
-}
-
-
 model Invitation {
   id          String   @id @default(uuid())
   holographId String
@@ -150,6 +131,21 @@ model PendingPrincipalRemoval {
 }
 
 
+// Determines what access level Delegates have to each Holograph Section
+model DelegatePermissions {
+  id          String @id @default(uuid())
+  holographId String
+  delegateId  String
+  sectionId   String // ✅ Foreign key to HolographSection
+  accessLevel String // "none" or "view-only"
+
+  holograph Holograph        @relation(fields: [holographId], references: [id], onDelete: Cascade)
+  delegate  User             @relation(fields: [delegateId], references: [id], onDelete: Cascade)
+  section   HolographSection @relation(fields: [sectionId], references: [id], onDelete: Cascade) // ✅ Added relation
+
+  @@unique([holographId, delegateId, sectionId]) // Ensure one entry per section per delegate
+}
+
 // Table for Holograph sections so they can be added dynamically
 model Section {
   id          String             @id @default(uuid())
@@ -177,17 +173,57 @@ model HolographSection {
   @@unique([holographId, sectionId]) // Prevent duplicate entries
 }
 
-// Determines what access level Delegates have to each Holograph Section
-model DelegatePermissions {
-  id          String @id @default(uuid())
+
+//
+//  **** Holograph Sections
+//
+
+// documents such as wills, trusts, medical directives
+model VitalDocument {
+  id          String    @id @default(uuid())
   holographId String
-  delegateId  String
-  sectionId   String // ✅ Foreign key to HolographSection
-  accessLevel String // "none" or "view-only"
+  name        String    // Encrypted with AES
+  nameKey     String    // Encrypted AES Key for `name`
+  nameIV      String    // IV for `name`
 
-  holograph Holograph        @relation(fields: [holographId], references: [id], onDelete: Cascade)
-  delegate  User             @relation(fields: [delegateId], references: [id], onDelete: Cascade)
-  section   HolographSection @relation(fields: [sectionId], references: [id], onDelete: Cascade) // ✅ Added relation
+  type        String    // Will, Trust, etc.
+  filePath    String    // Path to the uploaded file
+  uploadedBy  String    // User ID of the uploader
 
-  @@unique([holographId, delegateId, sectionId]) // Ensure one entry per section per delegate
+  notes       String?   @db.Text   // Encrypted with AES
+  notesKey    String?              // Encrypted AES Key for `notes`
+  notesIV     String?              // IV for `notes`
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  @@unique([holographId, filePath])
+}
+
+// financial accounts such as bank accounts, investment accounts
+model FinancialAccount {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  institution String?  // Bank, Brokerage, etc. (Encrypted)
+  institutionKey String?
+  institutionIV  String?
+
+  accountType String   // Checking, Savings, 401k, etc.
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String   // User ID of the uploader
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  @@unique([holographId, filePath])
 }

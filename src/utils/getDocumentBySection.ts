@@ -1,0 +1,49 @@
+// /src/utils/getDocumentBySection.ts
+
+import { prisma } from "@/lib/db";
+import { debugLog } from "./debug";
+
+export async function getDocumentBySection(
+  section: string,
+  holographId: string,
+  filePath: string
+): Promise<any | null> {
+  switch (section) {
+    case "vital-documents":
+      return prisma.vitalDocument.findUnique({
+        where: { holographId_filePath: { holographId, filePath } },
+        select: {
+          id: true,
+          holographId: true,
+          uploadedBy: true,
+          holograph: {
+            select: {
+              principals: { select: { userId: true } },
+              delegates: { select: { userId: true } },
+            },
+          },
+        },
+      });
+
+    case "financial-accounts":
+      return prisma.financialAccount.findUnique({
+        where: { holographId_filePath: { holographId, filePath } },
+        select: {
+          id: true,
+          holographId: true,
+          uploadedBy: true,
+          holograph: {
+            select: {
+              principals: { select: { userId: true } },
+              delegates: { select: { userId: true } },
+            },
+          },
+        },
+      });
+
+    // Add more sections here as needed (legal-documents, digital-assets, etc.)
+
+    default:
+      throw new Error(`Unsupported section: ${section}`);
+  }
+}

@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "@/lib/db"; // ✅ Import Prisma to check permissions
+import { getDocumentBySection } from "@/utils/getDocumentBySection";
 import { debugLog } from "../../../utils/debug";
 
 const storage = new Storage();
@@ -69,25 +70,13 @@ export async function GET(req: NextRequest) {
     debugLog("🟢 Corrected filePath for DB lookup:", filePath);
 
     // ✅ Verify user has access to the document
-    const document = await prisma.vitalDocument.findUnique({
-      where: {
-        holographId_filePath: {
-          holographId,
-          filePath,
-        },
-      },
-      select: {
-        id: true,
-        holographId: true,
-        uploadedBy: true,
-        holograph: {
-          select: {
-            principals: { select: { userId: true } },
-            delegates: { select: { userId: true } },
-          },
-        },
-      },
-    });
+    const section = searchParams.get("section") || "vital-documents";
+    let document: any;
+    try {
+      document = await getDocumentBySection(section, holographId, filePath);
+    } catch (err) {
+      return NextResponse.json({ error: err.message || "Unsupported section" }, { status: 400 });
+    }
 
     if (!document) {
       console.error("❌ Document not found for filePath:", filePath);

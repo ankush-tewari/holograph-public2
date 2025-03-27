@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { uploadFileToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import formidable from "formidable";
 import { Duplex } from "stream";
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 import { Storage } from "@google-cloud/storage";
 import crypto from "crypto";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
@@ -24,64 +24,6 @@ export const config = {
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
-
-/* no longer used
-// ✅ Function to Encrypt Data Using Public Key
-async function encryptData(holographId, data) {
-  const certPath = `ssl/${holographId}.crt`;
-  debugLog("🔐 Attempting to encrypt data for holographId:", holographId);
-  debugLog("🔐 Certificate path:", certPath);
-
-  try {
-    // Check if certificate exists first
-    const [exists] = await storage.bucket(BUCKET_NAME).file(certPath).exists();
-    if (!exists) {
-      debugLog("❌ Certificate not found at path:", certPath);
-      throw new Error(`Certificate not found for holograph ${holographId}`);
-    }
-
-    // Download the public key from GCS
-    const [certFile] = await storage.bucket(BUCKET_NAME).file(certPath).download();
-    debugLog("✅ Certificate downloaded successfully");
-    const publicKey = certFile.toString();
-
-    // Encrypt data using the public key
-    const encryptedBuffer = crypto.publicEncrypt(publicKey, Buffer.from(data));
-    debugLog("✅ Data encrypted successfully");
-    return encryptedBuffer.toString("base64"); // Convert to base64 for database storage
-  } catch (error) {
-    debugLog(`❌ Error encrypting data for Holograph ${holographId}:`, error);
-    throw new Error(`Encryption failed: ${error.message}`);
-  }
-}
-*/
-
-/* no longer used
-// ✅ Function to Decrypt Data Using Private Key
-async function decryptData(holographId, encryptedData) {
-  const keyPath = `ssl/${holographId}.key`;
-
-  try {
-    // Check if key exists first
-    const [exists] = await storage.bucket(BUCKET_NAME).file(keyPath).exists();
-    if (!exists) {
-      debugLog("❌ Private key not found at path:", keyPath);
-      return null;
-    }
-
-    // Download the private key from GCS
-    const [keyFile] = await storage.bucket(BUCKET_NAME).file(keyPath).download();
-    const privateKey = keyFile.toString();
-
-    // Decrypt data using the private key
-    const decryptedBuffer = crypto.privateDecrypt(privateKey, Buffer.from(encryptedData, "base64"));
-    return decryptedBuffer.toString();
-  } catch (error) {
-    debugLog(`❌ Error decrypting data for Holograph ${holographId}:`, error);
-    return null; // Return null if decryption fails
-  }
-}
-*/
 
 // ✅ Handle GET Requests for Fetching Vital Documents
 export async function GET(req: Request) {

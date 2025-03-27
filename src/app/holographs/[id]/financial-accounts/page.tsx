@@ -36,6 +36,9 @@ export default function FinancialAccountsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPrincipal, setIsPrincipal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -203,8 +206,21 @@ export default function FinancialAccountsPage() {
                         className="text-blue-600 hover:text-blue-800 text-sm"
                       >
                         <buttonIcons.link size={18} />
-                      </a>
+                      </a>           
                     )}
+
+                    {acc?.notes && (
+                      <button
+                        className="ml-2 text-gray-600 hover:text-gray-800 text-sm relative group"
+                        onClick={() => setSelectedNote(acc.notes || "No notes available")}
+                      >
+                        <span>{buttonIcons.info && <buttonIcons.info size={18} />}</span>
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                          View Notes
+                        </span>
+                      </button>
+                    )}   
+
                     {isPrincipal && (
                       <>
                         <button className="text-yellow-600" onClick={() => openModal(acc)}>
@@ -232,6 +248,32 @@ export default function FinancialAccountsPage() {
           onSuccess={refresh}
         />
       )}
+
+      {selectedNote !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`bg-white p-6 rounded-lg shadow-lg ${isExpanded ? 'max-w-5xl w-full h-[90vh]' : 'max-w-md w-full max-h-[80vh]'} overflow-y-auto relative transition-all duration-300`}>
+            <h2 className="text-lg font-semibold mb-4">Account Notes</h2>
+            <p className="text-sm whitespace-pre-wrap">{selectedNote}</p>
+
+            {/* Toggle Buttons */}
+            <div className="mt-6 flex justify-between items-center">
+              <button
+                className="btn-save"
+                onClick={() => setSelectedNote(null)}
+              >
+                Close
+              </button>
+              <button
+                className="btn-cancel"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? "Shrink" : "Expand"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

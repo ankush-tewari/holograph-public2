@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   let institution: string | null = null;
   let accountType: string | null = null;
   let notes: string | null = null;
-  let uploadedBy = userId;
+  let uploadedBy: string | null = null; // ✅ Initialize as null
   let filePath: string | null = null;
   let newFilePath: string | null = null;
   let isNewDocument = false;
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
     debugLog("🟢 Parsed fields:", { holographId, name, institution, accountType, notes });
 
-    if (!holographId || !name || !accountType || !uploadedBy) {
+    if (!holographId || !name || !accountType || !institution) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
     let relativeFilePath: string | null = null;
 
     if (file) {
+      uploadedBy = userId; // ✅ Set uploadedBy only if a file exists
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
@@ -232,9 +233,9 @@ export async function POST(req: NextRequest) {
           nameKey: nameEncrypted.encryptedKey,
           nameIV: nameEncrypted.iv,
 
-          institution: institutionEncrypted?.encryptedValue || null,
-          institutionKey: institutionEncrypted?.encryptedKey || null,
-          institutionIV: institutionEncrypted?.iv || null,
+          institution: institutionEncrypted?.encryptedValue,
+          institutionKey: institutionEncrypted?.encryptedKey,
+          institutionIV: institutionEncrypted?.iv,
 
           notes: notesEncrypted?.encryptedValue || null,
           notesKey: notesEncrypted?.encryptedKey || null,
@@ -259,9 +260,9 @@ export async function POST(req: NextRequest) {
           nameKey: nameEncrypted.encryptedKey,
           nameIV: nameEncrypted.iv,
 
-          institution: institutionEncrypted?.encryptedValue || null,
-          institutionKey: institutionEncrypted?.encryptedKey || null,
-          institutionIV: institutionEncrypted?.iv || null,
+          institution: institutionEncrypted?.encryptedValue,
+          institutionKey: institutionEncrypted?.encryptedKey,
+          institutionIV: institutionEncrypted?.iv,
 
           notes: notesEncrypted?.encryptedValue || null,
           notesKey: notesEncrypted?.encryptedKey || null,

@@ -209,13 +209,13 @@ model FinancialAccount {
   nameKey     String
   nameIV      String
 
-  institution String?  // Bank, Brokerage, etc. (Encrypted)
-  institutionKey String?
-  institutionIV  String?
+  institution String  // Bank, Brokerage, etc. (Encrypted)
+  institutionKey String
+  institutionIV  String
 
   accountType String   // Checking, Savings, 401k, etc.
   filePath    String?   // Uploaded file path (optional)
-  uploadedBy  String   // User ID of the uploader
+  uploadedBy  String?   // ✅ Make uploadedBy optional (was required before)
 
   notes       String?   @db.Text   // Encrypted
   notesKey    String?
@@ -227,3 +227,4 @@ model FinancialAccount {
 
   @@unique([holographId, filePath])
 }
+

@@ -63,6 +63,26 @@ export default function FinancialAccountModal({
     setFormData((prev) => ({ ...prev, file: files[0] }));
   };
 
+  // allows the user to delete a file attached to a financial account record without deleting the whole record.
+  const handleFileDelete = async () => {
+    if (!account?.id) return;
+  
+    const isConfirmed = window.confirm("Are you sure you want to delete this file? This action cannot be undone.");
+    if (!isConfirmed) return;
+  
+    try {
+      await axios.delete(`/api/financial-accounts/${account.id}?fileOnly=true`);
+  
+      // Update local state to reflect that the file is deleted
+      setFormData((prev) => ({ ...prev, filePath: "" }));
+      // ✅ Trigger parent page refresh
+      onSuccess(); 
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
+  };
+  
+
   const handleSubmit = async () => {
     const validationErrors: { name?: string; institution?: string } = {};
     if (!formData.name.trim()) {
@@ -177,9 +197,17 @@ export default function FinancialAccountModal({
         <label className="block text-gray-700 font-medium mt-4">Upload File</label>
         <input type="file" className="w-full border p-2" onChange={handleFileChange} />
         {!formData.file && formData.filePath && (
-          <p className="text-sm text-gray-500 mt-1">
-            Existing file: {formData.filePath.split("/").pop()}
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-gray-500 mt-1">
+              Existing file: {formData.filePath.split("/").pop()}
+            </p>
+            <button
+              onClick={handleFileDelete}
+              className="text-red-500 hover:text-red-700 text-sm ml-2"
+            >
+              Delete File
+            </button>
+          </div>
         )}
 
         {/* Buttons */}

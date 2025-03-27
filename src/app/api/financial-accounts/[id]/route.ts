@@ -23,7 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const institution = formData.get("institution") as string;
     const accountType = formData.get("accountType") as string;
     const notes = formData.get("notes") as string;
-    const uploadedBy = session.user.id;
+    let uploadedBy: string | null = null; // ✅ Initialize as null
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
 
@@ -43,6 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let filePath = existingFilePath || null;
 
     if (file) {
+      uploadedBy = session.user.id; // ✅ Only set uploadedBy if a file is present
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
@@ -74,9 +75,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         nameKey: encryptedName.encryptedKey,
         nameIV: encryptedName.iv,
 
-        institution: encryptedInstitution?.encryptedValue || null,
-        institutionKey: encryptedInstitution?.encryptedKey || null,
-        institutionIV: encryptedInstitution?.iv || null,
+        institution: encryptedInstitution?.encryptedValue,
+        institutionKey: encryptedInstitution?.encryptedKey,
+        institutionIV: encryptedInstitution?.iv,
 
         notes: encryptedNotes?.encryptedValue || null,
         notesKey: encryptedNotes?.encryptedKey || null,
@@ -99,12 +100,58 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   try {
-    const record = await prisma.financialAccount.findUnique({ where: { id: params.id } });
+    const { searchParams } = new URL(req.url);
+    const fileOnly = searchParams.get("fileOnly") === "true"; // Determine if file-only delete
+
+    const record = await prisma.financialAccount.findUnique({
+      where: { id: params.id },
+      select: { filePath: true, holographId: true },
+    });
 
     if (!record) {
       return NextResponse.json({ error: "Financial account not found" }, { status: 404 });
     }
 
+    // Ensure the user has permissions to modify this financial account
+    const userAccess = await prisma.holographPrincipal.findFirst({
+      where: {
+        holographId: record.holographId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!userAccess) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    // 🟢 File-only delete mode: Remove file but keep the record
+    if (fileOnly) {
+      if (record.filePath) {
+        await deleteFileFromGCS(record.filePath);
+        debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
+
+        // ✅ Force Prisma to recognize the update by explicitly setting filePath to an empty string before setting to null
+        await prisma.financialAccount.update({
+          where: { id: params.id },
+          data: {
+            filePath: "", // Temporary empty value to force recognition
+          },
+        });
+        
+        // ✅ Ensure filePath and uploadedBy are removed from the financial account record
+        await prisma.financialAccount.update({
+          where: { id: params.id },
+          data: { filePath: null, uploadedBy: null },
+        });
+
+        debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Financial Account ${params.id}`);
+
+        return NextResponse.json({ success: true, message: "File deleted, record updated" });
+      }
+      return NextResponse.json({ error: "No file to delete" }, { status: 400 });
+    }
+
+    // 🟢 Default: Delete the entire financial account (existing behavior)
     if (record.filePath) {
       await deleteFileFromGCS(record.filePath);
       debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
@@ -113,7 +160,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await prisma.financialAccount.delete({ where: { id: params.id } });
 
     debugLog(`🗑️ Deleted financial account ${params.id} from database`);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Financial account deleted" });
+
   } catch (error) {
     console.error("❌ Error deleting financial account:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

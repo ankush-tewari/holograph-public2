@@ -1,3 +1,5 @@
+// /src/lib/gcs.ts
+
 import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
 import { Readable } from 'stream';
@@ -114,6 +116,44 @@ export async function uploadFileToGCS(file: any, gcsFileName: string): Promise<s
       .on('finish', async () => {
         debugLog('✅ File successfully uploaded to GCS:', gcsFileName);
         // Construct the full public URL for the uploaded file.
+        const publicUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
+        resolve(publicUrl);
+      });
+  });
+}
+
+
+/**
+ * Uploads a file buffer (from req.formData()) to GCS
+ * @param {Buffer} buffer - The file buffer
+ * @param {string} gcsFileName - Target GCS path
+ * @param {string} contentType - MIME type
+ * @returns {Promise<string>} Public URL
+ * THIS MAY REPLACE THE UPLOADFILETOGCS FUNCTION
+ */
+export async function uploadBufferToGCS(buffer: Buffer, gcsFileName: string, contentType: string): Promise<string> {
+  debugLog("📦 Uploading buffer to GCS:", gcsFileName);
+
+  const file = bucket.file(gcsFileName);
+  const stream = Readable.from(buffer);
+
+  return new Promise((resolve, reject) => {
+    stream
+      .pipe(
+        file.createWriteStream({
+          resumable: false,
+          public: false,
+          metadata: {
+            contentType,
+          },
+        })
+      )
+      .on("error", (err) => {
+        console.error("❌ GCS Buffer Upload Error:", err);
+        reject(err);
+      })
+      .on("finish", () => {
+        debugLog("✅ Buffer uploaded to GCS:", gcsFileName);
         const publicUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${gcsFileName}`;
         resolve(publicUrl);
       });

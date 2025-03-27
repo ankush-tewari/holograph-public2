@@ -223,6 +223,7 @@ const HolographDetailPage = () => {
 
   debugLog("👑 Holograph Principals:", holograph?.principals);
   debugLog("🧑‍💻 Current User ID:", userId);
+  debugLog("🧑‍💻 Current Owner:", holograph?.owner?.firstName);
   debugLog("🔐 delegatePermissions Map:", delegatePermissions);
   debugLog("🕵️ isPrincipal?", isPrincipal);
   debugLog("📦 Sections Loaded:", sections);
@@ -239,6 +240,12 @@ const HolographDetailPage = () => {
         <span className="text-sm relative group cursor-pointer">
           <span className="text-lg">ℹ️</span>
           <div className="absolute left-0 mt-2 w-64 bg-white text-sm text-gray-700 p-3 border border-gray-300 shadow-lg rounded hidden group-hover:block z-50">
+            <p>
+            <span className="font-semibold">Owner:</span> {holograph.owner?.firstName} {holograph.owner?.lastName}
+            </p>
+            <p>
+            <span className="font-semibold">Geography:</span> {holograph.geography}
+            </p>
             <p>
               <span className="font-semibold">Principals:</span>{" "}
               {holograph.principals?.length > 0

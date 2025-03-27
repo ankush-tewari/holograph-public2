@@ -1,0 +1,237 @@
+// /src/app/holographs/[id]/financial-accounts/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import FinancialAccountModal from "@/app/_components/financial-accounts/FinancialAccountModal";
+import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
+import { useHolograph } from "@/hooks/useHolograph";
+import { useSectionAccess } from "@/hooks/useSectionAccess";
+import AccessDeniedModal from "@/app/_components/AccessDeniedModal";
+import { buttonIcons } from "@/config/icons";
+import { debugLog } from "@/utils/debug";
+
+interface FinancialAccount {
+  id: string;
+  name: string;
+  institution?: string;
+  accountType: string;
+  filePath?: string;
+  notes?: string | null;
+}
+
+export default function FinancialAccountsPage() {
+  const { id: holographId } = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { userId, isAuthenticated, isLoading: isHolographLoading } = useHolograph();
+
+  const { isAuthorized, accessDenied, holographTitle, sectionName, isLoading: isAccessLoading } = useSectionAccess("financial-accounts");
+
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({});
+  const [selectedAccount, setSelectedAccount] = useState<FinancialAccount | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPrincipal, setIsPrincipal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
+
+  useEffect(() => {
+    async function fetchAccounts() {
+      try {
+        const response = await axios.get(`/api/financial-accounts?holographId=${holographId}`, { withCredentials: true });
+        setAccounts(response.data);
+      } catch (err) {
+        console.error("❌ Failed to load accounts", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (userId && holographId) fetchAccounts();
+  }, [holographId, userId]);
+
+  useEffect(() => {
+    const fetchUrls = async () => {
+      const urls: { [key: string]: string } = {};
+      for (const acc of accounts) {
+        if (acc.filePath) {
+          try {
+            const res = await axios.get(
+              `/api/generate-signed-url?filePath=${encodeURIComponent(acc.filePath)}&holographId=${encodeURIComponent(
+                holographId as string
+              )}&section=financial-accounts`,
+              { withCredentials: true }
+            );
+            urls[acc.id] = res.data.url;
+          } catch (err: any) {
+            const message =
+              err?.response?.data?.error ||
+              err?.response?.data ||
+              err?.message ||
+              "Unknown error";
+          
+            console.error("❌ Error getting signed URL for", acc.name, message);
+          }
+          
+        }
+      }
+      setSignedUrls(urls);
+    };
+
+    if (accounts.length > 0) fetchUrls();
+  }, [accounts, holographId]);
+
+  useEffect(() => {
+    const checkPrincipal = async () => {
+      try {
+        const response = await axios.get(`/api/holograph/${holographId}`);
+        const isUserPrincipal = response.data.principals.some((p: any) => p.id === userId);
+        setIsPrincipal(isUserPrincipal);
+      } catch (err) {
+        console.error("Error checking principal status:", err);
+      }
+    };
+    checkPrincipal();
+  }, [holographId, userId]);
+
+  const openModal = (account: FinancialAccount | null) => {
+    setSelectedAccount(account);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedAccount(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this financial account?")) return;
+    try {
+      await axios.delete(`/api/financial-accounts/${id}`);
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error("❌ Failed to delete", err);
+    }
+  };
+
+  const refresh = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`/api/financial-accounts?holographId=${holographId}`, { withCredentials: true });
+      setAccounts(response.data);
+    } catch (err) {
+      console.error("❌ Refresh error", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (
+    status === "loading" ||
+    isHolographLoading ||
+    isAccessLoading ||
+    (isLoading && accounts.length === 0)
+  ) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800"></div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <AccessDeniedModal
+        holographId={holographId as string}
+        holographTitle={holographTitle}
+        sectionName={sectionName || "this section"}
+      />
+    );
+  }
+
+  return (
+    <div className="flex gap-6 p-8 max-w-6xl mx-auto">
+      {/* Left: Actions and Info */}
+      <div className="w-1/3 bg-white shadow-lg p-6 rounded-lg">
+        <div className="flex flex-col gap-4">
+          {isPrincipal && <button className="btn-primary" onClick={() => openModal(null)}>+ Add Financial Account</button>}
+          <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
+        </div>
+        <div className="mt-6 text-sm text-gray-700">
+          <p>Use this section to upload or view financial accounts, such as checking, savings, or retirement accounts.</p>
+        </div>
+      </div>
+
+      {/* Right: Table of accounts */}
+      <div className="w-2/3 bg-white shadow-lg p-6 rounded-lg">
+        <h2 className="text-xl font-semibold text-gray-800">Financial Accounts</h2>
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : accounts.length === 0 ? (
+          <p className="text-gray-500">No accounts added yet.</p>
+        ) : (
+          <table className="w-full mt-4 border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="p-3 border border-gray-300">Account Name</th>
+                <th className="p-3 border border-gray-300">Type</th>
+                <th className="p-3 border border-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((acc) => (
+                <tr key={acc.id} className="border-t">
+                  <td className="p-3 border border-gray-300">{acc.name}</td>
+                  <td>
+                    {
+                      FINANCIAL_ACCOUNT_TYPES.find(type => type.value === acc.accountType)?.label
+                      || acc.accountType
+                    }
+                  </td>
+                  <td className="p-3 border border-gray-300 flex gap-3">
+                    {acc.filePath && (
+                      <a
+                        href={signedUrls[acc.id] || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        <buttonIcons.link size={18} />
+                      </a>
+                    )}
+                    {isPrincipal && (
+                      <>
+                        <button className="text-yellow-600" onClick={() => openModal(acc)}>
+                          <buttonIcons.edit size={18} />
+                        </button>
+                        <button className="text-red-600" onClick={() => handleDelete(acc.id)}>
+                          <buttonIcons.delete size={18} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {isModalOpen && userId && (
+        <FinancialAccountModal
+          userId={userId}
+          account={selectedAccount}
+          holographId={holographId as string}
+          onClose={closeModal}
+          onSuccess={refresh}
+        />
+      )}
+    </div>
+  );
+}

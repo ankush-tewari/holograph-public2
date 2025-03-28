@@ -15,6 +15,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let updatedBy: string | null = null; 
+
   try {
     const formData = await req.formData();
 
@@ -26,6 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let uploadedBy: string | null = null; // ✅ Initialize as null
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
+    updatedBy = session.user.id
 
     if (!name || !accountType || !holographId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -69,6 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         holographId,
         uploadedBy,
         accountType,
+        updatedBy,
         filePath: filePath || undefined,
 
         name: encryptedName.encryptedValue,

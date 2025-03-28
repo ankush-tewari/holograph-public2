@@ -108,9 +108,13 @@ export async function POST(req: NextRequest) {
   let accountType: string | null = null;
   let notes: string | null = null;
   let uploadedBy: string | null = null; // ✅ Initialize as null
+  let createdBy: string | null = null; 
+  let updatedBy: string | null = null; 
   let filePath: string | null = null;
   let newFilePath: string | null = null;
   let isNewDocument = false;
+  createdBy = userId
+  updatedBy = userId
 
   try {
     const formData = await req.formData();
@@ -226,6 +230,8 @@ export async function POST(req: NextRequest) {
           holographId,
           uploadedBy,
           accountType,
+          createdBy,
+          updatedBy,
           filePath: relativeFilePath || null,
 
 
@@ -254,6 +260,7 @@ export async function POST(req: NextRequest) {
         data: {
           uploadedBy,
           accountType,
+          updatedBy,
           filePath: relativeFilePath || null,
 
           name: nameEncrypted.encryptedValue,

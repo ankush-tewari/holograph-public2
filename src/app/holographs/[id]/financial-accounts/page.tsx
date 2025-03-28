@@ -92,6 +92,7 @@ export default function FinancialAccountsPage() {
 
   useEffect(() => {
     const checkPrincipal = async () => {
+      if (!holographId || !userId) return;
       try {
         const response = await axios.get(`/api/holograph/${holographId}`);
         const isUserPrincipal = response.data.principals.some((p: any) => p.id === userId);

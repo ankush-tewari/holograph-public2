@@ -38,15 +38,6 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   const CloseIcon = buttonIcons.close;
   const sectionKey = "vitalDocuments"; //for the contents of the Vital Document Type drop-down list
   
-  useEffect(() => {
-    debugLog("🔍 Modal component mounted, isModalOpen:", true);
-    setMounted(true);
-    return () => {
-      debugLog("🔍 Modal component unmounting");
-      setMounted(false);
-    };
-  }, []);
-  
   const [formData, setFormData] = useState({
     name: docData?.name || "",
     type: docData?.type || VITAL_DOCUMENT_TYPES.vitalDocuments[0].value, // Set default to first option
@@ -54,6 +45,15 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
     file: null as File | null,
     filePath: docData?.filePath || "",  // ✅ Ensure existing file path is included
   });
+
+  const [errors, setErrors] = useState<{ name?: string; file?: string }>({});
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  
+  
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -65,7 +65,26 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   };
 
   const handleSubmit = async () => {
-    if (!formData.file && !formData.filePath) { // ✅ Ensure either a new file or existing file is provided
+
+    debugLog("📌 Document being edited:", docData);
+    debugLog("📌 Document ID being sent:", docData?.id);
+
+    const validationErrors: { name?: string; file?: string } = {};
+    if (!formData.name.trim()) {
+      validationErrors.name = "Document name is required.";
+    }
+    if (!formData.file && !formData.filePath) {
+      validationErrors.file = "A file is required.";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});  
+
+
+/*    if (!formData.file && !formData.filePath) { // ✅ Ensure either a new file or existing file is provided
       console.error("❌ No file selected or existing file path missing");
       return;
     }
@@ -85,12 +104,27 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
       console.error("❌ No file selected or existing file path missing");
       return;
     }
-  
+  */
+
     const formDataToSend = new FormData();
     formDataToSend.append("holographId", holographId);
     formDataToSend.append("name", formData.name);
     formDataToSend.append("type", formData.type);
-    formDataToSend.append("notes", formData.notes || "");
+
+    // ✅ Fix: Ensure notes are sent as null if empty
+    if (formData.notes.trim() === "") {
+        formDataToSend.append("notes", ""); // Store empty string instead of undefined/null
+    } else {
+        formDataToSend.append("notes", formData.notes);
+    }
+
+    // ✅ Fix: Ensure `id` is included when editing
+    if (docData && docData.id) {
+        formDataToSend.append("id", docData.id);
+        debugLog("✅ Including document ID in FormData:", docData.id);
+    } else {
+        debugLog("⚠️ No document ID found, this might be a new document.");
+    }
   
     // ✅ IMPORTANT FIX: Always include the existing file path if this is an edit operation
     if (docData && docData.filePath) {
@@ -114,7 +148,7 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
       return;
     }
   
-    debugLog("🟢 Sending FormData:", Object.fromEntries(formDataToSend.entries()));
+    debugLog("🟢 Sending Vital Document FormData:", Object.fromEntries(formDataToSend.entries()));
   
     try {
       await axios.post(`/api/vital-documents`, formDataToSend, {
@@ -136,18 +170,21 @@ const modalContent = (
   <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-          {docData ? "Edit Document" : "Add New Document"}
+          {document ? "Edit Vital Document" : "Add New Vital Document"}
         </h2>
         
-        {/* Document Name Input */}
-        <label className="block text-gray-700 font-medium">Document Name</label>
+        {/* Document Name */}
+        <label className="block text-gray-700 font-medium">Document Name *</label>
         <input
           type="text"
-          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder="Enter document name"
+          className={`w-full p-3 border ${errors.name ? "border-red-500" : "border-gray-300"} rounded-lg`}
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onFocus={() => setErrors((prev) => ({ ...prev, name: undefined }))}
         />
+        {errors.name && (
+          <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+        )}
 
         {/* Document Type Dropdown */}
         <label className="block text-gray-700 font-medium mt-4">Document Type</label>
@@ -180,6 +217,9 @@ const modalContent = (
         {!formData.file && formData.filePath && (
           <p className="text-gray-600 mt-2">Existing file: {formData.filePath.split('/').pop()}</p>
         )}
+        {errors.file && (
+          <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+        )}
 
         {/* Buttons */}
         <div className="mt-6 flex justify-end gap-4">
@@ -202,15 +242,7 @@ const modalContent = (
     </div>
 );
   
-  // Only render on client-side with portal
-  if (!mounted) {
-    return null;
-  }
-  
-  // Use createPortal to render the modal outside of its parent DOM hierarchy
-  debugLog("Creating portal for modal", { mounted, modalContent });
-  return createPortal(
-    modalContent,
-    document.body
-  );
+  if (!mounted || typeof window === "undefined" || !document.body) return null;
+  return createPortal(modalContent, document.body);
+
 }

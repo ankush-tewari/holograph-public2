@@ -35,7 +35,16 @@ model User {
   // Add these for PendingPrincipalRemoval relations:
   pendingRemovalsAsTarget   PendingPrincipalRemoval[] @relation("TargetUserRelation")
   pendingRemovalsAsRequester PendingPrincipalRemoval[] @relation("RequestedByRelation")
+
+  // ✅ relations for FinancialAccount
+  createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
+  updatedFinancialAccounts FinancialAccount[] @relation("FinancialAccountUpdater")
+
+  // ✅ relations for InsuranceAccount
+  createdInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountCreator")
+  updatedInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountUpdater")
 }
+
 
 model Holograph {
   id                  String                @id @default(uuid())
@@ -62,7 +71,10 @@ model Holograph {
   //holograph sections
   vitalDocuments      VitalDocument[]
   financialAccounts FinancialAccount[] // ✅ Add this line
+  insuranceAccounts InsuranceAccount[]  // ✅ Add this reference
 }
+
+
 
 // establishes an owner for the holograph who is responsible for payment
 model OwnershipAuditLog {
@@ -221,9 +233,49 @@ model FinancialAccount {
   notesKey    String?
   notesIV     String?
 
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("FinancialAccountCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("FinancialAccountUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+
+// Insurance accounts like Life, Auto, Home, Liability, etc.
+model InsuranceAccount {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  provider    String  // Insurance company (Encrypted)
+  providerKey String
+  providerIV  String
+
+  policyType  String   // Life, Auto, Health, etc.
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("InsuranceAccountCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("InsuranceAccountUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
 
   @@unique([holographId, filePath])
 }

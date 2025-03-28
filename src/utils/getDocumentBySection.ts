@@ -41,6 +41,22 @@ export async function getDocumentBySection(
         },
       });
 
+      case "insurance-accounts":
+      return prisma.insuranceAccount.findUnique({
+        where: { holographId_filePath: { holographId, filePath } },
+        select: {
+          id: true,
+          holographId: true,
+          uploadedBy: true,
+          holograph: {
+            select: {
+              principals: { select: { userId: true } },
+              delegates: { select: { userId: true } },
+            },
+          },
+        },
+      });
+
     // Add more sections here as needed (legal-documents, digital-assets, etc.)
 
     default:

@@ -2,25 +2,15 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadFileToGCS, deleteFileFromGCS } from "@/lib/gcs";
-import formidable from "formidable";
-import { Duplex } from "stream";
+import { uploadFileToGCS, uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { Storage } from "@google-cloud/storage";
-import crypto from "crypto";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 
-
-// Disable Next.js's default body parsing so formidable can handle it
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
@@ -84,19 +74,32 @@ export async function GET(req: Request) {
         );
     
         let decryptedNotes = null;
-        if (doc.notes && doc.notesKey && doc.notesIV) {
-          decryptedNotes = await decryptFieldWithHybridEncryption(
-            doc.holographId,
-            doc.notes,
-            doc.notesKey,
-            doc.notesIV
-          );
-        }
+        // ✅ If notes is empty or missing, return an empty string (prevents decryption errors)
+        debugLog("doc.notes = ", doc.notes)
+        debugLog("doc.notesKey = ", doc.notesKey)
+        debugLog("doc.notesIV = ", doc.notesIV)
+
+        // ✅ If notes are empty or missing, set to an empty string
+        if (!doc.notes || !doc.notesKey || !doc.notesIV) {
+          decryptedNotes = ""; 
+        } else {
+          try {
+            decryptedNotes = await decryptFieldWithHybridEncryption(
+              doc.holographId,
+              doc.notes,
+              doc.notesKey,
+              doc.notesIV
+            );
+          } catch (error) {
+            console.error("❌ Error decrypting notes:", error);
+            decryptedNotes = "🔒 Unable to decrypt"; // Only show this if decryption fails
+          }
+        }        
     
         return {
           ...doc,
           name: decryptedName || "🔒 Unable to decrypt",
-          notes: decryptedNotes || "🔒 Unable to decrypt",
+          notes: decryptedNotes, 
         };
       })
     );
@@ -132,52 +135,28 @@ export async function POST(req: Request) {
   let isNewDocument = false;
 
   try {
+    // Get form data from the request
+    const formData = await req.formData();
 
-    // Convert the Next.js Request into a Node.js stream
-    const bodyBuffer = Buffer.from(await req.arrayBuffer());
-    const { Duplex } = await import("stream");
-    const nodeReq = new Duplex() as any;
-    nodeReq.push(bodyBuffer);
-    nodeReq.push(null);
-    nodeReq.headers = Object.fromEntries(req.headers.entries());
+    // Extract values safely
+    const holographId = formData.get("holographId") as string;
+    const name = formData.get("name") as string;
+    const type = formData.get("type") as string;
+    const notes = formData.get("notes") as string | null;
+    const file = formData.get("file") as File | null;
+    const existingFilePath = formData.get("existingFilePath") as string | null;
+    const vitalDocumentId = formData.get("id") as string | null;
 
-    debugLog("🟢 Converted Request to Node stream for formidable");
 
-    // Parse the incoming form data
-    const { fields, files } = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
-      (resolve, reject) => {
-        const form = formidable({ uploadDir: "./tmp", keepExtensions: true });
-        form.parse(nodeReq, (err, fields, files) => {
-          if (err) {
-            console.error("❌ Error parsing form:", err);
-            reject(err);
-          } else {
-            resolve({ fields, files });
-          }
-        });
-      }
-    );
 
-    debugLog("🟢 Formidable Parsed Fields:", fields);
-    debugLog("🟢 Formidable Parsed Files:", files);
+    debugLog("🟢 Parsed Form Data:", { vitalDocumentId, holographId, name, type, notes, file });
 
-    // Helper function to extract values
-    const getSingleValue = (value: string | string[] | undefined): string | undefined => {
-      if (Array.isArray(value)) return value[0];
-      return value;
-    };
+    // Validate required fields
+    if (!holographId || !name || !type) {
+        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
-    holographId = getSingleValue(fields.holographId);
-    name = getSingleValue(fields.name);
-    type = getSingleValue(fields.type);
-    notes = getSingleValue(fields.notes);
-    uploadedBy = userId; // Trust the session, not form input
-    let existingFilePath = getSingleValue(fields.existingFilePath); // ✅ Existing file path if provided
-    const fileField = files.file;
-
-    debugLog("🟢 Parsed Fields:", { holographId, name, type, notes, uploadedBy });
-
-    if (!holographId || !name || !type || !uploadedBy) {
+    if (!holographId || !name || !type ) {
       console.error("❌ Missing required fields:", { holographId, name, type, uploadedBy });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
@@ -204,7 +183,7 @@ export async function POST(req: Request) {
 
     filePath = existingFilePath;
 
-    if (!fileField && !filePath) {
+    if (!file && !filePath) {
       console.error("❌ No new file uploaded and no existing file provided.");
       return NextResponse.json({ error: "File is required" }, { status: 400 });
     }
@@ -234,7 +213,7 @@ export async function POST(req: Request) {
         debugLog("✏️ Updating existing document with path:", existingFilePath);
         isNewDocument = false;
         filePath = existingFilePath;
-      } else if (fileField) {
+      } else if (file) {
         // No existing path but a new file - this is a new document
         debugLog("🆕 New file uploaded without existingFilePath, creating a new document.");
         isNewDocument = true;
@@ -247,35 +226,55 @@ export async function POST(req: Request) {
 
     newFilePath = filePath;
 
-    if (fileField) {
-      const file = Array.isArray(fileField) ? fileField[0] : fileField;
+    if (file) {
       debugLog("🟢 Using new file:", file);
-      const gcsFileName = `uploads/${Date.now()}-${file.originalFilename}`;
+
+      // Standardized GCS structure: <holographId>/<section>/<timestamped-original-name>
+      const section = "vital-documents"; // ✅ Updated for this section
+      const timestampedFileName = `${Date.now()}-${file.name}`;
+      const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
+
       debugLog("🟢 GCS File Name:", gcsFileName);
-      const uploadedFilePath = await uploadFileToGCS(file, gcsFileName);
-      debugLog("🟢 File uploaded to GCS. Stored Path:", uploadedFilePath);
-      
-      const normalizedExistingFilePath = filePath
+
+      try {
+        // ✅ Convert file to buffer
+        debugLog("📦 Converting file to buffer...");
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+        // ✅ Upload buffer to GCS
+        debugLog("🟢 Uploading buffer to GCS...");
+        const uploadedFilePath = await uploadBufferToGCS(fileBuffer, gcsFileName, file.type);
+
+        debugLog("✅ File uploaded to GCS. Stored Path:", uploadedFilePath);
+
+        // Normalize file paths for comparison
+        const normalizedExistingFilePath = filePath
         ? filePath.replace("https://storage.googleapis.com/holograph-user-documents/", "")
         : null;
 
-      const normalizedNewFilePath = uploadedFilePath
+        const normalizedNewFilePath = uploadedFilePath
         ? uploadedFilePath.replace("https://storage.googleapis.com/holograph-user-documents/", "")
         : null;
 
-      // ✅ Delete the old file from GCS if a new file was uploaded and this is an update
-      if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
-        debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
-        try {
-          await deleteFileFromGCS(normalizedExistingFilePath);
-          debugLog("✅ Old file deleted successfully.");
-        } catch (error) {
-          console.error("❌ Error deleting old file from GCS:", error.message || "Unknown error");
+        // ✅ Delete the old file from GCS if a new file was uploaded and this is an update
+        if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
+          debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
+          try {
+              await deleteFileFromGCS(normalizedExistingFilePath);
+              debugLog("✅ Old file deleted successfully.");
+          } catch (error) {
+              console.error("❌ Error deleting old file from GCS:", error.message || "Unknown error");
+          }
         }
+        // ✅ Ensure new file path is saved
+          newFilePath = uploadedFilePath;
+        } catch (error) {
+          console.error("❌ Error uploading file to GCS:", error);
+          return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
       }
-      newFilePath = uploadedFilePath; // ✅ Ensure new file path is saved
+      
     } else {
-      debugLog("✅ No new file uploaded, keeping existing file:", filePath);
+        debugLog("✅ No new file uploaded, keeping existing file:", filePath);
     }
 
     if (!newFilePath) {
@@ -320,11 +319,11 @@ export async function POST(req: Request) {
             nameKey: nameEncryptionResult.encryptedKey,
             nameIV: nameEncryptionResult.iv,
             type,
-            notes: notesEncryptionResult?.encryptedValue ?? null,
+            notes: notesEncryptionResult?.encryptedValue || null,
             notesKey: notesEncryptionResult?.encryptedKey ?? null,
             notesIV: notesEncryptionResult?.iv ?? null,
             filePath: normalizedFilePath,
-            uploadedBy,
+            uploadedBy: userId, 
           },
         });        
 
@@ -343,24 +342,29 @@ export async function POST(req: Request) {
       debugLog("🔍 Looking up document with:", { holographId, filePath: normalizedExistingFilePath });
 
       try {
+
+        // ✅ Ensure the document exists before updating
+        const existingDocument = await prisma.vitalDocument.findUnique({
+            where: { id: vitalDocumentId },
+        });
+
+        if (!existingDocument) {
+            return NextResponse.json({ error: "Document not found" }, { status: 404 });
+        }
+
         const updatedDocument = await prisma.vitalDocument.update({
-          where: {
-            holographId_filePath: {
-              holographId,
-              filePath: normalizedExistingFilePath, // Use the original path for lookup
+            where: { id: vitalDocumentId }, // ✅ Lookup by primary key (faster & safer)
+            data: {
+                name: nameEncryptionResult.encryptedValue,
+                nameKey: nameEncryptionResult.encryptedKey,
+                nameIV: nameEncryptionResult.iv,
+                type,
+                notes: notesEncryptionResult?.encryptedValue || null,
+                notesKey: notesEncryptionResult?.encryptedKey ?? null,
+                notesIV: notesEncryptionResult?.iv ?? null,
+                ...(file ? { filePath: normalizedFilePath } : {}), // ✅ Update filePath only if a new file is uploaded
+                uploadedBy: userId, // ✅ Use session user ID
             },
-          },
-          data: {
-            name: nameEncryptionResult.encryptedValue,
-            nameKey: nameEncryptionResult.encryptedKey,
-            nameIV: nameEncryptionResult.iv,
-            type,
-            notes: notesEncryptionResult?.encryptedValue ?? null,
-            notesKey: notesEncryptionResult?.encryptedKey ?? null,
-            notesIV: notesEncryptionResult?.iv ?? null,
-            ...(fileField ? { filePath: normalizedFilePath } : {}),
-            uploadedBy,
-          },
         });
 
         debugLog("✅ Document successfully updated:", updatedDocument.id);

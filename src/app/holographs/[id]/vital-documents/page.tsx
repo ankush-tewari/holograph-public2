@@ -49,11 +49,10 @@ export default function VitalDocumentsPage() {
 
 
 
-  // do I add this here?
+
   useEffect(() => {
     const checkPrincipalStatus = async () => {
       if (!holographId || !userId) return;
-  
       try {
         const response = await axios.get(`/api/holograph/${holographId}`);
         const holographData = response.data;
@@ -142,7 +141,8 @@ export default function VitalDocumentsPage() {
       setSelectedDocument({ 
         ...document, 
         newFile: null,
-        filePath: document.filePath || ""
+        filePath: document.filePath || "",
+        id: document.id,  // ✅ Explicitly include ID
       } as Document & { newFile?: File | null, filePath?: string });
     } else {
       setSelectedDocument(null);
@@ -288,20 +288,28 @@ export default function VitalDocumentsPage() {
                         </span>
                       </a>
                     </button>
-                    <button
-                      className="ml-2 text-gray-600 hover:text-gray-800 text-sm relative group"
-                      onClick={() => setSelectedNote(doc.notes || "No notes available")}
-                    >
-                      <span><buttonIcons.info size={18} /></span>
-                      <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
-                        View Notes
-                      </span>
-                    </button>
+                    {doc?.notes && (
+                      <button
+                        className="ml-2 text-gray-600 hover:text-gray-800 text-sm relative group"
+                        onClick={() => setSelectedNote(doc.notes || "No notes available")}
+                      >
+                        <span><buttonIcons.info size={18} /></span>
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
+                          View Notes
+                        </span>
+                      </button>
+                    )}
 
                     {isPrincipal && (
                       <>
                         {/* Edit Button */}
-                        <button className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" onClick={() => openModal(doc)}>
+                        <button 
+                          className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm relative group" 
+                          onClick={() => {
+                            debugLog("🟢 Opening modal with document:", doc);  // ✅ Debugging
+                            openModal(doc)
+                          }}
+                        >
                           <span><buttonIcons.edit size={18} /></span>
                           <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
                             Edit Vital Document

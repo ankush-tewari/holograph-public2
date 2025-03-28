@@ -1,5 +1,5 @@
 // /src/app/api/vital-documents/download.ts
-
+/*
 import { NextRequest, NextResponse } from "next/server";
 import { Storage } from "@google-cloud/storage";
 import { getServerSession } from "next-auth"; // Ensure this is correctly configured
@@ -78,3 +78,4 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Failed to stream file" }), { status: 500 });
   }
 }
+*/

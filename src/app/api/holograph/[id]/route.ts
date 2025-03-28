@@ -213,34 +213,85 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await deleteFileFromGCS(holograph.sslKeyPath);
     }
 
-    // ✅ Step 3: Fetch all related documents before deleting the Holograph
+    /*************************************************** 
+    *
+    DELETE EACH SECTION BEFORE DELETING THE HOLOGRAPH
+    *
+    * **************************************************/
+
+    // 
+    // ****************** VITAL DOCUMENTS ********************
+    // ✅ 1 Fetch all related vital documents before deleting the Holograph
     const relatedDocuments = await prisma.vitalDocument.findMany({
       where: { holographId: id },
     });
 
 
-    // ✅ Step 4: Delete related documents from Google Cloud Storage
+    // ✅ 2 Delete related documents from Google Cloud Storage
     for (const doc of relatedDocuments) {
       debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
       await deleteFileFromGCS(doc.filePath);
     }
 
-    // ✅ Step 5: Delete all related database records
+    // ✅ 3 Delete all related database records
     debugLog("🗑 Deleting related vital documents...");
     await prisma.vitalDocument.deleteMany({ where: { holographId: id } });
 
-    // ✅ Step 6: Delete related Principals and Delegates
+
+    // ****************** FINANCIAL ACCOUNTS ********************
+    // ✅ 1 Fetch all related financial account documents before deleting the Holograph
+    const relatedFinancialAccounts = await prisma.financialAccount.findMany({
+      where: { holographId: id },
+    });
+
+
+    // ✅ 2 Delete related financial account documents from Google Cloud Storage
+    for (const doc of relatedFinancialAccounts) {
+      debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
+      if (doc.filePath){
+        await deleteFileFromGCS(doc.filePath);
+      }
+    }
+
+    // ✅ 3 Delete all related database records
+    debugLog("🗑 Deleting related financial account records...");
+    await prisma.financialAccount.deleteMany({ where: { holographId: id } });
+
+    //******************************************************************* */
+
+    // ****************** Insurance ACCOUNTS ********************
+    // ✅ 1 Fetch all related insurance account documents before deleting the Holograph
+    const relatedInsuranceAccounts = await prisma.insuranceAccount.findMany({
+      where: { holographId: id },
+    });
+
+
+    // ✅ 2 Delete related insurance account documents from Google Cloud Storage
+    for (const doc of relatedInsuranceAccounts) {
+      debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
+      if (doc.filePath){
+        await deleteFileFromGCS(doc.filePath);
+      }
+    }
+
+    // ✅ 3 Delete all related database records
+    debugLog("🗑 Deleting related insurance account records...");
+    await prisma.insuranceAccount.deleteMany({ where: { holographId: id } });
+
+    //******************************************************************* */
+
+    // ✅ Step 4: Delete related Principals and Delegates
     debugLog("🗑 Deleting related Principal and Delegate records...");
     await prisma.holographDelegate.deleteMany({ where: { holographId: id } });
     await prisma.holographPrincipal.deleteMany({ where: { holographId: id } });
     await prisma.invitation.deleteMany({ where: { holographId: id } });
 
-    // ✅ Step 7A: Delete OwnershipAuditLog entries
+    // ✅ Step 5: Delete OwnershipAuditLog entries
     debugLog("🗑 Deleting OwnershipAuditLog entries...");
     await prisma.ownershipAuditLog.deleteMany({ where: { holographId: id } });
 
 
-    // ✅ Step 7: Finally delete the Holograph
+    // ✅ Step 6: Finally delete the Holograph
     debugLog("🗑 Deleting the Holograph record...");
     await prisma.holograph.delete({ where: { id } });
 

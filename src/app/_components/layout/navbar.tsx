@@ -5,7 +5,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from '@/utils/debug'
 
 export default function Navbar() {
   const pathname = usePathname()

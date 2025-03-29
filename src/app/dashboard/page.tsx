@@ -6,8 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import React from 'react'
 import UserDashboard from '../_components/UserDashboard'
-import { debugLog } from "../../utils/debug";
-import { buttonIcons } from '../../config/icons'; // ✅ Import standardized icons
+import { debugLog } from "@/utils/debug";
+import { buttonIcons } from "@/config/icons";
 
 
 interface User {

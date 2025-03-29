@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "@/lib/db"; // ✅ Import Prisma to check permissions
 import { getDocumentBySection } from "@/utils/getDocumentBySection";
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 const storage = new Storage();
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME as string);

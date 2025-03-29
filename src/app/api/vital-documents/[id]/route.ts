@@ -6,7 +6,7 @@ import { deleteFileFromGCS } from "@/lib/gcs";
 import { uploadFileToGCS } from "@/lib/gcs"; // ✅ Ensure this import exists
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

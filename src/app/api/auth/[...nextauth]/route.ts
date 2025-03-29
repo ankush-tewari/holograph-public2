@@ -1,6 +1,6 @@
 // src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth';
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 
 // ✅ Try absolute import first (Preferred)
  //import { authOptions } from '@/lib/auth';

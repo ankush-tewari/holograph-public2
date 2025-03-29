@@ -5,7 +5,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 import { deleteFileFromGCS } from "@/lib/gcs"; // Import Google Cloud Storage delete function
 
 export async function GET(request: Request, context: { params: { id: string } }) {
@@ -277,6 +277,27 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // ✅ 3 Delete all related database records
     debugLog("🗑 Deleting related insurance account records...");
     await prisma.insuranceAccount.deleteMany({ where: { holographId: id } });
+
+    //******************************************************************* */
+
+     // **************************** PROPERTIES ******************************
+    // ✅ 1 Fetch all related insurance account documents before deleting the Holograph
+    const relatedProperties = await prisma.property.findMany({
+      where: { holographId: id },
+    });
+
+
+    // ✅ 2 Delete related property documents from Google Cloud Storage
+    for (const doc of relatedProperties) {
+      debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
+      if (doc.filePath){
+        await deleteFileFromGCS(doc.filePath);
+      }
+    }
+
+    // ✅ 3 Delete all related database records
+    debugLog("🗑 Deleting related insurance account records...");
+    await prisma.property.deleteMany({ where: { holographId: id } });
 
     //******************************************************************* */
 

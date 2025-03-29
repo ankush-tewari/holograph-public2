@@ -1,8 +1,8 @@
 // src/app/api/debug-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../../lib/auth';
-import { debugLog } from "../../../utils/debug";
+import { authOptions } from '@/lib/auth';
+import { debugLog } from '@/utils/debug';
 
 export async function GET(req: NextRequest) {
   if (process.env.NODE_ENV === 'production') {

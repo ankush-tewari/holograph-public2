@@ -5,7 +5,7 @@ import React from 'react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { debugLog } from "../../utils/debug";
+import { debugLog } from '@/utils/debug'
 
 export default function Register() {
   const [formData, setFormData] = useState({

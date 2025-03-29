@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 
 // POST: Send an invitation
 export async function POST(request: Request) {

@@ -4,13 +4,13 @@
 import { useEffect, useState } from 'react';
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from 'next/navigation';
-import InviteUserModal from '../../_components/holograph/InviteUserModal';
+import InviteUserModal from '@/app/_components/holograph/InviteUserModal';
 import Link from 'next/link';
-import { useHolograph } from '../../../hooks/useHolograph'; // Import the useHolograph hook
-import { debugLog } from "../../../utils/debug";
+import { useHolograph } from '@/hooks/useHolograph';
+import { debugLog } from '@/utils/debug';
 import { format } from "date-fns";
 import { sectionIcons, buttonIcons } from "@/config/icons"; // Import the dynamic icons
-import AccessDeniedModalDashboardRedirect from "../../_components/AccessDeniedModalDashboardRedirect";
+import AccessDeniedModalDashboardRedirect from '@/app/_components/AccessDeniedModalDashboardRedirect';
 import HolographForm from "@/app/_components/holograph/HolographForm";
 
 

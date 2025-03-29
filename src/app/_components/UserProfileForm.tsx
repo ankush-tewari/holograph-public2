@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonIcons } from "@/config/icons"; // ✅ Import standardized icons
-import { debugLog } from "../../utils/debug"
+import { debugLog } from "@/utils/debug";
 
 export default function UserProfileForm({ user }: { user: { id: string; email: string; firstName: string; lastName: string } }) {
   const router = useRouter();

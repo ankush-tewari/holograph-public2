@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 import { useSession } from "next-auth/react";
 import { buttonIcons } from '@/config/icons';
 

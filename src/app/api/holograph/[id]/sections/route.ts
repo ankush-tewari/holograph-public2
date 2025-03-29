@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { debugLog } from "../../../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 

@@ -168,8 +168,17 @@ export default function InsuranceAccountsPage() {
           {isPrincipal && <button className="btn-primary" onClick={() => openModal(null)}>+ Add Insurance Account</button>}
           <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
         </div>
-        <div className="mt-6 text-sm text-gray-700">
-          <p>Use this section to upload or view insurance accounts, such as life, health, or home policies.</p>
+        <div className="mt-6 text-gray-700 text-sm space-y-2">
+          {isPrincipal ? (
+            <>
+              <p>Use this section to list insurance accounts, such as life, health, or home, and instructions for what to do with each account.</p>
+              <p>You may also upload a document for each account with additional information. </p>
+            </>
+          ) : (
+            <p className="italic">
+              You can view Insurance Accounts shared with you.
+            </p>
+          )}
         </div>
       </div>
 

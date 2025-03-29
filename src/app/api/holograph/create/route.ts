@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { verify, JwtPayload } from 'jsonwebtoken';
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 import { Storage } from "@google-cloud/storage";
 import { exec } from "child_process";
 import path from "path";

@@ -47,6 +47,10 @@ model User {
   // ✅ relations for InsuranceAccount
   createdInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountCreator")
   updatedInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountUpdater")
+
+  // ✅ relations for Property
+  createdProperties Property[] @relation("PropertyCreator")
+  updatedProperties Property[] @relation("PropertyUpdater")
 }
 
 
@@ -73,9 +77,10 @@ model Holograph {
   pendingPrincipalRemovals PendingPrincipalRemoval[] // removing principals
 
   //holograph sections
-  vitalDocuments      VitalDocument[]
-  financialAccounts FinancialAccount[] // ✅ Add this line
-  insuranceAccounts InsuranceAccount[]  // ✅ Add this reference
+  vitalDocuments      VitalDocument[] // need one for each Holograph Section
+  financialAccounts FinancialAccount[] 
+  insuranceAccounts InsuranceAccount[] 
+  Properties Property[] 
 }
 
 
@@ -286,6 +291,36 @@ model InsuranceAccount {
 
   creator     User      @relation("InsuranceAccountCreator", fields: [createdBy], references: [id]) // ✅ Relation name
   updater     User?     @relation("InsuranceAccountUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+
+// Real Property such as a primary residence or vacation home
+model Property {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  propertyType  String   // Primary residence, second home, vacation property etc
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("PropertyCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("PropertyUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
 
   @@unique([holographId, filePath])
 }

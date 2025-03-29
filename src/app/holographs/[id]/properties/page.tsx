@@ -1,38 +1,38 @@
-// /src/app/holographs/[id]/financial-accounts/page.tsx
+// /src/app/holographs/[id]/properties/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import FinancialAccountModal from "@/app/_components/financial-accounts/FinancialAccountModal";
-import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
+import PropertyModal from "@/app/_components/properties/PropertyModal";
+import { PROPERTY_TYPES } from "@/config/propertyType";
 import { useHolograph } from "@/hooks/useHolograph";
 import { useSectionAccess } from "@/hooks/useSectionAccess";
 import AccessDeniedModal from "@/app/_components/AccessDeniedModal";
 import { buttonIcons } from "@/config/icons";
 import { debugLog } from "@/utils/debug";
 
-interface FinancialAccount {
+interface Property {
   id: string;
   name: string;
-  institution?: string;
-  accountType: string;
+  propertyType: string;
   filePath?: string;
   notes?: string | null;
 }
 
-export default function FinancialAccountsPage() {
+export default function PropertiesPage() {
   const { id: holographId } = useParams();
   const router = useRouter();
   const { data: session, status } = useSession();
   const { userId, isAuthenticated, isLoading: isHolographLoading } = useHolograph();
 
-  const { isAuthorized, accessDenied, holographTitle, sectionName, isLoading: isAccessLoading } = useSectionAccess("financial-accounts");
+  const { isAuthorized, accessDenied, holographTitle, sectionName, isLoading: isAccessLoading } = useSectionAccess("properties");
 
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [accounts, setAccounts] = useState<Property[]>([]);
   const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({});
-  const [selectedAccount, setSelectedAccount] = useState<FinancialAccount | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPrincipal, setIsPrincipal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,10 +47,10 @@ export default function FinancialAccountsPage() {
   useEffect(() => {
     async function fetchAccounts() {
       try {
-        const response = await axios.get(`/api/financial-accounts?holographId=${holographId}`, { withCredentials: true });
+        const response = await axios.get(`/api/properties?holographId=${holographId}`, { withCredentials: true });
         setAccounts(response.data);
       } catch (err) {
-        console.error("❌ Failed to load accounts", err);
+        console.error("❌ Failed to load properties", err);
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +68,7 @@ export default function FinancialAccountsPage() {
             const res = await axios.get(
               `/api/generate-signed-url?filePath=${encodeURIComponent(acc.filePath)}&holographId=${encodeURIComponent(
                 holographId as string
-              )}&section=financial-accounts`,
+              )}&section=properties`,
               { withCredentials: true }
             );
             urls[acc.id] = res.data.url;
@@ -104,7 +104,7 @@ export default function FinancialAccountsPage() {
     checkPrincipal();
   }, [holographId, userId]);
 
-  const openModal = (account: FinancialAccount | null) => {
+  const openModal = (account: Property | null) => {
     setSelectedAccount(account);
     setIsModalOpen(true);
   };
@@ -115,9 +115,9 @@ export default function FinancialAccountsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this financial account?")) return;
+    if (!confirm("Are you sure you want to delete this property?")) return;
     try {
-      await axios.delete(`/api/financial-accounts/${id}`);
+      await axios.delete(`/api/properties/${id}`);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
       console.error("❌ Failed to delete", err);
@@ -127,7 +127,7 @@ export default function FinancialAccountsPage() {
   const refresh = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`/api/financial-accounts?holographId=${holographId}`, { withCredentials: true });
+      const response = await axios.get(`/api/properties?holographId=${holographId}`, { withCredentials: true });
       setAccounts(response.data);
     } catch (err) {
       console.error("❌ Refresh error", err);
@@ -164,35 +164,35 @@ export default function FinancialAccountsPage() {
       {/* Left: Actions and Info */}
       <div className="w-1/3 bg-white shadow-lg p-6 rounded-lg">
         <div className="flex flex-col gap-4">
-          {isPrincipal && <button className="btn-primary" onClick={() => openModal(null)}>+ Add Financial Account</button>}
+          {isPrincipal && <button className="btn-primary" onClick={() => openModal(null)}>+ Add Property</button>}
           <button className="btn-secondary" onClick={() => router.push(`/holographs/${holographId}`)}>← Back to Holograph</button>
         </div>
         <div className="mt-6 text-gray-700 text-sm space-y-2">
           {isPrincipal ? (
             <>
-              <p>Use this section to list financial accounts, such as checking, savings, or investment accounts and instructions for what to do with each account.</p>
-              <p>You may also upload a document for each account with additional information. </p>
+              <p>Use this section to list properties, such as your primary residence, investment properties, and instructions for what to do with each property.</p>
+              <p>You may also upload a document for each property with additional information. </p>
             </>
           ) : (
             <p className="italic">
-              You can view Financial Accounts shared with you.
+              You can view Properties shared with you.
             </p>
           )}
         </div>
       </div>
 
-      {/* Right: Table of accounts */}
+      {/* Right: Table of properties */}
       <div className="w-2/3 bg-white shadow-lg p-6 rounded-lg">
-        <h2 className="text-xl font-semibold text-gray-800">Financial Accounts</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Properties</h2>
         {isLoading ? (
           <p>Loading...</p>
         ) : accounts.length === 0 ? (
-          <p className="text-gray-500">No accounts added yet.</p>
+          <p className="text-gray-500">No properties added yet.</p>
         ) : (
           <table className="w-full mt-4 border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100 text-left">
-                <th className="p-3 border border-gray-300">Account Name</th>
+                <th className="p-3 border border-gray-300">Property Name</th>
                 <th className="p-3 border border-gray-300">Type</th>
                 <th className="p-3 border border-gray-300">Actions</th>
               </tr>
@@ -203,8 +203,8 @@ export default function FinancialAccountsPage() {
                   <td className="p-3 border border-gray-300">{acc.name}</td>
                   <td>
                     {
-                      FINANCIAL_ACCOUNT_TYPES.find(type => type.value === acc.accountType)?.label
-                      || acc.accountType
+                      PROPERTY_TYPES.find(type => type.value === acc.propertyType)?.label
+                      || acc.propertyType
                     }
                   </td>
                   <td className="p-3 border border-gray-300 flex gap-3">
@@ -250,9 +250,9 @@ export default function FinancialAccountsPage() {
       </div>
 
       {isModalOpen && userId && (
-        <FinancialAccountModal
+        <PropertyModal
           userId={userId}
-          account={selectedAccount}
+          property={selectedAccount}
           holographId={holographId as string}
           onClose={closeModal}
           onSuccess={refresh}
@@ -262,7 +262,7 @@ export default function FinancialAccountsPage() {
       {selectedNote !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`bg-white p-6 rounded-lg shadow-lg ${isExpanded ? 'max-w-5xl w-full h-[90vh]' : 'max-w-md w-full max-h-[80vh]'} overflow-y-auto relative transition-all duration-300`}>
-            <h2 className="text-lg font-semibold mb-4">Account Notes</h2>
+            <h2 className="text-lg font-semibold mb-4">Property Notes</h2>
             <p className="text-sm whitespace-pre-wrap">{selectedNote}</p>
 
             {/* Toggle Buttons */}

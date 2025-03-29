@@ -4,12 +4,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import VitalDocumentModal from "../../../_components/vital-documents/VitalDocumentModal";
-import { VITAL_DOCUMENT_TYPES } from "../../../../config/vitalDocumentType";
+import VitalDocumentModal from "@/app/_components/vital-documents/VitalDocumentModal";
+import { VITAL_DOCUMENT_TYPES } from "@/config/vitalDocumentType";
 import { useSession } from "next-auth/react";
-import { useHolograph } from "../../../../hooks/useHolograph"; // Import useHolograph hook
+import { useHolograph } from "@/hooks/useHolograph"; // Import useHolograph hook
 import SessionDebug from "../../../_components/SessionDebug"; // Optional, for debugging
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "../../../../config/icons"; // ✅ Import standardized icons
 import { useSectionAccess } from "@/hooks/useSectionAccess";
 import AccessDeniedModal from "@/app/_components/AccessDeniedModal";

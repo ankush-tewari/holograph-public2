@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { debugLog } from "../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

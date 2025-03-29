@@ -3,7 +3,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { debugLog } from "../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 export default function SessionDebugger() {
   const { data: session, status } = useSession();

@@ -36,6 +36,10 @@ model User {
   pendingRemovalsAsTarget   PendingPrincipalRemoval[] @relation("TargetUserRelation")
   pendingRemovalsAsRequester PendingPrincipalRemoval[] @relation("RequestedByRelation")
 
+  // ✅ relations for VitalDocument
+  createdVitalDocuments VitalDocument[] @relation("VitalDocumentCreator")
+  updatedVitalDocuments VitalDocument[] @relation("VitalDocumentUpdater")
+
   // ✅ relations for FinancialAccount
   createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
   updatedFinancialAccounts FinancialAccount[] @relation("FinancialAccountUpdater")
@@ -206,9 +210,15 @@ model VitalDocument {
   notesKey    String?              // Encrypted AES Key for `notes`
   notesIV     String?              // IV for `notes`
 
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("VitalDocumentCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("VitalDocumentUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
 
   @@unique([holographId, filePath])
 }

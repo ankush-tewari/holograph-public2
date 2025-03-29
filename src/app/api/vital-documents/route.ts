@@ -128,6 +128,8 @@ export async function POST(req: Request) {
   let type = null;
   let notes = null;
   let uploadedBy = null;
+  let createdBy: string | null = null; 
+  let updatedBy: string | null = null; 
   let filePath = null;
   let newFilePath = null;
   let encryptedName = null;
@@ -146,8 +148,8 @@ export async function POST(req: Request) {
     const file = formData.get("file") as File | null;
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const vitalDocumentId = formData.get("id") as string | null;
-
-
+    createdBy = userId
+    updatedBy = userId
 
     debugLog("🟢 Parsed Form Data:", { vitalDocumentId, holographId, name, type, notes, file });
 
@@ -324,6 +326,8 @@ export async function POST(req: Request) {
             notesIV: notesEncryptionResult?.iv ?? null,
             filePath: normalizedFilePath,
             uploadedBy: userId, 
+            createdBy,
+            updatedBy,
           },
         });        
 
@@ -364,6 +368,7 @@ export async function POST(req: Request) {
                 notesIV: notesEncryptionResult?.iv ?? null,
                 ...(file ? { filePath: normalizedFilePath } : {}), // ✅ Update filePath only if a new file is uploaded
                 uploadedBy: userId, // ✅ Use session user ID
+                updatedBy,
             },
         });
 

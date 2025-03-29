@@ -16,6 +16,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
+    let updatedBy: string | null = null; 
     
     try {
       // make sure user is authorized to see vital document 
@@ -49,6 +50,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const type = formData.get("type") as string;
         const notes = formData.get("notes") as string | null; // ✅ Fix: Ensure `notes` can be `null`
         const file = formData.get("file") as File | null;
+        updatedBy = session.user.id
             
         if (!vitalDocumentId) {
             return NextResponse.json({ error: "Missing document ID" }, { status: 400 });
@@ -63,12 +65,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         let updatedData: { 
             name: string; 
             type: string; 
-            notes: string | null; 
+            notes: string | null;
+            updatedBy: string; 
             filePath?: string; // ✅ Make `filePath` optional
         } = {
             name,
             type,
             notes: notes || null,
+            updatedBy: updatedBy,
         };
 
         if (file) {

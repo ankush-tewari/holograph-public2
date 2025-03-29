@@ -1,128 +1,103 @@
 # Holograph Project Summary (2025 Edition)
 
 ## Overview
-Holograph is a web-based end-of-life planning application that enables users to organize legal, financial, and digital estate plans in one place. Users can create a Holograph, a digital estate plan containing legal documents (wills, trusts), advanced health directives, and account transition instructions.
+Holograph is a web-based application designed to assist users in comprehensive end-of-life planning. It enables individuals to securely store and manage essential documents such as wills, trusts, advanced health directives, and instructions for handling various accounts and subscriptions. The platform ensures that all sensitive data is encrypted using unique SSL certificates for each user, maintaining the highest level of security.
 
 ## Core Concepts
-User Roles
-1. Principals – Owners of a Holograph. They have full control, can manage content, add/remove users, and manage permissions.
-2. Delegates – Appointed by Principals to manage the Holograph after the Principal’s passing. Delegates have read-only access, customized per section.
+
+### User Roles
+1. **Principals**: Individuals who create and own a Holograph. They have full control over its content and can manage user access and permissions.
+2. **Delegates**: Appointed by Principals to manage the Holograph after the Principal's passing. Delegates have read-only access, with permissions customizable per section.
+
+### Holograph Structure
+- **Principals**: Users with full control over the Holograph.
+- **Delegate**: The person designated to manage the estate after the Principal's passing.
 
 ## Security Model
-- Holograph Data Encryption: All text fields are encrypted using an SSL certificate unique to each **Holograph**.
-- File Storage: Files are stored in Google Cloud Storage (GCS) using signed URLs and authenticated downloads.
-- Authentication: Implemented via NextAuth.js. Only authorized users can view or manage Holographs.
-- Delegate Permissions: Principals can set per-section access for Delegates (None or View-Only).
+- **Data Encryption**: All user data is encrypted with a unique SSL certificate per user, ensuring that both database entries and uploaded files are securely protected.
+- **File Storage**: Files are stored in Google Cloud Storage (GCS) and encrypted using the user's unique encryption key.
+- **Authentication**: Implemented via NextAuth.js, ensuring that only authorized users can access or manage Holographs.
+- **Delegate Permissions**: Principals can set per-section access for Delegates, determining whether they have no access or view-only rights.
 
 ## Technology Stack
-- Frontend: React.js (Next.js)
-- Backend: Node.js with Prisma ORM
-- Database: PostgreSQL (schema managed by Prisma)
-- File Storage: Google Cloud Storage (GCS)
-- Authentication: NextAuth.js
-- Styling: Tailwind CSS
-- Icons: react-icons (Lucide), react-icons/fi
+- **Frontend**: React.js (Next.js)
+- **Backend**: Node.js with Prisma ORM
+- **Database**: PostgreSQL
+- **File Storage**: Google Cloud Storage (GCS)
+- **Authentication**: NextAuth.js
+- **Styling**: Tailwind CSS
+- **Icons**: react-icons (Lucide), react-icons/fi
 
-## Key Features & Implementation
-1. User Authentication
-- Managed by NextAuth.js.
-- Session management handled in /hooks/useHolograph.ts.
+## Project Directory Structure
 
-2. Holograph Management
-- Users can create Holographs and invite others as Principals or Delegates.
-- Owner field in each Holograph ensures traceable ownership (linked to billing and permissions).
+```
+holograph-public2/
+├── For AI/                             # Directory containing AI-related context files
+│   ├── Context for AI.txt              # Text file providing context for AI integration
+│   └── Project_Directory_Structure.txt # Text file detailing the project's directory structure
+├── prisma/                             # Directory for Prisma schema and migrations
+├── public/                             # Public assets directory
+├── src/                                # Source code directory
+│   ├── app/                            # Main application directory
+│   │   ├── (auth)/                     # Authentication-related pages
+│   │   ├── api/                        # API routes
+│   │   │   ├── auth/                   # Authentication API routes
+│   │   │   ├── financial-accounts/     # Financial accounts API routes
+│   │   │   ├── holograph/              # Holograph CRUD and user management API routes
+│   │   │   ├── invitations/            # Invitation handling API routes
+│   │   │   ├── vital-documents/        # Vital documents API routes
+│   │   │   └── route.ts                # API route definitions
+│   │   ├── dashboard/                  # User dashboard pages
+│   │   │   └── user-profile/           # User profile management pages
+│   │   ├── holographs/                 # Holograph detail pages
+│   │   │   ├── [id]/                   # Dynamic Holograph ID route
+│   │   │   │   ├── manage-users/       # Manage Principals & Delegates pages
+│   │   │   │   ├── vital-documents/    # Manage Vital Documents per Holograph pages
+│   │   │   │   └── financial-accounts/ # Manage Financial Accounts per Holograph pages
+│   │   │   └── page.tsx                # Holographs page component
+│   │   ├── layout.tsx                  # Main layout component
+│   │   ├── page.tsx                    # Main page component
+│   │   └── route.ts                    # Route definitions
+│   ├── components/                     # Shared React components
+│   │   ├── financial-accounts/         # Financial accounts components
+│   │   │   ├── FinancialAccountModal.tsx # Modal for adding/editing financial accounts
+│   │   │   └── FinancialAccountTable.tsx # Table displaying financial accounts
+│   │   ├── vital-documents/            # Vital documents components
+│   │   │   ├── VitalDocumentModal.tsx  # Modal for adding/editing vital documents
+│   │   │   └── VitalDocumentTable.tsx  # Table displaying vital documents
+│   │   ├── forms/                      # Form components
+│   │   ├── ui/                         # UI components (buttons, modals, etc.)
+│   │   └── layout/                     # Layout components
+│   ├── config/                         # Configuration files
+│   │   ├── financialAccountType.ts     # Financial account types configuration
+│   │   ├── icons.ts                    # Icon configurations
+│   │   └── site.ts                     # Site-wide configurations
+│   ├── hooks/                          # Custom React hooks
+│   │   ├── useHolograph.ts             # Hook for accessing Holograph data
+│   │   └── useSectionAccess.ts         # Hook for section access control
+│   ├── lib/                            # Library utilities
+│   │   ├── auth.ts                     # Authentication utilities
+│   │   ├── db.ts                       # Database utilities
+│   │   ├── encryption.ts               # Encryption utilities
+│   │   ├── logger.ts                   # Logging utilities
+│   │   └── utils.ts                    # General utilities
+│   ├── styles/                         # Global styles
+│   │   ├── globals.css                 # Global CSS styles
+│   │   └── tailwind.css                # Tailwind CSS styles
+│   ├── types/                          # TypeScript type definitions
+│   └── utils/                          # Helper functions
+│       ├── debug.ts                    # Debugging utilities
+│       ├── encryption.ts               # Encryption helper functions
+│       └── helpers.ts                  # General helper functions
+├── .gitignore                          # Git ignore file
+├── README.md                           # Project README file
+├── eslint.config.mjs                   # ESLint configuration
+├── next.config.ts                      # Next.js configuration
+├── package-lock.json                   # Package lock file
+├── package.json                        # Package configuration file
+├── postcss.config.js                   # PostCSS configuration
+├── tailwind.config.ts                  # Tailwind CSS configuration
+└── tsconfig.json                       # TypeScript configuration
+```
 
-Related Tables:
-- Holograph
-- HolographPrincipal
-- HolographDelegate
-- OwnershipAuditLog
-
-API Routes:
-- /api/holograph/create
-- /api/holograph/[id]
-- /api/holograph/principals
-- /api/holograph/delegates
-
-3. Document Management
-- Users upload vital documents (e.g., wills, trusts, directives).
-- Stored securely in GCS; only authorized users get access.
-
-Model: VitalDocument
-- Encrypted fields: name, notes
-- GCS file path stored in filePath
-- Enforced uniqueness: one filePath per Holograph
-
-API:
-- /api/vital-documents/
-- /api/vital-documents/download
-
-4. Invitations System
-- Principals invite users to Holographs with a role (Principal or Delegate).
-- Invitations are deleted when declined or after removal from the Holograph.
-
-Model: Invitation
-- Fields: holographId, inviterId, inviteeId, role, status
-- Enforced uniqueness: one invite per user per Holograph
-
-API Routes:
-- /api/invitations?userId=xyz
-- /api/invitations/[id]
-
-5. Principal Removal Workflow
-- Principals can remove themselves or request removal of another Principal.
-- Owner cannot be removed.
-- Non-owner removals require approval (Pending → Accept/Decline).
-
-Model: PendingPrincipalRemoval
-- Fields: holographId, targetUserId, requestedById, status
-- Automatically deleted after Accept or Decline
-- Invitations linked to the user are deleted after Accept
-
-API Routes:
-- POST /api/holograph/[id]/principals/remove
-- PATCH /api/holograph/[id]/principals/remove/[removalId]
-
-6. Delegate Permissions Per Section
-- Sections are dynamically linked to Holographs.
-- Principals set Delegate access per section.
-
-Models:
-- Section
-- HolographSection
-- DelegatePermissions
-
-## Project File Structure (GitHub)
-src/
-├── app/
-│   ├── dashboard/                     # User dashboard
-│   │   └── user-profile/             # User profile management
-│   ├── holographs/                   # Holograph detail pages
-│   │   └── [id]/                     # Dynamic Holograph ID route
-│   │       ├── manage-users/         # Manage Principals & Delegates
-│   │       └── vital-documents/      # Manage Vital Documents per Holograph
-│   └── api/                          # API Routes (RESTful)
-│       ├── holograph/                # Holograph CRUD and user management
-│       │   └── [id]/                 # Dynamic Holograph API routes
-│       │       └── principals/remove/[removalId]/route.ts  # Accept/Decline removal
-│       ├── invitations/              # Invitation handling
-│       │   └── [id]/                 # Accept/Decline invitation
-│       ├── vital-documents/         # Document CRUD and download
-│       └── auth/                     # NextAuth routes
-├── hooks/                            # Session and user context hooks
-│   └── useHolograph.ts               # Custom hook for current Holograph/user
-├── utils/                            # Helpers (debug, encryption)
-├── lib/                              # Prisma db client, auth options
-├── config/                           # Icon sets, constants
-├── prisma/                           # Prisma schema file
-
-## Next Development Priorities
-1. Section Expansion: Add Financial Accounts, Digital Assets, etc.
-2. Holograph Ownership Transfer: Ability to reassign Holograph owner.
-3. Audit Logs: Track user actions for legal/logging integrity.
-4. UI Enhancements: Finalize Help Dialog with AI support.
-5. Security: Enforce per-Holograph SSL certs for text field encryption.
-
-## Conclusion
-Holograph is a scalable estate planning platform with dynamic user and permissions management, secure document handling, and a flexible section model. Its structure supports AI integrations, secure file handling, and dynamic user roles, while maintaining strict encryption and authentication standards per Holograph.
-
+This directory structure provides an up-to-date reference for the Holograph project, ensuring consistency across development and deployment processes.

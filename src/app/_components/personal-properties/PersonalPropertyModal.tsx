@@ -66,7 +66,7 @@ export default function PersonalPropertyModal({
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/properties/${personalProperty.id}?fileOnly=true`);
+      await axios.delete(`/api/personal-properties/${personalProperty.id}?fileOnly=true`);
   
       // Update local state to reflect that the file is deleted
       setFormData((prev) => ({ ...prev, filePath: "" }));

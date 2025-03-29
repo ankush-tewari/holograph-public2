@@ -8,10 +8,10 @@ import Link from 'next/link';
 import HolographForm from './holograph/HolographForm';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useHolograph } from '../../hooks/useHolograph';
+import { useHolograph } from '@/hooks/useHolograph';
 import { format } from "date-fns";
 import { userIcons, buttonIcons } from '@/config/icons';
-import { debugLog } from "../../utils/debug";
+import { debugLog } from '@/utils/debug';
 
 // Define types for our data
 interface User {

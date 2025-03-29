@@ -3,7 +3,7 @@
 
 import { useSession } from "next-auth/react";
 import { useCallback } from "react";
-import { debugLog } from "../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 export function useHolograph() {
   const { data: session, update, status } = useSession();

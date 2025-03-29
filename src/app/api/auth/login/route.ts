@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs"; // ✅ Use consistent bcrypt import
 import jwt from "jsonwebtoken"; // ✅ Ensure jsonwebtoken is imported
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 export async function POST(req: Request) {
   try {

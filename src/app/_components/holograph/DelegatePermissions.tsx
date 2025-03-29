@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useHolograph } from "@/hooks/useHolograph";
 import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
-import { debugLog } from "../../../utils/debug";
+import { debugLog } from "@/utils/debug";
 
 export default function DelegatePermissions({ holographId }) {
   interface Delegate {

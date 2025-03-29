@@ -5,7 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
-import { debugLog } from "../utils/debug";
+import { debugLog } from "@/utils/debug";
 import bcrypt from "bcryptjs"; // ✅ Import bcryptjs
 
 debugLog("AUTH OPTIONS LOADING");

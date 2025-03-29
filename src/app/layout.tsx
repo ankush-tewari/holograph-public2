@@ -5,7 +5,7 @@ import Navbar from "./_components/layout/navbar";
 import { Providers } from "./providers";
 import SessionDebugger from "./_components/SessionDebug";
 import HelpDialog from "./_components/HelpDialog"; // ✅ Import Help Dialog
-import { debugLog } from "../utils/debug";
+import { debugLog } from "@/utils/debug";
 import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });

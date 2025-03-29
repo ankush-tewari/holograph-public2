@@ -2,10 +2,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../../../lib/auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { removePrincipal } from '@/utils/principalHelpers';
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from '@/utils/debug';
 
 export async function GET(request: NextRequest) {
   try {

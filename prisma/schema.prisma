@@ -51,6 +51,10 @@ model User {
   // ✅ relations for Property
   createdProperties Property[] @relation("PropertyCreator")
   updatedProperties Property[] @relation("PropertyUpdater")
+
+  // ✅ relations for PersonalProperty
+  createdPersonalProperties PersonalProperty[] @relation("PersonalPropertyCreator")
+  updatedPersonalProperties PersonalProperty[] @relation("PersonalPropertyUpdater")
 }
 
 
@@ -80,10 +84,9 @@ model Holograph {
   vitalDocuments      VitalDocument[] // need one for each Holograph Section
   financialAccounts FinancialAccount[] 
   insuranceAccounts InsuranceAccount[] 
-  Properties Property[] 
+  Properties Property[]
+  PersonalProperties PersonalProperty[] 
 }
-
-
 
 // establishes an owner for the holograph who is responsible for payment
 model OwnershipAuditLog {
@@ -321,6 +324,34 @@ model Property {
 
   creator     User      @relation("PropertyCreator", fields: [createdBy], references: [id]) // ✅ Relation name
   updater     User?     @relation("PropertyUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+// Personal Property such as a vehicle or jewelry
+model PersonalProperty {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("PersonalPropertyCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("PersonalPropertyUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
 
   @@unique([holographId, filePath])
 }

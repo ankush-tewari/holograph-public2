@@ -280,7 +280,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     //******************************************************************* */
 
-     // **************************** PROPERTIES ******************************
+    // **************************** PROPERTIES ******************************
     // ✅ 1 Fetch all related insurance account documents before deleting the Holograph
     const relatedProperties = await prisma.property.findMany({
       where: { holographId: id },
@@ -296,8 +296,29 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     // ✅ 3 Delete all related database records
-    debugLog("🗑 Deleting related insurance account records...");
+    debugLog("🗑 Deleting related property records...");
     await prisma.property.deleteMany({ where: { holographId: id } });
+
+    //******************************************************************* */
+
+    // **************************** PERSONAL PROPERTIES ******************************
+    // ✅ 1 Fetch all related insurance account documents before deleting the Holograph
+    const relatedPersonalProperties = await prisma.personalProperty.findMany({
+      where: { holographId: id },
+    });
+
+
+    // ✅ 2 Delete related personal property documents from Google Cloud Storage
+    for (const doc of relatedPersonalProperties) {
+      debugLog(`🗑 Deleting file from GCS: ${doc.filePath}`);
+      if (doc.filePath){
+        await deleteFileFromGCS(doc.filePath);
+      }
+    }
+
+    // ✅ 3 Delete all related database records
+    debugLog("🗑 Deleting related personal property records...");
+    await prisma.personalProperty.deleteMany({ where: { holographId: id } });
 
     //******************************************************************* */
 

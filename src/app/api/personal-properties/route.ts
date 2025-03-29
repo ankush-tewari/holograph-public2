@@ -1,4 +1,4 @@
-// /src/app/api/properties/route.ts 
+// /src/app/api/personal-properties/route.ts 
 // - GET and POST methods
 
 import { NextRequest, NextResponse } from "next/server";
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden — no access to these properties" }, { status: 403 });
     }
 
-    const accounts = await prisma.property.findMany({
+    const accounts = await prisma.personalProperty.findMany({
       where: { holographId },
       orderBy: { createdAt: "asc" },
     });
@@ -72,10 +72,10 @@ export async function GET(req: NextRequest) {
       };
     }));
 
-    debugLog("✅ Decrypted properties:", decryptedAccounts);
+    debugLog("✅ Decrypted personal properties:", decryptedAccounts);
     return NextResponse.json(decryptedAccounts, { status: 200 });
   } catch (error) {
-    console.error("❌ Failed to fetch properties:", error);
+    console.error("❌ Failed to fetch personal properties:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -94,7 +94,6 @@ export async function POST(req: NextRequest) {
 
   let holographId: string | null = null;
   let name: string | null = null;
-  let propertyType: string | null = null;
   let notes: string | null = null;
   let uploadedBy: string | null = null; 
   let createdBy: string | null = null; 
@@ -107,24 +106,23 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     holographId = formData.get("holographId") as string;
     name = formData.get("name") as string;
-    propertyType = formData.get("propertyType") as string;
     notes = formData.get("notes") as string;
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
-    const propertyId = formData.get("id") as string | null; 
-    const isNewDocument = !propertyId && !existingFilePath;
+    const personalPropertyId = formData.get("id") as string | null; 
+    const isNewDocument = !personalPropertyId && !existingFilePath;
     createdBy = userId
     updatedBy = userId
 
 
     let existingAccount = null;
 
-    if (propertyId) {
-      existingAccount = await prisma.property.findUnique({
-        where: { id: propertyId }, // ✅ Lookup by ID first
+    if (personalPropertyId) {
+      existingAccount = await prisma.personalProperty.findUnique({
+        where: { id: personalPropertyId }, // ✅ Lookup by ID first
       });
     } else if (!isNewDocument) {
-      existingAccount = await prisma.property.findFirst({
+      existingAccount = await prisma.personalProperty.findFirst({
         where: { holographId, filePath: existingFilePath || null }, // ✅ Fallback lookup by filePath
       });
     }
@@ -136,9 +134,9 @@ export async function POST(req: NextRequest) {
     }
 
 
-    debugLog("🟢 Parsed fields:", { holographId, name, propertyType, notes });
+    debugLog("🟢 Parsed fields:", { holographId, name, notes });
 
-    if (!holographId || !name || !propertyType) {
+    if (!holographId || !name) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -174,7 +172,7 @@ export async function POST(req: NextRequest) {
       const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
     
       // ✅ New GCS structure: <holographId>/<section>/<timestamped-original-name>
-      const section = "properties"; // <- change as needed per section
+      const section = "personal-properties"; // <- change as needed per section
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
     
       debugLog("🟢 Uploading new file:", gcsFileName);
@@ -208,13 +206,12 @@ export async function POST(req: NextRequest) {
       
 
     if (isNewDocument) {
-      debugLog("🆕 Creating property account...");
+      debugLog("🆕 Creating insurance account...");
     
-      const created = await prisma.property.create({
+      const created = await prisma.personalProperty.create({
         data: {
           holographId,
           uploadedBy,
-          propertyType,
           createdBy,
           updatedBy,
           filePath: relativeFilePath || null,
@@ -233,14 +230,13 @@ export async function POST(req: NextRequest) {
       debugLog("✅ Created:", created.id);
       return NextResponse.json(created, { status: 201 });
     } else {
-      debugLog("✏️ Updating property account...");
+      debugLog("✏️ Updating personal property account...");
       
 
-      const updated = await prisma.property.update({
-        where: { id: propertyId || existingAccount?.id }, // ✅ Lookup by ID first
+      const updated = await prisma.personalProperty.update({
+        where: { id: personalPropertyId || existingAccount?.id }, // ✅ Lookup by ID first
         data: {
           uploadedBy,
-          propertyType,
           updatedBy,
           filePath: relativeFilePath || null,
 
@@ -258,7 +254,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(updated, { status: 200 });
     }
   } catch (error: any) {
-    console.error("❌ Full error during property account create/update:", error);
+    console.error("❌ Full error during personal property account create/update:", error);
   
     const message =
       error?.response?.data?.error ||

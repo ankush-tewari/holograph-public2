@@ -1,4 +1,4 @@
-// /src/app/_components/properties/PropertyModal.tsx
+// /src/app/_components/personal-properties/PersonalPropertyModal.tsx
 
 "use client";
 
@@ -7,42 +7,39 @@ import axios from "axios";
 import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
-import { PROPERTY_TYPES } from "@/config/propertyType";
 
-interface Property {
+interface PersonalProperty {
   id?: string;
   name: string;
-  propertyType: string;
   notes?: string | null;
   filePath?: string;
 }
 
-interface PropertyModalProps {
+interface PersonalPropertyModalProps {
   userId: string;
-  property?: Property | null;
+  personalProperty?: PersonalProperty | null;
   holographId: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function PropertyModal({
+export default function PersonalPropertyModal({
   userId,
-  property,
+  personalProperty,
   holographId,
   onClose,
   onSuccess,
-}: PropertyModalProps) {
+}: PersonalPropertyModalProps) {
   const [mounted, setMounted] = useState(false);
 
   const SaveIcon = buttonIcons.save;
   const CloseIcon = buttonIcons.close;
 
   const [formData, setFormData] = useState({
-    name: property?.name || "",
-    propertyType: property?.propertyType || PROPERTY_TYPES[0].value,
-    notes: property?.notes || "",
+    name: personalProperty?.name || "",
+    notes: personalProperty?.notes || "",
     file: null as File | null,
-    filePath: property?.filePath || "",
+    filePath: personalProperty?.filePath || "",
   });
 
   const [errors, setErrors] = useState<{ name?: string; }>({});
@@ -61,15 +58,15 @@ export default function PropertyModal({
     setFormData((prev) => ({ ...prev, file: files[0] }));
   };
 
-  // allows the user to delete a file attached to a property record without deleting the whole record.
+  // allows the user to delete a file attached to a personal property record without deleting the whole record.
   const handleFileDelete = async () => {
-    if (!property?.id) return;
+    if (!personalProperty?.id) return;
   
     const isConfirmed = window.confirm("Are you sure you want to delete this file? This action cannot be undone.");
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/properties/${property.id}?fileOnly=true`);
+      await axios.delete(`/api/properties/${personalProperty.id}?fileOnly=true`);
   
       // Update local state to reflect that the file is deleted
       setFormData((prev) => ({ ...prev, filePath: "" }));
@@ -84,7 +81,7 @@ export default function PropertyModal({
   const handleSubmit = async () => {
     const validationErrors: { name?: string; } = {};
     if (!formData.name.trim()) {
-      validationErrors.name = "Property name is required.";
+      validationErrors.name = "Personal Property name is required.";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -96,15 +93,14 @@ export default function PropertyModal({
     const formDataToSend = new FormData();
     formDataToSend.append("holographId", holographId);
     formDataToSend.append("name", formData.name);
-    formDataToSend.append("propertyType", formData.propertyType);
     formDataToSend.append("notes", formData.notes || "");
 
-    if (property?.id) {
-      formDataToSend.append("id", property.id); // ✅ Ensure ID is sent for updates
+    if (personalProperty?.id) {
+      formDataToSend.append("id", personalProperty.id); // ✅ Ensure ID is sent for updates
     }
 
-    if (property && property.filePath) {
-      formDataToSend.append("existingFilePath", property.filePath);
+    if (personalProperty && personalProperty.filePath) {
+      formDataToSend.append("existingFilePath", personalProperty.filePath);
     }
 
     if (formData.file) {
@@ -118,16 +114,16 @@ export default function PropertyModal({
       return;
     }
 
-    debugLog("🟢 Sending Property FormData:", Object.fromEntries(formDataToSend.entries()));
+    debugLog("🟢 Sending Personal Property FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
-      await axios.post(`/api/properties`, formDataToSend, {
+      await axios.post(`/api/personal-properties`, formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("❌ Error saving property:", error);
+      console.error("❌ Error saving personalproperty:", error);
     }
   };
 
@@ -135,10 +131,10 @@ export default function PropertyModal({
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-          {property ? "Edit Property" : "Add New Property"}
+          {personalProperty ? "Edit Personal Property" : "Add New Personal Property"}
         </h2>
 
-        {/* Property Name */}
+        {/* Personal Property Name */}
         <label className="block text-gray-700 font-medium">Property Name *</label>
         <input
           type="text"
@@ -150,21 +146,6 @@ export default function PropertyModal({
         {errors.name && (
           <p className="text-sm text-red-500 mt-1">{errors.name}</p>
         )}
-
-
-        {/* Property Type */}
-        <label className="block text-gray-700 font-medium mt-4">Property Type</label>
-        <select
-          className="w-full p-3 border border-gray-300 rounded-lg"
-          value={formData.propertyType}
-          onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
-        >
-          {PROPERTY_TYPES.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
 
         {/* Notes */}
         <label className="block text-gray-700 font-medium mt-4">Notes</label>
@@ -195,7 +176,7 @@ export default function PropertyModal({
         <div className="mt-6 flex justify-end gap-4">
           <button onClick={handleSubmit} className="btn-save">
             <SaveIcon className="w-4 h-4" />
-            {property ? "Update" : "Save"}
+            {personalProperty ? "Update" : "Save"}
           </button>
           <button onClick={onClose} className="btn-cancel">
             <CloseIcon className="w-4 h-4" />

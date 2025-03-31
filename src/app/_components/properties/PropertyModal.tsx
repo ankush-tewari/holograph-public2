@@ -45,7 +45,8 @@ export default function PropertyModal({
     filePath: property?.filePath || "",
   });
 
-  const [errors, setErrors] = useState<{ name?: string; }>({});
+  const [errors, setErrors] = useState<{ name?: string; propertyType?: string }>({});
+
 
 
   useEffect(() => {
@@ -82,9 +83,12 @@ export default function PropertyModal({
   
 
   const handleSubmit = async () => {
-    const validationErrors: { name?: string; } = {};
+    const validationErrors: { name?: string; propertyType?: string} = {};
     if (!formData.name.trim()) {
       validationErrors.name = "Property name is required.";
+    }
+    if (!formData.propertyType.trim()) {
+      validationErrors.propertyType = "Property type is required.";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -155,9 +159,10 @@ export default function PropertyModal({
         {/* Property Type */}
         <label className="block text-gray-700 font-medium mt-4">Property Type</label>
         <select
-          className="w-full p-3 border border-gray-300 rounded-lg"
+          className={`w-full p-3 border ${errors.propertyType ? "border-red-500" : "border-gray-300"} rounded-lg`}
           value={formData.propertyType}
           onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
+          onFocus={() => setErrors((prev) => ({ ...prev, propertyType: undefined }))}
         >
           {PROPERTY_TYPES.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -165,6 +170,9 @@ export default function PropertyModal({
             </option>
           ))}
         </select>
+        {errors.propertyType && (
+          <p className="text-sm text-red-500 mt-1">{errors.propertyType}</p>
+        )}
 
         {/* Notes */}
         <label className="block text-gray-700 font-medium mt-4">Notes</label>

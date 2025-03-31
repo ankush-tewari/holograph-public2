@@ -9,6 +9,8 @@ import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
+import { insuranceAccountSchema } from "@/validators/insuranceAccountSchema";
+import { ZodError } from "zod";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -128,7 +130,21 @@ export async function POST(req: NextRequest) {
     createdBy = userId
     updatedBy = userId
 
-
+    // ✅ Zod Validation
+    try {
+      insuranceAccountSchema.parse({
+        name,
+        provider,
+        policyType,
+        notes,
+      });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err;
+    }
+    
     let existingAccount = null;
 
     if (insuranceAccountId) {
@@ -150,9 +166,10 @@ export async function POST(req: NextRequest) {
 
     debugLog("🟢 Parsed fields:", { holographId, name, provider, policyType, notes });
 
-    if (!holographId || !name || !policyType || !provider) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!holographId) {
+      return NextResponse.json({ error: "Missing Holograph ID" }, { status: 400 });
     }
+    
 
     const holograph = await prisma.holograph.findUnique({
       where: { id: holographId },

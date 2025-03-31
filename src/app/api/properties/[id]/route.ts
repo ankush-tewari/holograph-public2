@@ -8,6 +8,9 @@ import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { propertySchema } from "@/validators/propertySchema";
+import { ZodError } from "zod";
+
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -29,10 +32,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const file = formData.get("file") as File | null;
     updatedBy = session.user.id
 
-    if (!name || !propertyType || !holographId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    try {
+      propertySchema.parse({
+        name,
+        propertyType,
+        notes,
+      });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err;
     }
-
+    
+    if (!holographId) {
+      return NextResponse.json({ error: "Missing Holograph ID" }, { status: 400 });
+    }
+    
     // Encrypt fields
     const encryptedName = await encryptFieldWithHybridEncryption(holographId, name);
     const encryptedNotes = notes

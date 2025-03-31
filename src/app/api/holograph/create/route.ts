@@ -1,4 +1,5 @@
-// /src/app/api/holograph/create/route.ts
+// /src/app/api/holograph/create/route.ts  
+// POST Method
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
@@ -11,6 +12,8 @@ import { exec } from "child_process";
 import { generateSSLCertificate } from '@/lib/ssl';
 import path from "path";
 import fs from "fs";
+import { holographSchema } from '@/validators/holographSchema';
+import { ZodError } from "zod"; // ✅ For safe error handling
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
@@ -64,13 +67,20 @@ export async function POST(request: Request) {
     debugLog("✅ Session verified. User ID:", session.user.id);
 
     // Extract request data
-    const { title, geography } = await request.json();
-    debugLog("📌 Received request with title:", title);
+    const formData = await request.formData();
+    const title = formData.get("title") as string;
+    const geography = formData.get("geography") as string;
+    debugLog("📌 Parsed FormData:", { title, geography });
 
-    // Validate input
-    if (!title) {
-      debugLog("❌ No title provided.");
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+
+    // ✅ Zod Validation
+    try {
+      holographSchema.parse({ title, geography });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err; // Rethrow if it’s not a Zod error
     }
 
     // ✅ Create holograph and principal relationship in a transaction

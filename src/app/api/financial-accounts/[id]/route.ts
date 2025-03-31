@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       throw err;
     }
 
-    if (!name || !accountType || !holographId) {
+    if (!holographId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 

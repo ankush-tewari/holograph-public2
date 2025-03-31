@@ -8,6 +8,9 @@ import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { insuranceAccountSchema } from "@/validators/insuranceAccountSchema";
+import { ZodError } from "zod";
+
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -30,8 +33,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const file = formData.get("file") as File | null;
     updatedBy = session.user.id
 
-    if (!name || !policyType || !holographId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // ✅ Zod validation for user inputs
+    try {
+      insuranceAccountSchema.parse({
+        name,
+        provider,
+        policyType,
+        notes,
+      });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err;
+    }
+
+    if (!holographId) {
+      return NextResponse.json({ error: "Missing Holograph ID" }, { status: 400 });
     }
 
     // Encrypt fields

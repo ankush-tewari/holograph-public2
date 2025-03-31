@@ -47,7 +47,8 @@ export default function InsuranceAccountModal({
     filePath: account?.filePath || "",
   });
 
-  const [errors, setErrors] = useState<{ name?: string; provider?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; provider?: string; policyType?: string }>({});
+
 
 
   useEffect(() => {
@@ -84,12 +85,16 @@ export default function InsuranceAccountModal({
   
 
   const handleSubmit = async () => {
-    const validationErrors: { name?: string; provider?: string } = {};
+    const validationErrors: { name?: string; provider?: string; policyType?: string } = {};
+
     if (!formData.name.trim()) {
       validationErrors.name = "Account name is required.";
     }
     if (!formData.provider.trim()) {
       validationErrors.provider = "Provider is required.";
+    }
+    if (!formData.policyType.trim()) {
+      validationErrors.policyType = "Policy type is required.";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -174,9 +179,10 @@ export default function InsuranceAccountModal({
         {/* Account Type */}
         <label className="block text-gray-700 font-medium mt-4">Policy Type</label>
         <select
-          className="w-full p-3 border border-gray-300 rounded-lg"
+          className={`w-full p-3 border ${errors.policyType ? "border-red-500" : "border-gray-300"} rounded-lg`}
           value={formData.policyType}
           onChange={(e) => setFormData({ ...formData, policyType: e.target.value })}
+          onFocus={() => setErrors((prev) => ({ ...prev, policyType: undefined }))}
         >
           {INSURANCE_ACCOUNT_TYPES.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -184,6 +190,9 @@ export default function InsuranceAccountModal({
             </option>
           ))}
         </select>
+        {errors.policyType && (
+          <p className="text-sm text-red-500 mt-1">{errors.policyType}</p>
+        )}
 
         {/* Notes */}
         <label className="block text-gray-700 font-medium mt-4">Notes</label>

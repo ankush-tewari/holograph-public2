@@ -9,6 +9,9 @@ import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
+import { personalPropertySchema } from "@/validators/personalPropertySchema";
+import { ZodError } from "zod";
+
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -114,6 +117,18 @@ export async function POST(req: NextRequest) {
     createdBy = userId
     updatedBy = userId
 
+    try {
+          personalPropertySchema.parse({
+            name,
+            notes,
+          });
+        } catch (err) {
+          if (err instanceof ZodError) {
+            return NextResponse.json({ errors: err.errors }, { status: 400 });
+          }
+          throw err;
+        }
+
 
     let existingAccount = null;
 
@@ -130,13 +145,13 @@ export async function POST(req: NextRequest) {
     // 🚨 If updating but no record exists, return an error
     if (!isNewDocument && !existingAccount) {
       debugLog("⚠️ No existing property found, preventing accidental duplication.");
-      return NextResponse.json({ error: "Property record not found for update." }, { status: 404 });
+      return NextResponse.json({ error: "Personal Property record not found for update." }, { status: 404 });
     }
 
 
     debugLog("🟢 Parsed fields:", { holographId, name, notes });
 
-    if (!holographId || !name) {
+    if (!holographId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 

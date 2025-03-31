@@ -7,6 +7,11 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { debugLog } from '@/utils/debug';
 import { deleteFileFromGCS } from "@/lib/gcs"; // Import Google Cloud Storage delete function
+import { Storage } from "@google-cloud/storage";
+
+const storage = new Storage();
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
+
 
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
@@ -203,15 +208,16 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     debugLog("🗑 Deleting related sections in HolographSection...");
     await prisma.holographSection.deleteMany({ where: { holographId: id } });
 
-    // ✅ Step 2: Delete SSL Certificates from Google Cloud Storage
-    debugLog("🔍 Fetching SSL certificate paths for deletion...");
+    // ✅ Step 2: Delete SSL certificate folder from new GCS structure
+    const sslFolderPrefix = `ssl-keys/${id}/current/`;
+    debugLog(`🗑 Deleting all SSL files under GCS path: ${sslFolderPrefix}`);
 
-    if (holograph?.sslCertPath) {
-      await deleteFileFromGCS(holograph.sslCertPath);
+    const [sslFiles] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: sslFolderPrefix });
+    for (const file of sslFiles) {
+      debugLog(`🗑 Deleting SSL file: ${file.name}`);
+      await file.delete();
     }
-    if (holograph?.sslKeyPath) {
-      await deleteFileFromGCS(holograph.sslKeyPath);
-    }
+
 
     /*************************************************** 
     *

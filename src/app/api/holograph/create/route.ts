@@ -8,61 +8,12 @@ import { verify, JwtPayload } from 'jsonwebtoken';
 import { debugLog } from '@/utils/debug';
 import { Storage } from "@google-cloud/storage";
 import { exec } from "child_process";
+import { generateSSLCertificate } from '@/lib/ssl';
 import path from "path";
 import fs from "fs";
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
-
-// ✅ Function to Generate an SSL Certificate
-// ✅ Function to Generate and Upload SSL Certificate to GCS in new structure
-async function generateSSLCertificate(holographId: string) {
-  const certPath = path.join("/tmp", `${holographId}.crt`);
-  const keyPath = path.join("/tmp", `${holographId}.key`);
-  const sslBasePath = `ssl-keys/${holographId}/current`;
-
-  return new Promise((resolve, reject) => {
-    const cmd = `
-      openssl req -x509 -nodes -newkey rsa:2048 \
-      -keyout ${keyPath} -out ${certPath} -days 365 \
-      -subj "/CN=${holographId}"
-    `;
-
-    exec(cmd, async (error) => {
-      if (error) {
-        reject(`❌ Error generating SSL cert: ${error.message}`);
-        return;
-      }
-
-      try {
-        // ✅ Ensure folder structure exists (GCS doesn't support directories natively)
-        await storage.bucket(BUCKET_NAME)
-          .file(`${sslBasePath}/.placeholder`)
-          .save("");
-
-        // ✅ Upload certificate and key
-        const sslCertDest = `${sslBasePath}/public.crt`;
-        const sslKeyDest = `${sslBasePath}/private.key`;
-
-        await storage.bucket(BUCKET_NAME).upload(certPath, { destination: sslCertDest });
-        await storage.bucket(BUCKET_NAME).upload(keyPath, { destination: sslKeyDest });
-
-        // ✅ Clean up local temp files
-        fs.unlinkSync(certPath);
-        fs.unlinkSync(keyPath);
-
-        debugLog(`✅ Uploaded SSL cert and key to ${sslBasePath}`);
-
-        resolve({
-          sslCertPath: sslCertDest,
-          sslKeyPath: sslKeyDest,
-        });
-      } catch (uploadError: any) {
-        reject(`❌ Error uploading SSL files to GCS: ${uploadError.message}`);
-      }
-    });
-  });
-}
 
 export async function POST(request: Request) {
   try {

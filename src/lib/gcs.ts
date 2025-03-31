@@ -159,3 +159,5 @@ export async function uploadBufferToGCS(buffer: Buffer, gcsFileName: string, con
       });
   });
 }
+
+export { bucket };

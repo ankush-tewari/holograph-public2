@@ -8,6 +8,8 @@ import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { financialAccountSchema } from "@/validators/financialAccountSchema"; // ✅ Import schema
+import { ZodError } from "zod"; // ✅ Zod error type
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -29,6 +31,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
     updatedBy = session.user.id
+
+    // ✅ Zod input validation
+    try {
+      financialAccountSchema.parse({
+        name,
+        institution,
+        accountType,
+        notes,
+      });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err;
+    }
 
     if (!name || !accountType || !holographId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

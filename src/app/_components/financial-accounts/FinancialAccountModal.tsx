@@ -47,7 +47,12 @@ export default function FinancialAccountModal({
     filePath: account?.filePath || "",
   });
 
-  const [errors, setErrors] = useState<{ name?: string; institution?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    institution?: string;
+    accountType?: string;
+  }>({});
+  
 
 
   useEffect(() => {
@@ -84,12 +89,20 @@ export default function FinancialAccountModal({
   
 
   const handleSubmit = async () => {
-    const validationErrors: { name?: string; institution?: string } = {};
+    const validationErrors: {
+      name?: string;
+      institution?: string;
+      accountType?: string;
+    } = {};
+
     if (!formData.name.trim()) {
       validationErrors.name = "Account name is required.";
     }
     if (!formData.institution.trim()) {
       validationErrors.institution = "Institution is required.";
+    }
+    if (!formData.accountType.trim()) {
+      validationErrors.accountType = "Account type is required.";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -174,9 +187,10 @@ export default function FinancialAccountModal({
         {/* Account Type */}
         <label className="block text-gray-700 font-medium mt-4">Account Type</label>
         <select
-          className="w-full p-3 border border-gray-300 rounded-lg"
+          className={`w-full p-3 border ${errors.accountType ? "border-red-500" : "border-gray-300"} rounded-lg`}
           value={formData.accountType}
           onChange={(e) => setFormData({ ...formData, accountType: e.target.value })}
+          onFocus={() => setErrors((prev) => ({ ...prev, accountType: undefined }))}
         >
           {FINANCIAL_ACCOUNT_TYPES.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -184,6 +198,9 @@ export default function FinancialAccountModal({
             </option>
           ))}
         </select>
+        {errors.accountType && (
+          <p className="text-sm text-red-500 mt-1">{errors.accountType}</p>
+        )}
 
         {/* Notes */}
         <label className="block text-gray-700 font-medium mt-4">Notes</label>

@@ -7,6 +7,8 @@ import { uploadFileToGCS } from "@/lib/gcs"; // ✅ Ensure this import exists
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { debugLog } from "@/utils/debug";
+import { vitalDocumentSchema } from "@/validators/vitalDocumentSchema";
+import { ZodError } from "zod";
 
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
@@ -51,13 +53,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const notes = formData.get("notes") as string | null; // ✅ Fix: Ensure `notes` can be `null`
         const file = formData.get("file") as File | null;
         updatedBy = session.user.id
+
+        try {
+            vitalDocumentSchema.parse({
+              name,
+              type,
+              notes,
+            });
+          } catch (err) {
+            if (err instanceof ZodError) {
+              return NextResponse.json({ errors: err.errors }, { status: 400 });
+            }
+            throw err;
+          }
             
         if (!vitalDocumentId) {
             return NextResponse.json({ error: "Missing document ID" }, { status: 400 });
-        }
-
-        if (!name || !type) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
         // ✅ Standardized file structure <holographId>/<section>/<timestamped-file-name>

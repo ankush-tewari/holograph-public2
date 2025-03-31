@@ -44,33 +44,38 @@ const HolographForm: React.FC<HolographFormProps> = ({
     event.preventDefault();
     setIsSubmitting(true);
     setError('');
-
+  
     try {
       const endpoint =
         mode === 'create'
           ? '/api/holograph/create'
           : `/api/holograph/${holographId}/edit`;
-
+  
+      // ✅ Use FormData
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("geography", geography);
+  
       const response = await fetch(endpoint, {
         method: mode === 'create' ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, geography }),
+        body: formData,
       });
-
+  
       if (!response.ok) {
-        setError("Something went wrong. Please try again.");
-        console.error("❌ API error:", response.statusText);
+        const errorData = await response.json();
+        setError(errorData.error || "Something went wrong. Please try again.");
+        console.error("❌ API error:", errorData);
         setIsSubmitting(false);
         return;
       }
-
+  
       const updatedHolograph = await response.json();
       debugLog(`✅ Holograph ${mode === "create" ? "created" : "updated"}:`, updatedHolograph);
-
+  
       if (onSuccess) {
         onSuccess(updatedHolograph);
       }
-
+  
     } catch (err) {
       console.error(`❌ Error ${mode === "create" ? "creating" : "updating"} holograph:`, err);
       setError("An unexpected error occurred.");
@@ -78,11 +83,7 @@ const HolographForm: React.FC<HolographFormProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  debugLog("🌎 Selected geography in form:", geography);
-  debugLog("📋 US_STATES sample:", US_STATES.slice(0, 2));
-
-
+  
 
   return (
     <div className="p-6">

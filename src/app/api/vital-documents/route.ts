@@ -9,8 +9,8 @@ import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-
+import { vitalDocumentSchema } from "@/validators/vitalDocumentSchema";
+import { ZodError } from "zod";
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
@@ -151,15 +151,24 @@ export async function POST(req: Request) {
     createdBy = userId
     updatedBy = userId
 
+    try {
+        vitalDocumentSchema.parse({
+          name,
+          type,
+          notes,
+        });
+      } catch (err) {
+        if (err instanceof ZodError) {
+          return NextResponse.json({ errors: err.errors }, { status: 400 });
+        }
+        throw err;
+      }
+
     debugLog("🟢 Parsed Form Data:", { vitalDocumentId, holographId, name, type, notes, file });
 
     // Validate required fields
-    if (!holographId || !name || !type) {
-        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    if (!holographId || !name || !type ) {
-      console.error("❌ Missing required fields:", { holographId, name, type, uploadedBy });
+    if (!holographId) {
+      console.error("❌ Missing required fields:", { holographId });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 

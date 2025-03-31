@@ -9,6 +9,8 @@ import { uploadFileToGCS, uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
+import { financialAccountSchema } from "@/validators/financialAccountSchema";
+import { ZodError } from "zod"; // ✅ For safe error handling
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -101,23 +103,23 @@ export async function POST(req: NextRequest) {
   const BUCKET_NAME = process.env.GCS_BUCKET_NAME!;
   const GCS_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
 
-
   let holographId: string | null = null;
   let name: string | null = null;
   let institution: string | null = null;
   let accountType: string | null = null;
   let notes: string | null = null;
-  let uploadedBy: string | null = null; // ✅ Initialize as null
+  let uploadedBy: string | null = null;
   let createdBy: string | null = null; 
   let updatedBy: string | null = null; 
   let filePath: string | null = null;
   let newFilePath: string | null = null;
   let isNewDocument = false;
-  createdBy = userId
-  updatedBy = userId
+  createdBy = userId;
+  updatedBy = userId;
 
   try {
     const formData = await req.formData();
+
     holographId = formData.get("holographId") as string;
     name = formData.get("name") as string;
     institution = formData.get("institution") as string;
@@ -128,30 +130,36 @@ export async function POST(req: NextRequest) {
     const financialAccountId = formData.get("id") as string | null; 
     const isNewDocument = !financialAccountId && !existingFilePath;
 
+    // ✅ Zod Validation
+    try {
+      financialAccountSchema.parse({ name, institution, accountType, notes });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err; // Rethrow if it’s not a Zod error
+    }
 
     let existingAccount = null;
-
     if (financialAccountId) {
       existingAccount = await prisma.financialAccount.findUnique({
-        where: { id: financialAccountId }, // ✅ Lookup by ID first
+        where: { id: financialAccountId },
       });
     } else if (!isNewDocument) {
       existingAccount = await prisma.financialAccount.findFirst({
-        where: { holographId, filePath: existingFilePath || null }, // ✅ Fallback lookup by filePath
+        where: { holographId, filePath: existingFilePath || null },
       });
     }
 
-    // 🚨 If updating but no record exists, return an error
     if (!isNewDocument && !existingAccount) {
       debugLog("⚠️ No existing financial account found, preventing accidental duplication.");
       return NextResponse.json({ error: "Financial account record not found for update." }, { status: 404 });
     }
 
-
     debugLog("🟢 Parsed fields:", { holographId, name, institution, accountType, notes });
 
-    if (!holographId || !name || !accountType || !institution) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!holographId) {
+      return NextResponse.json({ error: "Missing Holograph ID" }, { status: 400 });
     }
 
     const holograph = await prisma.holograph.findUnique({
@@ -176,25 +184,21 @@ export async function POST(req: NextRequest) {
     let relativeFilePath: string | null = null;
 
     if (file) {
-      uploadedBy = userId; // ✅ Set uploadedBy only if a file exists
+      uploadedBy = userId;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
-    
-      // ✅ Preserve original name and prepend timestamp
       const safeOriginalName = file.name.replaceAll("/", "_");
       const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
-    
-      // ✅ New GCS structure: <holographId>/<section>/<timestamped-original-name>
-      const section = "financial-accounts"; // <- change as needed per section
+      const section = "financial-accounts";
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
-    
+
       debugLog("🟢 Uploading new file:", gcsFileName);
       const uploadedPath = await uploadBufferToGCS(buffer, gcsFileName, file.type);
-    
+
       const normalizedExistingFilePath = filePath;
       const normalizedNewFilePath = uploadedPath;
-    
+
       if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
         debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
         try {
@@ -203,15 +207,14 @@ export async function POST(req: NextRequest) {
           console.warn("⚠️ Error deleting old file:", err);
         }
       }
+
       newFilePath = uploadedPath;
       relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
-
     } else {
       debugLog("✅ No new file uploaded, keeping existing:", filePath);
-      relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null; // ✅ Ensure relativeFilePath is properly handled
+      relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null;
     }
-    
-    
+
     // 🔐 Encrypt fields
     const nameEncrypted = await encryptFieldWithHybridEncryption(holographId, name);
     const institutionEncrypted = institution
@@ -220,11 +223,9 @@ export async function POST(req: NextRequest) {
     const notesEncrypted = notes
       ? await encryptFieldWithHybridEncryption(holographId, notes)
       : null;
-      
 
     if (isNewDocument) {
       debugLog("🆕 Creating financial account...");
-
       const created = await prisma.financialAccount.create({
         data: {
           holographId,
@@ -233,16 +234,12 @@ export async function POST(req: NextRequest) {
           createdBy,
           updatedBy,
           filePath: relativeFilePath || null,
-
-
           name: nameEncrypted.encryptedValue,
           nameKey: nameEncrypted.encryptedKey,
           nameIV: nameEncrypted.iv,
-
           institution: institutionEncrypted?.encryptedValue,
           institutionKey: institutionEncrypted?.encryptedKey,
           institutionIV: institutionEncrypted?.iv,
-
           notes: notesEncrypted?.encryptedValue || null,
           notesKey: notesEncrypted?.encryptedKey || null,
           notesIV: notesEncrypted?.iv || null,
@@ -253,24 +250,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(created, { status: 201 });
     } else {
       debugLog("✏️ Updating financial account...");
-      
-
       const updated = await prisma.financialAccount.update({
-        where: { id: financialAccountId || existingAccount?.id }, // ✅ Lookup by ID first
+        where: { id: financialAccountId || existingAccount?.id },
         data: {
           uploadedBy,
           accountType,
           updatedBy,
           filePath: relativeFilePath || null,
-
           name: nameEncrypted.encryptedValue,
           nameKey: nameEncrypted.encryptedKey,
           nameIV: nameEncrypted.iv,
-
           institution: institutionEncrypted?.encryptedValue,
           institutionKey: institutionEncrypted?.encryptedKey,
           institutionIV: institutionEncrypted?.iv,
-
           notes: notesEncrypted?.encryptedValue || null,
           notesKey: notesEncrypted?.encryptedKey || null,
           notesIV: notesEncrypted?.iv || null,
@@ -282,13 +274,13 @@ export async function POST(req: NextRequest) {
     }
   } catch (error: any) {
     console.error("❌ Full error during financial account create/update:", error);
-  
+
     const message =
       error?.response?.data?.error ||
       error?.response?.data ||
       error?.message ||
       "Unknown error";
-  
+
     return NextResponse.json({ error: message }, { status: 500 });
-  }  
+  }
 }

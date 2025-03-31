@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadFileToGCS, uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadBufferToGCS, deleteFileFromGCS, bucket } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { Storage } from "@google-cloud/storage";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
@@ -192,8 +192,9 @@ export async function POST(req: Request) {
 
     // ✅ Check if SSL certificate exists for this holograph
     debugLog("🔍 Checking if SSL certificate exists for holograph:", holographId);
-    const certPath = `ssl/${holographId}.crt`;
-    const [certExists] = await storage.bucket(BUCKET_NAME).file(certPath).exists();
+    const certPath = `ssl-keys/${holographId}/current/public.crt`;
+    const [certExists] = await bucket.file(certPath).exists();
+
     
     if (!certExists) {
       debugLog("❌ SSL certificate not found for holograph:", holographId);

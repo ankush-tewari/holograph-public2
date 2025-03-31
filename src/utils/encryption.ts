@@ -7,6 +7,17 @@ import { debugLog } from "./debug"; // Optional: for logging
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME!;
 
 /**
+ * Key storage structure:
+ * ssl-keys/<holographId>/current/public.crt - Public key for encryption
+ * ssl-keys/<holographId>/current/private.key - Private key for decryption
+ * 
+ * This structure provides improved security through:
+ * - Isolation of keys by holograph
+ * - Clear separation of public and private keys
+ * - Foundation for future versioning and rotation
+ */
+
+/**
  * Encrypts a field using AES + RSA (Hybrid Encryption).
  * @param holographId ID of the Holograph (used to fetch SSL public key)
  * @param plainText The text you want to encrypt (e.g., document name or notes)
@@ -27,7 +38,7 @@ export async function encryptFieldWithHybridEncryption(
     encrypted += cipher.final("base64");
 
     // 3. Download SSL public key from GCS
-    const certPath = `ssl/${holographId}.crt`; // Public cert stored in GCS under ssl/
+    const certPath = `ssl-keys/${holographId}/current/public.crt`; // Public cert stored in GCS under ssl/{holographId}/
     const [certFile] = await storage.bucket(BUCKET_NAME).file(certPath).download();
     const publicKey = certFile.toString("utf-8");
     debugLog("✅ SSL certificate downloaded");
@@ -45,7 +56,10 @@ export async function encryptFieldWithHybridEncryption(
       iv: iv.toString("base64"), // Base64 string
     };
   } catch (error) {
-    console.error("❌ Error in hybrid encryption:", error);
+      console.error(
+        `❌ Error during encryption. Failed to access key at ssl-keys/${holographId}/current/public.crt:`,
+        error
+      );
     throw error;
   }
 }
@@ -66,7 +80,7 @@ export async function decryptFieldWithHybridEncryption(
   ) {
     try {
       // 1. Download SSL private key from GCS
-      const keyPath = `ssl/${holographId}.key`;
+      const keyPath = `ssl-keys/${holographId}/current/private.key`;
       const [keyFile] = await storage.bucket(BUCKET_NAME).file(keyPath).download();
       const privateKey = keyFile.toString("utf-8");
       debugLog("✅ SSL private key downloaded");
@@ -85,7 +99,10 @@ export async function decryptFieldWithHybridEncryption(
   
       return decrypted;
     } catch (error) {
-      console.error("❌ Error in hybrid decryption:", error);
+        console.error(
+          `❌ Error during decryption. Failed to access key at ssl-keys/${holographId}/current/private.key:`,
+          error
+        );
       return null; // Return null if decryption fails
     }
   }

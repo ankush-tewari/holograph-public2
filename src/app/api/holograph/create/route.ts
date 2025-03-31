@@ -15,9 +15,11 @@ const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 
 // ✅ Function to Generate an SSL Certificate
-async function generateSSLCertificate(holographId) {
+// ✅ Function to Generate and Upload SSL Certificate to GCS in new structure
+async function generateSSLCertificate(holographId: string) {
   const certPath = path.join("/tmp", `${holographId}.crt`);
   const keyPath = path.join("/tmp", `${holographId}.key`);
+  const sslBasePath = `ssl-keys/${holographId}/current`;
 
   return new Promise((resolve, reject) => {
     const cmd = `
@@ -28,24 +30,34 @@ async function generateSSLCertificate(holographId) {
 
     exec(cmd, async (error) => {
       if (error) {
-        reject(`Error generating SSL cert: ${error.message}`);
+        reject(`❌ Error generating SSL cert: ${error.message}`);
         return;
       }
 
-      // ✅ Ensure SSLs are stored in a dedicated folder in GCS
-      const sslCertDest = `ssl/${holographId}.crt`;
-      const sslKeyDest = `ssl/${holographId}.key`;
-
       try {
+        // ✅ Ensure folder structure exists (GCS doesn't support directories natively)
+        await storage.bucket(BUCKET_NAME)
+          .file(`${sslBasePath}/.placeholder`)
+          .save("");
+
+        // ✅ Upload certificate and key
+        const sslCertDest = `${sslBasePath}/public.crt`;
+        const sslKeyDest = `${sslBasePath}/private.key`;
+
         await storage.bucket(BUCKET_NAME).upload(certPath, { destination: sslCertDest });
         await storage.bucket(BUCKET_NAME).upload(keyPath, { destination: sslKeyDest });
 
-        // Clean up local files
+        // ✅ Clean up local temp files
         fs.unlinkSync(certPath);
         fs.unlinkSync(keyPath);
 
-        resolve({ sslCertPath: sslCertDest, sslKeyPath: sslKeyDest });
-      } catch (uploadError) {
+        debugLog(`✅ Uploaded SSL cert and key to ${sslBasePath}`);
+
+        resolve({
+          sslCertPath: sslCertDest,
+          sslKeyPath: sslKeyDest,
+        });
+      } catch (uploadError: any) {
         reject(`❌ Error uploading SSL files to GCS: ${uploadError.message}`);
       }
     });

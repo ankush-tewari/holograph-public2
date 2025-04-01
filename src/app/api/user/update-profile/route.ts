@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import validator from 'validator';
 import { debugLog } from "@/utils/debug";
+import { userProfileSchema } from "@/validators/userProfileSchema";
+import { ZodError } from "zod";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -13,38 +15,34 @@ export async function POST(req: Request) {
   if (!session || !session.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const { firstName, lastName, email } = await req.json();
-
-  if (!firstName || !lastName || !email) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
-
   try {
+    const body = await req.json();
 
-    // check for valid format
-    if (!validator.isEmail(email)) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
-    }
+    // ✅ Zod Validation
+    const validated = userProfileSchema.parse(body);
 
-    // Check if email is already taken by another user
+    // ✅ Check if new email is already used by someone else
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: validated.email },
     });
 
     if (existingUser && existingUser.id !== session.user.id) {
       return NextResponse.json({ error: "Email is already in use" }, { status: 400 });
     }
 
-    // ✅ Securely update user by ID
+    // ✅ Update user info
     await prisma.user.update({
-      where: { id: session.user.id },  // changed from email
-      data: { firstName, lastName, email },
+      where: { id: session.user.id },
+      data: validated,
     });
 
     return NextResponse.json({ message: "Profile updated successfully" });
   } catch (error) {
-    console.error("Error updating profile:", error);
+    if (error instanceof ZodError) {
+      return NextResponse.json({ errors: error.errors }, { status: 400 });
+    }
+
+    console.error("❌ Error updating profile:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

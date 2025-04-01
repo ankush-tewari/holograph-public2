@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import React from 'react'
-import UserDashboard from '../_components/UserDashboard'
+import UserDashboard from "../_components/UserDashboard";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 

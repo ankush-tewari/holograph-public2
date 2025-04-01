@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { debugLog } from "@/utils/debug";
+import { changePasswordSchema } from "@/validators/changePasswordSchema";
+import { ZodError } from "zod";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -14,13 +16,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { currentPassword, newPassword } = await req.json();
-
-  if (!currentPassword || !newPassword) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
-
   try {
+    const body = await req.json();
+
+    // ✅ Zod Validation
+    const { currentPassword, newPassword } = changePasswordSchema.parse(body);
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -30,7 +31,6 @@ export async function POST(req: Request) {
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-
     if (!isMatch) {
       return NextResponse.json({ error: "Incorrect current password" }, { status: 403 });
     }
@@ -44,7 +44,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Error changing password:", error);
+    if (error instanceof ZodError) {
+      const formatted = error.errors.map((e) => ({
+        field: e.path[0],
+        message: e.message,
+      }));
+      return NextResponse.json({ errors: formatted }, { status: 400 });
+    }
+    console.error("❌ Error changing password:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

@@ -195,10 +195,16 @@ export async function POST(req: NextRequest) {
       const section = "financial-accounts";
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
     
-      debugLog("🟢 Encrypting and uploading new file:", gcsFileName);
-      const encryptedBuffer = await encryptBuffer(buffer, holographId);
-      await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
-    
+      const isAlreadyEncrypted = formData.get("fileEncrypted") === "true";
+      debugLog("🟢 Uploading new file:", gcsFileName);
+      if (isAlreadyEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+      }
+
       const normalizedExistingFilePath = filePath;
       const normalizedNewFilePath = gcsFileName;
     

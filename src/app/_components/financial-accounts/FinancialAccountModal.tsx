@@ -8,6 +8,8 @@ import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
+import { importAesKeyFromRaw, encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
+
 
 interface FinancialAccount {
   id?: string;
@@ -132,7 +134,16 @@ export default function FinancialAccountModal({
     }    
 
     if (formData.file) {
-      formDataToSend.append("file", formData.file);
+      try {
+        const aesKey = await fetchAesKey(holographId);
+        const encryptedBlob = await encryptFileInBrowser(formData.file, aesKey);
+      
+        formDataToSend.append("file", encryptedBlob, formData.file.name);
+        formDataToSend.append("fileEncrypted", "true"); // 👈 tell the server it's already encrypted
+      } catch (encryptionError) {
+        console.error("❌ Failed to encrypt file in browser:", encryptionError);
+        return;
+      }
     }
 
     if (userId) {
@@ -154,6 +165,18 @@ export default function FinancialAccountModal({
       console.error("❌ Error saving financial account:", error);
     }
   };
+
+  // --- helper: fetch encrypted AES key for client-side use ---
+async function fetchAesKey(holographId: string): Promise<CryptoKey> {
+  const response = await fetch(`/api/holograph/${holographId}/aes-key`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch AES key");
+  }
+
+  const keyBuffer = await response.arrayBuffer();
+  return await importAesKeyFromRaw(keyBuffer);
+}
+
 
   const modalContent = (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">

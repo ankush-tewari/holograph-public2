@@ -78,8 +78,13 @@ export default function FinancialAccountModal({
     try {
       await axios.delete(`/api/financial-accounts/${account.id}?fileOnly=true`);
   
-      // Update local state to reflect that the file is deleted
-      setFormData((prev) => ({ ...prev, filePath: "" }));
+      // ✅ Clear local file and filePath state
+      setFormData((prev) => ({
+        ...prev,
+        file: null,
+        filePath: "",
+      }));
+      
       // ✅ Trigger parent page refresh
       onSuccess(); 
     } catch (error) {
@@ -122,9 +127,9 @@ export default function FinancialAccountModal({
       formDataToSend.append("id", account.id); // ✅ Ensure ID is sent for updates
     }
 
-    if (account && account.filePath) {
-      formDataToSend.append("existingFilePath", account.filePath);
-    }
+    if (formData.filePath) {
+      formDataToSend.append("existingFilePath", formData.filePath);
+    }    
 
     if (formData.file) {
       formDataToSend.append("file", formData.file);

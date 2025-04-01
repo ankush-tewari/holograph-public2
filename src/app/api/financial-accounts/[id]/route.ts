@@ -124,6 +124,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const { searchParams } = new URL(req.url);
     const fileOnly = searchParams.get("fileOnly") === "true"; // Determine if file-only delete
 
+    // Step 1 look up record + access rights
     const record = await prisma.financialAccount.findUnique({
       where: { id: params.id },
       select: { filePath: true, holographId: true },
@@ -145,42 +146,51 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    // 🟢 Step 2 File-only delete mode: Remove file but keep the record
     // 🟢 File-only delete mode: Remove file but keep the record
     if (fileOnly) {
-      if (record.filePath) {
-        await deleteFileFromGCS(record.filePath);
-        debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
+      if (!record.filePath) {
+        return NextResponse.json({ error: "No file to delete" }, { status: 400 });
+      }
 
-        // ✅ Force Prisma to recognize the update by explicitly setting filePath to an empty string before setting to null
-        await prisma.financialAccount.update({
+      await prisma.$transaction(async (tx) => {
+        await deleteFileFromGCS(record.filePath!);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
+
+        await tx.financialAccount.update({
           where: { id: params.id },
           data: {
-            filePath: "", // Temporary empty value to force recognition
+            filePath: "", // Force recognition
           },
         });
-        
-        // ✅ Ensure filePath and uploadedBy are removed from the financial account record
-        await prisma.financialAccount.update({
+
+        await tx.financialAccount.update({
           where: { id: params.id },
-          data: { filePath: null, uploadedBy: null },
+          data: {
+            filePath: null,
+            uploadedBy: null,
+          },
         });
+      });
 
-        debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Financial Account ${params.id}`);
-
-        return NextResponse.json({ success: true, message: "File deleted, record updated" });
+    
+      debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Financial Account ${params.id}`);
+      return NextResponse.json({ success: true, message: "File deleted, record updated" });
+    }
+    
+    // Step 3: Full delete (file + DB record)
+    await prisma.$transaction(async (tx) => {
+      if (record.filePath) {
+        await deleteFileFromGCS(record.filePath);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
       }
-      return NextResponse.json({ error: "No file to delete" }, { status: 400 });
-    }
 
-    // 🟢 Default: Delete the entire financial account (existing behavior)
-    if (record.filePath) {
-      await deleteFileFromGCS(record.filePath);
-      debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-    }
+      await tx.financialAccount.delete({
+        where: { id: params.id },
+      });
 
-    await prisma.financialAccount.delete({ where: { id: params.id } });
-
-    debugLog(`🗑️ Deleted financial account ${params.id} from database`);
+      debugLog(`🗑️ Deleted financial account ${params.id} from database`);
+    });
     return NextResponse.json({ success: true, message: "Financial account deleted" });
 
   } catch (error) {

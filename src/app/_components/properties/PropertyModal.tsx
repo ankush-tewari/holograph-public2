@@ -107,9 +107,9 @@ export default function PropertyModal({
       formDataToSend.append("id", property.id); // ✅ Ensure ID is sent for updates
     }
 
-    if (property && property.filePath) {
-      formDataToSend.append("existingFilePath", property.filePath);
-    }
+    if (formData.filePath) {
+      formDataToSend.append("existingFilePath", formData.filePath);
+    }    
 
     if (formData.file) {
       formDataToSend.append("file", formData.file);

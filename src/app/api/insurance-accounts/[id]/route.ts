@@ -148,40 +148,48 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // 🟢 File-only delete mode: Remove file but keep the record
     if (fileOnly) {
-      if (record.filePath) {
-        await deleteFileFromGCS(record.filePath);
-        debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
+      if (!record.filePath) {
+        return NextResponse.json({ error: "No file to delete" }, { status: 400 });
+      }
 
-        // ✅ Force Prisma to recognize the update by explicitly setting filePath to an empty string before setting to null
-        await prisma.insuranceAccount.update({
+      await prisma.$transaction(async (tx) => {
+        await deleteFileFromGCS(record.filePath!);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
+
+        await tx.insuranceAccount.update({
           where: { id: params.id },
           data: {
-            filePath: "", // Temporary empty value to force recognition
+            filePath: "", // Force recognition
           },
         });
-        
-        // ✅ Ensure filePath and uploadedBy are removed from the insurance account record
-        await prisma.insuranceAccount.update({
+
+        await tx.insuranceAccount.update({
           where: { id: params.id },
-          data: { filePath: null, uploadedBy: null },
+          data: {
+            filePath: null,
+            uploadedBy: null,
+          },
         });
+      });
 
-        debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Insurance Account ${params.id}`);
+      debugLog(`✅ File-only delete completed for insurance account ${params.id}`);
+      return NextResponse.json({ success: true, message: "File deleted, record retained" });
+    }
 
-        return NextResponse.json({ success: true, message: "File deleted, record updated" });
+    // Step 3: Full deletion
+    await prisma.$transaction(async (tx) => {
+      if (record.filePath) {
+        await deleteFileFromGCS(record.filePath);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
       }
-      return NextResponse.json({ error: "No file to delete" }, { status: 400 });
-    }
 
-    // 🟢 Default: Delete the entire insurance account (existing behavior)
-    if (record.filePath) {
-      await deleteFileFromGCS(record.filePath);
-      debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-    }
+      await tx.insuranceAccount.delete({
+        where: { id: params.id },
+      });
 
-    await prisma.insuranceAccount.delete({ where: { id: params.id } });
+      debugLog(`🗑️ Insurance account ${params.id} deleted from DB`);
+    });
 
-    debugLog(`🗑️ Deleted insurance account ${params.id} from database`);
     return NextResponse.json({ success: true, message: "Insurance account deleted" });
 
   } catch (error) {

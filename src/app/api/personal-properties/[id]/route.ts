@@ -133,42 +133,52 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // 🟢 File-only delete mode: Remove file but keep the record
     if (fileOnly) {
-      if (record.filePath) {
-        await deleteFileFromGCS(record.filePath);
-        debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-
-        // ✅ Force Prisma to recognize the update by explicitly setting filePath to an empty string before setting to null
-        await prisma.personalProperty.update({
+      if (!record.filePath) {
+        return NextResponse.json({ error: "No file to delete" }, { status: 400 });
+      }
+    
+      await prisma.$transaction(async (tx) => {
+        await deleteFileFromGCS(record.filePath!);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
+    
+        // ✅ Force recognition before null
+        await tx.personalProperty.update({
           where: { id: params.id },
           data: {
-            filePath: "", // Temporary empty value to force recognition
+            filePath: "", // Force recognition
           },
         });
-        
-        // ✅ Ensure filePath and uploadedBy are removed from the property record
-        await prisma.personalProperty.update({
+    
+        await tx.personalProperty.update({
           where: { id: params.id },
-          data: { filePath: null, uploadedBy: null },
+          data: {
+            filePath: null,
+            uploadedBy: null,
+          },
         });
-
-        debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Personal Property ${params.id}`);
-
-        return NextResponse.json({ success: true, message: "File deleted, record updated" });
-      }
-      return NextResponse.json({ error: "No file to delete" }, { status: 400 });
+      });
+    
+      debugLog(`✅ File-only delete completed for personal property ${params.id}`);
+      return NextResponse.json({ success: true, message: "File deleted, record retained" });
     }
+    
 
     // 🟢 Default: Delete the entire personal property (existing behavior)
-    if (record.filePath) {
-      await deleteFileFromGCS(record.filePath);
-      debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-    }
+    // Full delete
+    await prisma.$transaction(async (tx) => {
+      if (record.filePath) {
+        await deleteFileFromGCS(record.filePath);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
+      }
 
-    await prisma.property.delete({ where: { id: params.id } });
+      await tx.personalProperty.delete({
+        where: { id: params.id },
+      });
 
-    debugLog(`🗑️ Deleted personal property ${params.id} from database`);
+      debugLog(`🗑️ Deleted personal property ${params.id} from database`);
+    });
+
     return NextResponse.json({ success: true, message: "Personal Property deleted" });
 
   } catch (error) {

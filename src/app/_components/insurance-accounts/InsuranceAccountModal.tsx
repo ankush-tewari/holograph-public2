@@ -114,10 +114,10 @@ export default function InsuranceAccountModal({
       formDataToSend.append("id", account.id); // ✅ Ensure ID is sent for updates
     }
 
-    if (account && account.filePath) {
-      formDataToSend.append("existingFilePath", account.filePath);
+    if (formData.filePath) {
+      formDataToSend.append("existingFilePath", formData.filePath);
     }
-
+    
     if (formData.file) {
       formDataToSend.append("file", formData.file);
     }

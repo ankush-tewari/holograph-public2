@@ -99,9 +99,9 @@ export default function PersonalPropertyModal({
       formDataToSend.append("id", personalProperty.id); // ✅ Ensure ID is sent for updates
     }
 
-    if (personalProperty && personalProperty.filePath) {
-      formDataToSend.append("existingFilePath", personalProperty.filePath);
-    }
+    if (formData.filePath) {
+      formDataToSend.append("existingFilePath", formData.filePath);
+    }    
 
     if (formData.file) {
       formDataToSend.append("file", formData.file);

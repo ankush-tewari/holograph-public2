@@ -136,18 +136,21 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
           return NextResponse.json({ error: "Forbidden — only the owner or a principal can delete this document" }, { status: 403 });
       }
   
-      if (vitalDocument.filePath) {
-          try {
-              await deleteFileFromGCS(vitalDocument.filePath);
-              console.log("✅ File deleted from GCS:", vitalDocument.filePath);
-          } catch (error) {
-              console.error("❌ Error deleting file from GCS:", error);
-          }
-      }
-    
-      await prisma.vitalDocument.delete({ where: { id: params.id } });
-  
+      // ✅ Step 1: Delete file and update DB in a transaction
+      await prisma.$transaction(async (tx) => {
+        if (vitalDocument.filePath) {
+          await deleteFileFromGCS(vitalDocument.filePath);
+          debugLog("🗑️ GCS file deleted:", vitalDocument.filePath);
+        }
+
+        await tx.vitalDocument.delete({
+          where: { id: params.id },
+        });
+      });
+      
+      debugLog(`✅ Vital Document ${params.id} deleted successfully`);
       return NextResponse.json({ message: "Document deleted successfully" }, { status: 200 });
+      
     } catch (error) {
       console.error("Error deleting document:", error);
       return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });

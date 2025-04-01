@@ -136,42 +136,54 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // 🟢 File-only delete mode: Remove file but keep the record
-    if (fileOnly) {
-      if (record.filePath) {
-        await deleteFileFromGCS(record.filePath);
-        debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-
-        // ✅ Force Prisma to recognize the update by explicitly setting filePath to an empty string before setting to null
-        await prisma.property.update({
-          where: { id: params.id },
-          data: {
-            filePath: "", // Temporary empty value to force recognition
-          },
-        });
-        
-        // ✅ Ensure filePath and uploadedBy are removed from the property record
-        await prisma.property.update({
-          where: { id: params.id },
-          data: { filePath: null, uploadedBy: null },
-        });
-
-        debugLog(`🗑️ Database updated: filePath=null, uploadedBy=null for Property ${params.id}`);
-
-        return NextResponse.json({ success: true, message: "File deleted, record updated" });
-      }
+   // 🟢 File-only delete mode
+  if (fileOnly) {
+    if (!record.filePath) {
       return NextResponse.json({ error: "No file to delete" }, { status: 400 });
     }
 
-    // 🟢 Default: Delete the entire property (existing behavior)
-    if (record.filePath) {
-      await deleteFileFromGCS(record.filePath);
-      debugLog(`🗑️ Deleted file from GCS: ${record.filePath}`);
-    }
+    await prisma.$transaction(async (tx) => {
+      await deleteFileFromGCS(record.filePath!);
+      debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
 
-    await prisma.property.delete({ where: { id: params.id } });
+      // ✅ Force recognition by clearing to empty string first
+      await tx.property.update({
+        where: { id: params.id },
+        data: {
+          filePath: "", // Force change
+        },
+      });
 
-    debugLog(`🗑️ Deleted property ${params.id} from database`);
+      // ✅ Then nullify the fields
+      await tx.property.update({
+        where: { id: params.id },
+        data: {
+          filePath: null,
+          uploadedBy: null,
+        },
+      });
+    });
+
+    debugLog(`✅ File-only delete completed for property ${params.id}`);
+    return NextResponse.json({ success: true, message: "File deleted, record retained" });
+  }
+
+
+
+    // 🟢 Full deletion
+    await prisma.$transaction(async (tx) => {
+      if (record.filePath) {
+        await deleteFileFromGCS(record.filePath);
+        debugLog(`🗑️ GCS file deleted: ${record.filePath}`);
+      }
+
+      await tx.property.delete({
+        where: { id: params.id },
+      });
+
+      debugLog(`🗑️ Deleted property ${params.id} from database`);
+    });
+
     return NextResponse.json({ success: true, message: "Property deleted" });
 
   } catch (error) {

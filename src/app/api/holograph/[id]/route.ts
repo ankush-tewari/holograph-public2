@@ -222,14 +222,27 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     debugLog("🗑 Deleting related sections in HolographSection...");
     await prisma.holographSection.deleteMany({ where: { holographId: id } });
 
-    // ✅ Step 2: Delete SSL certificate folder from new GCS structure
-    const sslFolderPrefix = `ssl-keys/${id}/current/`;
-    debugLog(`🗑 Deleting all SSL files under GCS path: ${sslFolderPrefix}`);
+    // ✅ Step 2: Delete SSL certificate and AES key folder from GCS
+    try {
+      const sslFolderPrefix = `ssl-keys/${id}/current/`;
+      debugLog(`🗑 Deleting all SSL/AES files under GCS path: ${sslFolderPrefix}`);
 
-    const [sslFiles] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: sslFolderPrefix });
-    for (const file of sslFiles) {
-      debugLog(`🗑 Deleting SSL file: ${file.name}`);
-      await file.delete();
+      const [sslFiles] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: sslFolderPrefix });
+
+      if (sslFiles.length === 0) {
+        debugLog(`⚠️ No files found under ${sslFolderPrefix}`);
+      }
+
+      for (const file of sslFiles) {
+        try {
+          debugLog(`🗑 Deleting file: ${file.name}`);
+          await file.delete();
+        } catch (err) {
+          console.error(`❌ Error deleting file ${file.name}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error("❌ Failed to fetch/delete SSL/AES key files from GCS:", err);
     }
 
 

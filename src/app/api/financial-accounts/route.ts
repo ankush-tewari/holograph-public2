@@ -11,6 +11,8 @@ import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { financialAccountSchema } from "@/validators/financialAccountSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
+import { encryptBuffer } from "@/lib/encryption/crypto";
+import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -192,13 +194,14 @@ export async function POST(req: NextRequest) {
       const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
       const section = "financial-accounts";
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
-
-      debugLog("🟢 Uploading new file:", gcsFileName);
-      const uploadedPath = await uploadBufferToGCS(buffer, gcsFileName, file.type);
-
+    
+      debugLog("🟢 Encrypting and uploading new file:", gcsFileName);
+      const encryptedBuffer = await encryptBuffer(buffer, holographId);
+      await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+    
       const normalizedExistingFilePath = filePath;
-      const normalizedNewFilePath = uploadedPath;
-
+      const normalizedNewFilePath = gcsFileName;
+    
       if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
         debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
         try {
@@ -207,9 +210,10 @@ export async function POST(req: NextRequest) {
           console.warn("⚠️ Error deleting old file:", err);
         }
       }
-
-      newFilePath = uploadedPath;
+    
+      newFilePath = gcsFileName;
       relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
+
     } else {
       debugLog("✅ No new file uploaded, keeping existing:", filePath);
       relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null;

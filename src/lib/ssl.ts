@@ -4,10 +4,12 @@ import fs from "fs";
 import path from "path";
 import { bucket } from "@/lib/gcs"; // 👈 Use this — not BUCKET_NAME
 import { debugLog } from "@/utils/debug";
+import crypto from "crypto";
 
-export async function generateSSLCertificate(holographId: string): Promise<{ sslCertPath: string; sslKeyPath: string }> {
+export async function generateSSLCertificate(holographId: string): Promise<{ sslCertPath: string; sslKeyPath: string; aesKeyPath: string }> {
   const certPath = path.join("/tmp", `${holographId}.crt`);
   const keyPath = path.join("/tmp", `${holographId}.key`);
+  const aesKeyPath = path.join("/tmp", `${holographId}.aes`); // 🔐 New line for AES key
   const sslBasePath = `ssl-keys/${holographId}/current`;
 
   const args = [
@@ -32,28 +34,33 @@ export async function generateSSLCertificate(holographId: string): Promise<{ ssl
       }
 
       try {
-        // ✅ Upload to GCS
-        const sslCertDest = `${sslBasePath}/public.crt`;
-        const sslKeyDest = `${sslBasePath}/private.key`;
 
-        // GCS doesn't require you to manually create the folder, but you can write a placeholder if needed
+        // ✅ Upload placeholder to GCS folder
         await bucket.file(`${sslBasePath}/.placeholder`).save("");
 
-        await bucket.upload(certPath, { destination: sslCertDest });
-        await bucket.upload(keyPath, { destination: sslKeyDest });
+        // ✅ Upload cert + RSA key
+        await bucket.upload(certPath, { destination: `${sslBasePath}/public.crt` });
+        await bucket.upload(keyPath, { destination: `${sslBasePath}/private.key` });
 
-        // ✅ Clean up local certs
+        // ✅ Generate and upload 32-byte AES key
+        const aesKey = crypto.randomBytes(32);
+        fs.writeFileSync(aesKeyPath, aesKey);
+        await bucket.upload(aesKeyPath, { destination: `${sslBasePath}/aes.key` });
+
+        // ✅ Cleanup
         fs.unlinkSync(certPath);
         fs.unlinkSync(keyPath);
+        fs.unlinkSync(aesKeyPath);
 
-        debugLog("✅ SSL cert and key uploaded to GCS:", sslBasePath);
+        debugLog("✅ SSL + AES keys uploaded to GCS:", sslBasePath);
 
         resolve({
-          sslCertPath: sslCertDest,
-          sslKeyPath: sslKeyDest,
+          sslCertPath: `${sslBasePath}/public.crt`,
+          sslKeyPath: `${sslBasePath}/private.key`,
+          aesKeyPath: `${sslBasePath}/aes.key`,
         });
       } catch (uploadError: any) {
-        reject(new Error(`❌ Error uploading to GCS: ${uploadError.message}`));
+        reject(new Error(`❌ Error uploading keys to GCS: ${uploadError.message}`));
       }
     });
   });

@@ -3,6 +3,10 @@
 import crypto from "crypto";
 import { storage } from "@/lib/gcs"; // Your GCS client for Google Cloud Storage
 import { debugLog } from "./debug"; // Optional: for logging
+import { bucket } from "@/lib/gcs";
+import fs from "fs";
+import path from "path";
+
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME!;
 
@@ -106,3 +110,44 @@ export async function decryptFieldWithHybridEncryption(
       return null; // Return null if decryption fails
     }
   }
+
+/**
+ * Reads the private key buffer for a Holograph from GCS.
+ */
+export async function getHolographEncryptionKey(holographId: string): Promise<Buffer> {
+  const keyPath = `ssl-keys/${holographId}/current/private.key`;
+  const file = bucket.file(keyPath);
+
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    file
+      .createReadStream()
+      .on("data", (chunk) => chunks.push(chunk))
+      .on("end", () => resolve(Buffer.concat(chunks)))
+      .on("error", (err) => {
+        console.error(`❌ Failed to read encryption key for Holograph ${holographId}:`, err);
+        reject(err);
+      });
+  });
+}
+
+/**
+ * Reads the AES-256 file encryption key for a Holograph from GCS.
+ * Used only for encrypting/decrypting FILES (not database fields).
+ */
+export async function getHolographFileEncryptionKey(holographId: string): Promise<Buffer> {
+  const keyPath = `ssl-keys/${holographId}/current/aes.key`;
+  const file = bucket.file(keyPath);
+
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    file
+      .createReadStream()
+      .on("data", (chunk) => chunks.push(chunk))
+      .on("end", () => resolve(Buffer.concat(chunks)))
+      .on("error", (err) => {
+        console.error(`❌ Failed to read AES key for Holograph ${holographId}:`, err);
+        reject(err);
+      });
+  });
+}

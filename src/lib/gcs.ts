@@ -161,3 +161,63 @@ export async function uploadBufferToGCS(buffer: Buffer, gcsFileName: string, con
 }
 
 export { bucket };
+
+/**
+ * Uploads an encrypted buffer to Google Cloud Storage.
+ * @param encryptedBuffer - The encrypted file content.
+ * @param destinationPath - The full path (e.g., holographId/section/filename.ext).
+ * @param mimeType - The original MIME type of the file.
+ */
+export async function uploadEncryptedBufferToGCS(
+  encryptedBuffer: Buffer,
+  destinationPath: string,
+  mimeType: string
+): Promise<void> {
+  const file = bucket.file(destinationPath);
+
+  const stream = Readable.from(encryptedBuffer);
+  await new Promise<void>((resolve, reject) => {
+    stream
+      .pipe(
+        file.createWriteStream({
+          resumable: false,
+          contentType: mimeType,
+          metadata: {
+            contentType: mimeType,
+          },
+        })
+      )
+      .on("error", (err) => {
+        console.error("❌ GCS Upload Failed:", err);
+        reject(err);
+      })
+      .on("finish", () => {
+        debugLog("✅ Encrypted file uploaded to GCS:", destinationPath);
+        resolve();
+      });
+  });
+}
+
+/**
+ * Downloads a file from Google Cloud Storage and returns it as a Buffer.
+ * Used to fetch encrypted files before decryption.
+ */
+export async function getFileFromGCS(filePath: string): Promise<Buffer> {
+  const file = bucket.file(filePath);
+
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    file
+      .createReadStream()
+      .on("data", (chunk) => chunks.push(chunk))
+      .on("end", () => {
+        const buffer = Buffer.concat(chunks);
+        debugLog("📥 File downloaded from GCS:", filePath);
+        resolve(buffer);
+      })
+      .on("error", (err) => {
+        console.error("❌ Error downloading file from GCS:", err);
+        reject(err);
+      });
+  });
+}

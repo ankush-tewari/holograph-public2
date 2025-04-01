@@ -10,6 +10,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { financialAccountSchema } from "@/validators/financialAccountSchema"; // ✅ Import schema
 import { ZodError } from "zod"; // ✅ Zod error type
+import { encryptBuffer } from "@/lib/encryption/crypto";
+import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -79,7 +81,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         }
       }
 
-      await uploadBufferToGCS(buffer, gcsPath, file.type);
+      // Encrypt and upload
+      const encryptedBuffer = await encryptBuffer(buffer, holographId);
+      await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
       filePath = gcsPath;
     }
 

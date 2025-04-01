@@ -4,7 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import ProfileForm from "../../_components/UserProfileForm";
+import UserProfileForm from "@/app/_components/UserProfileForm";
+import { debugLog } from "@/utils/debug";
+
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +27,7 @@ export default async function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Your Profile</h1>
-      <ProfileForm user={user} />
+      <UserProfileForm user={user} />
     </div>
   );
 }

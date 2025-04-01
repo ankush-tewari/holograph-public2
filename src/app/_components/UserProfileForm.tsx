@@ -56,14 +56,17 @@ export default function UserProfileForm({ user }: { user: { id: string; email: s
     });
 
     debugLog("Password Change Result:", res); // ✅ Log the result
+    const result = await res.json();
 
     if (res.ok) {
       setPasswordMessage("Password changed successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+    } else if (result.errors) {
+      setPasswordMessage(result.errors.map((e: any) => e.message).join(" "));
     } else {
-      setPasswordMessage("Error changing password.");
+      setPasswordMessage(result.error || "Error changing password.");
     }
   };
 

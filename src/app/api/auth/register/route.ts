@@ -3,19 +3,25 @@
 import { NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
 import { prisma } from '@/lib/db'
-import { debugLog } from "../../../../utils/debug";
+import { debugLog } from '@/utils/debug'
+import { userRegistrationSchema } from '@/validators/userSchema';
+import { ZodError } from "zod";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, firstName, lastName } = await req.json()
+    const body = await req.json();
 
-    // Validate required fields
-    if (!email || !password || !firstName || !lastName) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+    // ✅ Validate with Zod
+    try {
+      userRegistrationSchema.parse(body);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return NextResponse.json({ errors: err.errors }, { status: 400 });
+      }
+      throw err;
     }
+
+    const { email, password, firstName, lastName } = body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -42,6 +48,8 @@ export async function POST(req: Request) {
       }
     })
 
+    debugLog("🔐 Registering user:", { email, firstName, lastName });
+    
     return NextResponse.json({
       success: true,
       user: {
@@ -51,6 +59,7 @@ export async function POST(req: Request) {
         lastName: user.lastName
       }
     })
+
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(

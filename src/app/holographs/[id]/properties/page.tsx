@@ -14,6 +14,8 @@ import AccessDeniedModal from "@/app/_components/AccessDeniedModal";
 import { buttonIcons } from "@/config/icons";
 import { debugLog } from "@/utils/debug";
 
+
+
 interface Property {
   id: string;
   name: string;
@@ -117,12 +119,18 @@ export default function PropertiesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this property?")) return;
     try {
-      await axios.delete(`/api/properties/${id}`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/properties/${id}`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      console.error("❌ Failed to delete", err);
+      console.error("❌ Failed to delete property:", err);
     }
   };
+  
 
   const refresh = async () => {
     setIsLoading(true);

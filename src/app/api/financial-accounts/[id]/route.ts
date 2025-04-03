@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadFileToGCS, uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
@@ -44,6 +44,7 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     let uploadedBy: string | null = null; // ✅ Initialize as null
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
+    const fileEncrypted = formData.get("fileEncrypted") === "true";
     updatedBy = session.user.id
 
     // ✅ Zod input validation
@@ -77,13 +78,14 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     let filePath = existingFilePath || null;
 
     if (file) {
-      uploadedBy = session.user.id; // ✅ Only set uploadedBy if a file is present
+      uploadedBy = session.user.id;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
-      const gcsPath = `financial-accounts/${holographId}/${Date.now()}.${ext}`;
-
-      // If existing file path is different, delete the old one
+      const safeOriginalName = file.name.replaceAll("/", "_");
+      const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
+      const gcsPath = `financial-accounts/${holographId}/${timestampedFileName}`;
+    
       if (existingFilePath && existingFilePath !== gcsPath) {
         try {
           await deleteFileFromGCS(existingFilePath);
@@ -92,13 +94,18 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
           console.error("❌ Failed to delete old file:", err);
         }
       }
-
-      // Encrypt and upload
-      const encryptedBuffer = await encryptBuffer(buffer, holographId);
-      await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
+    
+      if (fileEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsPath, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
+      }
+    
       filePath = gcsPath;
     }
-
+    
     const updatedAccount = await prisma.financialAccount.update({
       where: { id: params.id },
       data: {

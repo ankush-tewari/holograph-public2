@@ -7,6 +7,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import { debugLog } from "@/utils/debug";
 import bcrypt from "bcryptjs"; // ✅ Import bcryptjs
+import Tokens from "csrf";
 
 debugLog("AUTH OPTIONS LOADING");
 
@@ -79,6 +80,10 @@ export const authOptions: NextAuthOptions = {
         token.userId = user.id;
         token.firstName = user.firstName;  // ✅ Add this
         token.lastName = user.lastName;    // ✅ Add this
+
+        // ✅ Add this for csrf support:
+        const tokens = new Tokens();
+        token.csrfSecret = tokens.secretSync();
       }
       
 
@@ -105,6 +110,7 @@ export const authOptions: NextAuthOptions = {
           session.user.currentHolographId = token.currentHolographId as string;
           debugLog("✅ Added currentHolographId to session:", token.currentHolographId);
         }
+        session.csrfSecret = token.csrfSecret; // adding csrf support
       }
 
       return session;

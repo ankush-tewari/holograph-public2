@@ -13,7 +13,8 @@ import { financialAccountSchema } from "@/validators/financialAccountSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
 import { encryptBuffer } from "@/lib/encryption/crypto";
 import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
-import { csrf } from "@/lib/csrf";
+import Tokens from "csrf";
+
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -99,6 +100,15 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
   const userId = session.user.id;

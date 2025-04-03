@@ -78,7 +78,13 @@ export default function FinancialAccountModal({
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/financial-accounts/${account.id}?fileOnly=true`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/financial-accounts/${account.id}?fileOnly=true`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
+
   
       // ✅ Clear local file and filePath state
       setFormData((prev) => ({
@@ -156,9 +162,14 @@ export default function FinancialAccountModal({
     debugLog("🟢 Sending Financial Account FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
       await axios.post(`/api/financial-accounts`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-csrf-token": csrfToken,
+        },
       });
+
       onSuccess();
       onClose();
     } catch (error) {

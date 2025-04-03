@@ -12,6 +12,8 @@ import { financialAccountSchema } from "@/validators/financialAccountSchema"; //
 import { ZodError } from "zod"; // ✅ Zod error type
 import { encryptBuffer } from "@/lib/encryption/crypto";
 import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
+import Tokens from 'csrf';
+
 
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
@@ -21,6 +23,15 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   }
 
   let updatedBy: string | null = null; 
+
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
 
   try {
     const formData = await req.formData();
@@ -119,12 +130,22 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
+
 
   try {
     const { searchParams } = new URL(req.url);

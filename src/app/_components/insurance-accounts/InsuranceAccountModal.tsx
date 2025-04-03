@@ -76,15 +76,21 @@ export default function InsuranceAccountModal({
   
     try {
       const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
-  
       await axios.delete(`/api/insurance-accounts/${account.id}?fileOnly=true`, {
         headers: {
           "x-csrf-token": csrfToken,
         },
       });
   
-      setFormData((prev) => ({ ...prev, file: null, filePath: "" }));
-      onSuccess();
+      // ✅ Clear local file and filePath state
+      setFormData((prev) => ({
+        ...prev,
+        file: null,
+        filePath: "",
+      }));
+      
+      // ✅ Trigger parent page refresh
+      onSuccess(); 
     } catch (error) {
       console.error("Error deleting file:", error);
     }

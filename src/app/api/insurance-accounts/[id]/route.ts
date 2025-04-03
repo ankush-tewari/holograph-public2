@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
@@ -11,6 +11,7 @@ import { authOptions } from "@/lib/auth";
 import { insuranceAccountSchema } from "@/validators/insuranceAccountSchema";
 import { ZodError } from "zod";
 import Tokens from "csrf";
+import { encryptBuffer } from "@/lib/encryption/crypto";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -26,7 +27,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
-
   let updatedBy: string | null = null; 
 
   try {
@@ -40,6 +40,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let uploadedBy: string | null = null; // ✅ Initialize as null
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
+    const fileEncrypted = formData.get("fileEncrypted") === "true";
     updatedBy = session.user.id
 
     // ✅ Zod validation for user inputs
@@ -73,11 +74,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let filePath = existingFilePath || null;
 
     if (file) {
-      uploadedBy = session.user.id; // ✅ Only set uploadedBy if a file is present
+      uploadedBy = session.user.id;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
-      const gcsPath = `insurance-accounts/${holographId}/${Date.now()}.${ext}`;
+      const safeOriginalName = file.name.replaceAll("/", "_");
+      const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
+      const gcsPath = `insurance-accounts/${holographId}/${timestampedFileName}`;
 
       // If existing file path is different, delete the old one
       if (existingFilePath && existingFilePath !== gcsPath) {
@@ -89,7 +92,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         }
       }
 
-      await uploadBufferToGCS(buffer, gcsPath, file.type);
+      if (fileEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsPath, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
+      }
       filePath = gcsPath;
     }
 

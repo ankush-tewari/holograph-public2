@@ -127,8 +127,7 @@ export async function POST(req: NextRequest) {
   let filePath: string | null = null;
   let newFilePath: string | null = null;
   let isNewDocument = false;
-  createdBy = userId;
-  updatedBy = userId;
+
 
   try {
     const formData = await req.formData();
@@ -142,6 +141,8 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const financialAccountId = formData.get("id") as string | null; 
     const isNewDocument = !financialAccountId && !existingFilePath;
+    createdBy = userId;
+    updatedBy = userId;
 
     // ✅ Zod Validation
     try {

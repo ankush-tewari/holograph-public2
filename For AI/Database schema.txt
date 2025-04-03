@@ -66,6 +66,7 @@ model Holograph {
   updatedAt           DateTime              @updatedAt
   sslCertPath         String?
   sslKeyPath          String?
+  aesKeyPath          String?  // 🔐 NEW: Path to AES encryption key
   delegates           HolographDelegate[]
   principals          HolographPrincipal[]
   sections            HolographSection[]

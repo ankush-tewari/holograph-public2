@@ -2,11 +2,17 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { debugLog } from "@/utils/debug";
 
 export function useHolograph() {
   const { data: session, update, status } = useSession();
+
+  // ✅ Add hydration detection
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const setCurrentHolographId = useCallback(async (holographId: string) => {
     debugLog("🔄 Setting currentHolographId in session:", holographId);

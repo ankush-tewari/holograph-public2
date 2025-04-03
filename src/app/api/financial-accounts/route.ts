@@ -13,6 +13,7 @@ import { financialAccountSchema } from "@/validators/financialAccountSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
 import { encryptBuffer } from "@/lib/encryption/crypto";
 import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
+import { csrf } from "@/lib/csrf";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

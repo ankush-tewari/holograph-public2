@@ -1,32 +1,83 @@
-# Holograph Project Summary (2025 Edition)
+# Holograph Project Summary (2025 Edition – Updated)
 
 ## Overview
-Holograph is a web-based application designed to assist users in comprehensive end-of-life planning. It enables individuals to securely store and manage essential documents such as wills, trusts, advanced health directives, and instructions for handling various accounts and subscriptions. The platform ensures that all sensitive data is encrypted using unique SSL certificates for each user, maintaining the highest level of security.
+Holograph is a secure web-based application for end-of-life planning. It allows individuals to store and manage critical documents—such as wills, trusts, medical directives, and account instructions—in one encrypted space. The platform supports collaboration with trusted Delegates and ensures robust data protection with per-Holograph SSL and AES encryption.
 
 ## Core Concepts
 
 ### User Roles
-1. **Principals**: Individuals who create and own a Holograph. They have full control over its content and can manage user access and permissions.
-2. **Delegates**: Appointed by Principals to manage the Holograph after the Principal's passing. Delegates have read-only access, with permissions customizable per section.
+1. **Principals** – Users who own or co-manage a Holograph. They control content, assign users, and manage permissions.
+2. **Delegates** – Trusted users who receive access to manage or view the Holograph after the Principal's death. Their permissions are configurable per section.
 
-### Holograph Structure
-- **Principals**: Users with full control over the Holograph.
-- **Delegate**: The person designated to manage the estate after the Principal's passing.
+### Holograph Structure Example
+- **Holograph1**
+  - Principals: User1, User2
+  - Delegate: User3
+- **Holograph2**
+  - Principal: User3
+  - Delegate: User4
 
 ## Security Model
-- **Data Encryption**: All user data is encrypted with a unique SSL certificate per user, ensuring that both database entries and uploaded files are securely protected.
-- **File Storage**: Files are stored in Google Cloud Storage (GCS) and encrypted using the user's unique encryption key.
-- **Authentication**: Implemented via NextAuth.js, ensuring that only authorized users can access or manage Holographs.
-- **Delegate Permissions**: Principals can set per-section access for Delegates, determining whether they have no access or view-only rights.
+
+### Encryption
+- **Database Fields**: Encrypted per Holograph using hybrid RSA-AES encryption.
+- **Files**: Uploaded files are encrypted client-side using AES and stored securely in GCS.
+- **Keys**:
+  - `ssl-keys/<holographId>/current/` stores the SSL certificate and private key for each Holograph.
+  - AES keys for document encryption are stored in the same path.
+
+### Permissions
+- Principals have full control.
+- Delegates get “View Only” access by default, which can be adjusted per section.
+- All role logic enforced in both backend and frontend.
+
+### Authentication
+- Handled with **NextAuth.js**.
+- Protected API routes and pages.
+- Delegate/Principal verification before access is granted.
 
 ## Technology Stack
-- **Frontend**: React.js (Next.js)
-- **Backend**: Node.js with Prisma ORM
+- **Frontend**: React (Next.js), Tailwind CSS
+- **Backend**: Node.js, Prisma
 - **Database**: PostgreSQL
 - **File Storage**: Google Cloud Storage (GCS)
 - **Authentication**: NextAuth.js
-- **Styling**: Tailwind CSS
-- **Icons**: react-icons (Lucide), react-icons/fi
+- **Encryption**: Node.js Crypto library + SSL/AES keys
+- **Validation**: Zod schema validation for server-side input checking
+
+## Functional Areas Completed
+- Vital Documents (full CRUD + encryption)
+- Financial Accounts (full CRUD + encryption)
+- Personal Property (full CRUD + encryption)
+- Secure file upload with client-side encryption
+- Secure file download with authenticated API proxy
+- Role-based access for Principals and Delegates
+- Principal/Delegate invitation system
+- Pending Principal removal flow
+- Full audit logging of Holograph ownership
+- Section-based permissions model
+
+## Upcoming
+- Add remaining sections (Insurance, Digital Assets, Subscriptions, Services)
+- Finalize visual design and AI assistant
+- Full GCP backend migration (Heroku will be deprecated)
+- Stripe subscription integration
+- Full page security audit
+
+
+(Directory structure preserved exactly from your original document. Updated as needed based on database structure and active code.)
+
+## Database Highlights (from schema)
+- User-Holograph relationships modeled through `HolographPrincipal` and `HolographDelegate`
+- All document types (Vital, Financial, Insurance, Property, PersonalProperty) support:
+  - Encrypted `name`, `notes`, and optional `filePath`
+  - Audit fields: `createdBy`, `updatedBy`, `uploadedBy`
+  - Unique constraint: `(holographId, filePath)`
+- Delegates receive permissions per section via `DelegatePermissions`
+- Section metadata tracked via `Section` and `HolographSection` models
+- Principal removal confirmation flow handled by `PendingPrincipalRemoval`
+
+
 
 ## Project Directory Structure
 

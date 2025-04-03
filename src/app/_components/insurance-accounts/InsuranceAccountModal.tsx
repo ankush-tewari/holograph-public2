@@ -8,6 +8,9 @@ import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 import { INSURANCE_ACCOUNT_TYPES } from "@/config/insuranceAccountType";
+import { importAesKeyFromRaw, encryptFileInBrowser } from "@/utils/encryptionClient";
+import { fetchAesKey } from "@/utils/fetchAesKey";
+
 
 interface InsuranceAccount {
   id?: string;
@@ -72,12 +75,16 @@ export default function InsuranceAccountModal({
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/insurance-accounts/${account.id}?fileOnly=true`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
   
-      // Update local state to reflect that the file is deleted
-      setFormData((prev) => ({ ...prev, filePath: "" }));
-      // ✅ Trigger parent page refresh
-      onSuccess(); 
+      await axios.delete(`/api/insurance-accounts/${account.id}?fileOnly=true`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
+  
+      setFormData((prev) => ({ ...prev, file: null, filePath: "" }));
+      onSuccess();
     } catch (error) {
       console.error("Error deleting file:", error);
     }
@@ -119,8 +126,18 @@ export default function InsuranceAccountModal({
     }
     
     if (formData.file) {
-      formDataToSend.append("file", formData.file);
+      try {
+        const aesKey = await fetchAesKey(holographId);
+        const encryptedBlob = await encryptFileInBrowser(formData.file, aesKey);
+      
+        formDataToSend.append("file", encryptedBlob, formData.file.name);
+        formDataToSend.append("fileEncrypted", "true"); // 👈 tell the server it's already encrypted
+      } catch (encryptionError) {
+        console.error("❌ Failed to encrypt file in browser:", encryptionError);
+        return;
+      }
     }
+    
 
     if (userId) {
       formDataToSend.append("uploadedBy", userId);
@@ -132,9 +149,14 @@ export default function InsuranceAccountModal({
     debugLog("🟢 Sending Insurance Account FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
       await axios.post(`/api/insurance-accounts`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-csrf-token": csrfToken,
+        },
       });
+
       onSuccess();
       onClose();
     } catch (error) {

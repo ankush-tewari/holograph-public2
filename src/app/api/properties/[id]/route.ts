@@ -3,19 +3,28 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { propertySchema } from "@/validators/propertySchema";
 import { ZodError } from "zod";
+import Tokens from "csrf";
+import { encryptBuffer } from "@/lib/encryption/crypto";
 
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
   let updatedBy: string | null = null; 
@@ -30,6 +39,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let uploadedBy: string | null = null; // ✅ Initialize as null
     const existingFilePath = formData.get("existingFilePath") as string | null;
     const file = formData.get("file") as File | null;
+    const fileEncrypted = formData.get("fileEncrypted") === "true";
     updatedBy = session.user.id
 
     try {
@@ -58,13 +68,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     let filePath = existingFilePath || null;
 
     if (file) {
-      uploadedBy = session.user.id; // ✅ Only set uploadedBy if a file is present
+      uploadedBy = session.user.id;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
-      const gcsPath = `properties/${holographId}/${Date.now()}.${ext}`;
+      const safeOriginalName = file.name.replaceAll("/", "_");
+      const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
+      const gcsPath = `properties/${holographId}/${timestampedFileName}`;
 
-      // If existing file path is different, delete the old one
       if (existingFilePath && existingFilePath !== gcsPath) {
         try {
           await deleteFileFromGCS(existingFilePath);
@@ -74,9 +85,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         }
       }
 
-      await uploadBufferToGCS(buffer, gcsPath, file.type);
+      if (fileEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsPath, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
+      }
+
       filePath = gcsPath;
     }
+
 
     const updatedAccount = await prisma.property.update({
       where: { id: params.id },
@@ -109,6 +128,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // ✅ CSRF Protection
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
   try {

@@ -8,6 +8,9 @@ import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 import { PROPERTY_TYPES } from "@/config/propertyType";
+import { encryptFileInBrowser, importAesKeyFromRaw } from "@/utils/encryptionClient";
+import { fetchAesKey } from "@/utils/fetchAesKey";
+
 
 interface Property {
   id?: string;
@@ -70,7 +73,12 @@ export default function PropertyModal({
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/properties/${property.id}?fileOnly=true`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/properties/${property.id}?fileOnly=true`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
   
       // Update local state to reflect that the file is deleted
       setFormData((prev) => ({ ...prev, filePath: "" }));
@@ -112,7 +120,16 @@ export default function PropertyModal({
     }    
 
     if (formData.file) {
-      formDataToSend.append("file", formData.file);
+      try {
+        const aesKey = await fetchAesKey(holographId);
+        const encryptedBlob = await encryptFileInBrowser(formData.file, aesKey);
+    
+        formDataToSend.append("file", encryptedBlob, formData.file.name);
+        formDataToSend.append("fileEncrypted", "true"); // ✅ tell server to skip encryption
+      } catch (encryptionError) {
+        console.error("❌ Failed to encrypt file in browser:", encryptionError);
+        return;
+      }
     }
 
     if (userId) {
@@ -125,8 +142,12 @@ export default function PropertyModal({
     debugLog("🟢 Sending Property FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
       await axios.post(`/api/properties`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-csrf-token": csrfToken,
+        },
       });
       onSuccess();
       onClose();

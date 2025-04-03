@@ -5,15 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { uploadFileToGCS, uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { financialAccountSchema } from "@/validators/financialAccountSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
 import { encryptBuffer } from "@/lib/encryption/crypto";
-import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
 import Tokens from "csrf";
+
 
 
 export async function GET(req: NextRequest) {

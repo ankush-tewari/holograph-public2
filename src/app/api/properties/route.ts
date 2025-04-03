@@ -5,12 +5,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { propertySchema } from "@/validators/propertySchema";
 import { ZodError } from "zod";
+import Tokens from "csrf";
+import { encryptBuffer } from "@/lib/encryption/crypto";
 
 
 export async function GET(req: NextRequest) {
@@ -88,6 +90,13 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // ✅ CSRF protection
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
 
   const userId = session.user.id;
 
@@ -116,6 +125,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const propertyId = formData.get("id") as string | null; 
     const isNewDocument = !propertyId && !existingFilePath;
+    const fileEncrypted = formData.get("fileEncrypted") === "true";
     createdBy = userId
     updatedBy = userId
 
@@ -179,25 +189,28 @@ export async function POST(req: NextRequest) {
     let relativeFilePath: string | null = null;
 
     if (file) {
-      uploadedBy = userId; // ✅ Set uploadedBy only if a file exists
+      uploadedBy = userId;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const ext = file.name.split(".").pop();
-    
-      // ✅ Preserve original name and prepend timestamp
       const safeOriginalName = file.name.replaceAll("/", "_");
       const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
-    
-      // ✅ New GCS structure: <holographId>/<section>/<timestamped-original-name>
-      const section = "properties"; // <- change as needed per section
+      const section = "properties";
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
-    
+
       debugLog("🟢 Uploading new file:", gcsFileName);
-      const uploadedPath = await uploadBufferToGCS(buffer, gcsFileName, file.type);
-    
+
+      if (fileEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+      }
+
       const normalizedExistingFilePath = filePath;
-      const normalizedNewFilePath = uploadedPath;
-    
+      const normalizedNewFilePath = gcsFileName;
+
       if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
         debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
         try {
@@ -206,13 +219,15 @@ export async function POST(req: NextRequest) {
           console.warn("⚠️ Error deleting old file:", err);
         }
       }
-      newFilePath = uploadedPath;
+
+      newFilePath = gcsFileName;
       relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
 
     } else {
       debugLog("✅ No new file uploaded, keeping existing:", filePath);
-      relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null; // ✅ Ensure relativeFilePath is properly handled
+      relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null;
     }
+
     
     
     // 🔐 Encrypt fields

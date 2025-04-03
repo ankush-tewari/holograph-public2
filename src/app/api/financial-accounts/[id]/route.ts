@@ -22,8 +22,6 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let updatedBy: string | null = null; 
-
   // csrf check
   const tokens = new Tokens();
   const csrfToken = req.headers.get("x-csrf-token");
@@ -32,6 +30,8 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
+
+  let updatedBy: string | null = null; 
 
   try {
     const formData = await req.formData();
@@ -102,7 +102,6 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
         const encryptedBuffer = await encryptBuffer(buffer, holographId);
         await uploadEncryptedBufferToGCS(encryptedBuffer, gcsPath, file.type || "application/octet-stream");
       }
-    
       filePath = gcsPath;
     }
     

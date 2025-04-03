@@ -5,12 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { insuranceAccountSchema } from "@/validators/insuranceAccountSchema";
 import { ZodError } from "zod";
+import { encryptBuffer } from "@/lib/encryption/crypto";
 import Tokens from "csrf";
 
 
@@ -218,11 +219,18 @@ export async function POST(req: NextRequest) {
       const section = "insurance-accounts"; // <- change as needed per section
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
     
+      const isAlreadyEncrypted = formData.get("fileEncrypted") === "true";
       debugLog("🟢 Uploading new file:", gcsFileName);
-      const uploadedPath = await uploadBufferToGCS(buffer, gcsFileName, file.type);
+      if (isAlreadyEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+      }
     
       const normalizedExistingFilePath = filePath;
-      const normalizedNewFilePath = uploadedPath;
+      const normalizedNewFilePath = gcsFileName;
     
       if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
         debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
@@ -232,7 +240,7 @@ export async function POST(req: NextRequest) {
           console.warn("⚠️ Error deleting old file:", err);
         }
       }
-      newFilePath = uploadedPath;
+      newFilePath = gcsFileName;
       relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
 
     } else {

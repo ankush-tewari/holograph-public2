@@ -118,7 +118,10 @@ export default function InsuranceAccountsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this insurance account?")) return;
     try {
-      await axios.delete(`/api/insurance-accounts/${id}`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/insurance-accounts/${id}`, {
+        headers: { "x-csrf-token": csrfToken },
+      });
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
       console.error("❌ Failed to delete", err);

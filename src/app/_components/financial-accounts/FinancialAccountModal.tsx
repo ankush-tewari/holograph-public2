@@ -9,6 +9,8 @@ import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
 import { importAesKeyFromRaw, encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
+import { fetchAesKey } from "@/utils/fetchAesKey";
+
 
 
 interface FinancialAccount {
@@ -176,18 +178,6 @@ export default function FinancialAccountModal({
       console.error("❌ Error saving financial account:", error);
     }
   };
-
-  // --- helper: fetch encrypted AES key for client-side use ---
-async function fetchAesKey(holographId: string): Promise<CryptoKey> {
-  const response = await fetch(`/api/holograph/${holographId}/aes-key`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch AES key");
-  }
-
-  const keyBuffer = await response.arrayBuffer();
-  return await importAesKeyFromRaw(keyBuffer);
-}
-
 
   const modalContent = (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">

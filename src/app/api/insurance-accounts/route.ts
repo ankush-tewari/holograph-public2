@@ -11,6 +11,8 @@ import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { insuranceAccountSchema } from "@/validators/insuranceAccountSchema";
 import { ZodError } from "zod";
+import Tokens from "csrf";
+
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -97,6 +99,16 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
+
 
   const userId = session.user.id;
 

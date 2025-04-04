@@ -152,7 +152,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
-
   try {
     const { searchParams } = new URL(req.url);
     const fileOnly = searchParams.get("fileOnly") === "true"; // Determine if file-only delete

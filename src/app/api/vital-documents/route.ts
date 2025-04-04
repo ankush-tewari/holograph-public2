@@ -1,8 +1,8 @@
 // /src/app/api/vital-documents/route.ts GET and POST Methods
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS, bucket } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS, bucket } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { Storage } from "@google-cloud/storage";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
@@ -11,12 +11,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { vitalDocumentSchema } from "@/validators/vitalDocumentSchema";
 import { ZodError } from "zod";
+import { encryptBuffer } from "@/lib/encryption/crypto";
+import Tokens from "csrf";
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 
 // ✅ Handle GET Requests for Fetching Vital Documents
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const holographId = searchParams.get("holographId");
+
+  if (!holographId) {
+    return NextResponse.json({ error: "Missing holographId" }, { status: 400 });
+  }
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -25,16 +33,7 @@ export async function GET(req: Request) {
   const userId = session.user.id;
 
   try {
-    const { searchParams } = new URL(req.url);
-    const holographId = searchParams.get("holographId");
-
-    debugLog("🟢 GET request for holographId:", holographId);
-
-    if (!holographId) {
-      console.error("❌ Missing holographId in GET request");
-      return NextResponse.json({ error: "Missing holographId" }, { status: 400 });
-    }
-
+   
     // Fetch holograph with user roles
     const holograph = await prisma.holograph.findUnique({
       where: { id: holographId },
@@ -74,10 +73,6 @@ export async function GET(req: Request) {
         );
     
         let decryptedNotes = null;
-        // ✅ If notes is empty or missing, return an empty string (prevents decryption errors)
-        debugLog("doc.notes = ", doc.notes)
-        debugLog("doc.notesKey = ", doc.notesKey)
-        debugLog("doc.notesIV = ", doc.notesIV)
 
         // ✅ If notes are empty or missing, set to an empty string
         if (!doc.notes || !doc.notesKey || !doc.notesIV) {
@@ -120,7 +115,18 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
+
   const userId = session.user.id;
+  const BUCKET_NAME = process.env.GCS_BUCKET_NAME!;
+  const GCS_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
 
   // Define variables at the top level of the function scope
   let holographId = null;
@@ -135,6 +141,8 @@ export async function POST(req: Request) {
   let encryptedName = null;
   let encryptedNotes = null;
   let isNewDocument = false;
+  let relativeFilePath: string | null = null;
+
 
   try {
     // Get form data from the request
@@ -239,54 +247,44 @@ export async function POST(req: Request) {
     newFilePath = filePath;
 
     if (file) {
-      debugLog("🟢 Using new file:", file);
-
-      // Standardized GCS structure: <holographId>/<section>/<timestamped-original-name>
-      const section = "vital-documents"; // ✅ Updated for this section
-      const timestampedFileName = `${Date.now()}-${file.name}`;
+      uploadedBy = userId;
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const safeOriginalName = file.name.replaceAll("/", "_");
+      const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
+      const section = "vital-documents";
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
-
-      debugLog("🟢 GCS File Name:", gcsFileName);
-
-      try {
-        // ✅ Convert file to buffer
-        debugLog("📦 Converting file to buffer...");
-        const fileBuffer = Buffer.from(await file.arrayBuffer());
-
-        // ✅ Upload buffer to GCS
-        debugLog("🟢 Uploading buffer to GCS...");
-        const uploadedFilePath = await uploadBufferToGCS(fileBuffer, gcsFileName, file.type);
-
-        debugLog("✅ File uploaded to GCS. Stored Path:", uploadedFilePath);
-
-        // Normalize file paths for comparison
-        const normalizedExistingFilePath = filePath
-        ? filePath.replace("https://storage.googleapis.com/holograph-user-documents/", "")
-        : null;
-
-        const normalizedNewFilePath = uploadedFilePath
-        ? uploadedFilePath.replace("https://storage.googleapis.com/holograph-user-documents/", "")
-        : null;
-
-        // ✅ Delete the old file from GCS if a new file was uploaded and this is an update
-        if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
-          debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
-          try {
-              await deleteFileFromGCS(normalizedExistingFilePath);
-              debugLog("✅ Old file deleted successfully.");
-          } catch (error) {
-              console.error("❌ Error deleting old file from GCS:", error.message || "Unknown error");
-          }
-        }
-        // ✅ Ensure new file path is saved
-          newFilePath = uploadedFilePath;
-        } catch (error) {
-          console.error("❌ Error uploading file to GCS:", error);
-          return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
+    
+      const isAlreadyEncrypted = formData.get("fileEncrypted") === "true";
+      debugLog("🟢 Uploading new file:", gcsFileName);
+    
+      if (isAlreadyEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
       }
-      
+    
+      // ✅ Match financial-accounts pattern
+      const normalizedExistingFilePath = filePath;
+      const normalizedNewFilePath = gcsFileName;
+    
+      if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
+        debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
+        try {
+          await deleteFileFromGCS(normalizedExistingFilePath);
+        } catch (err) {
+          console.warn("⚠️ Error deleting old file:", err);
+        }
+      }
+    
+      newFilePath = gcsFileName;
+      relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
+    
     } else {
-        debugLog("✅ No new file uploaded, keeping existing file:", filePath);
+      debugLog("✅ No new file uploaded, keeping existing:", filePath);
+      relativeFilePath = filePath ? filePath.replace(GCS_PREFIX, "") : null;
     }
 
     if (!newFilePath) {

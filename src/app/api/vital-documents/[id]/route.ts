@@ -1,6 +1,6 @@
 // /src/app/api/vital-documents/[id]/route.ts - PUT & DELETE for Updating & Deleting Documents
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFileFromGCS } from "@/lib/gcs";
 import { uploadFileToGCS } from "@/lib/gcs"; // ✅ Ensure this import exists
@@ -9,18 +9,33 @@ import { authOptions } from "@/lib/auth";
 import { debugLog } from "@/utils/debug";
 import { vitalDocumentSchema } from "@/validators/vitalDocumentSchema";
 import { ZodError } from "zod";
+import { encryptBuffer } from "@/lib/encryption/crypto";
+import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
+import Tokens from 'csrf';
 
-
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    
+    // csrf check
+    const tokens = new Tokens();
+    const csrfToken = req.headers.get("x-csrf-token");
+    const csrfSecret = req.cookies.get("csrfSecret")?.value;
+  
+    if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+      return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+    }
+
     }
     const userId = session.user.id;
     let updatedBy: string | null = null; 
     
     try {
+      const BUCKET_NAME = process.env.GCS_BUCKET_NAME!;
+      const GCS_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
+
       // make sure user is authorized to see vital document 
       const document = await prisma.vitalDocument.findUnique({
         where: { id: params.id },
@@ -87,10 +102,26 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         };
 
         if (file) {
-            const timestampedFileName = `${Date.now()}-${file.name}`;
-            const gcsFileName = `${document.holographId}/${section}/${timestampedFileName}`; // ✅ Standardized path
-            const fileUrl = await uploadFileToGCS(file, gcsFileName);
-            updatedData.filePath = fileUrl; // ✅ Ensure correct filePath update
+          const safeOriginalName = file.name.replaceAll("/", "_");
+          const timestampedFileName = `${Date.now()}-${safeOriginalName}`;
+          const gcsFileName = `${document.holographId}/${section}/${timestampedFileName}`;
+          const isAlreadyEncrypted = formData.get("fileEncrypted") === "true";
+        
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+        
+          debugLog("🟢 Uploading updated file:", gcsFileName);
+          if (isAlreadyEncrypted) {
+            debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+            await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+          } else {
+            const encryptedBuffer = await encryptBuffer(buffer, document.holographId);
+            await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+          }
+        
+          // ✅ Normalize file path before storing in DB
+          const relativeFilePath = gcsFileName.replace(GCS_PREFIX, "");
+          updatedData.filePath = relativeFilePath;
         }
 
         const updatedDocument = await prisma.vitalDocument.update({
@@ -109,6 +140,15 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // csrf check
+    const tokens = new Tokens();
+    const csrfToken = req.headers.get("x-csrf-token");
+    const csrfSecret = req.cookies.get("csrfSecret")?.value;
+  
+    if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+      return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
     }
     const userId = session.user.id;
   

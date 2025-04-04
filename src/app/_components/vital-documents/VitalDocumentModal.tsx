@@ -9,6 +9,8 @@ import React from "react"; // ✅ Ensure React is imported
 import { VITAL_DOCUMENT_TYPES } from "@/config/dropdowns";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from '@/config/icons';
+import { encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
+import { fetchAesKey } from "@/utils/fetchAesKey";
 
 
 interface VitalDocument {
@@ -83,29 +85,6 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
     }
     setErrors({});  
 
-
-/*    if (!formData.file && !formData.filePath) { // ✅ Ensure either a new file or existing file is provided
-      console.error("❌ No file selected or existing file path missing");
-      return;
-    }
-
-    // Add validation for all required fields
-    if (!formData.name) {
-      console.error("❌ Name is required");
-      return;
-    }
-
-    if (!formData.type) {
-      console.error("❌ Document type is required");
-      return;
-    }
-
-    if (!formData.file && !formData.filePath) {
-      console.error("❌ No file selected or existing file path missing");
-      return;
-    }
-  */
-
     const formDataToSend = new FormData();
     formDataToSend.append("holographId", holographId);
     formDataToSend.append("name", formData.name);
@@ -135,10 +114,16 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
   
     // ✅ If a new file is selected, send it
     if (formData.file) {
-      // We know formData.file is not null at this point, so it's safe to use
-      const fileToUpload: File = formData.file;
-      formDataToSend.append("file", fileToUpload);
-      debugLog("✅ Including new file in FormData:", fileToUpload.name);
+      try {
+        const aesKey = await fetchAesKey(holographId);
+        const encryptedBlob = await encryptFileInBrowser(formData.file, aesKey);
+      
+        formDataToSend.append("file", encryptedBlob, formData.file.name);
+        formDataToSend.append("fileEncrypted", "true"); // 👈 tell the server it's already encrypted
+      } catch (encryptionError) {
+        console.error("❌ Failed to encrypt file in browser:", encryptionError);
+        return;
+      }
     }
   
     if (userId) {
@@ -151,8 +136,12 @@ export default function VitalDocumentModal({ userId, document: docData, holograp
     debugLog("🟢 Sending Vital Document FormData:", Object.fromEntries(formDataToSend.entries()));
   
     try {
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
       await axios.post(`/api/vital-documents`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-csrf-token": csrfToken,
+        },
       });
       if (onSuccess) {  // Add this check
         onSuccess();

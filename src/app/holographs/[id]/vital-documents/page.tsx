@@ -48,7 +48,12 @@ export default function VitalDocumentsPage() {
   const [isExpanded, setIsExpanded] = useState(false);
 
 
-
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
   useEffect(() => {
     const checkPrincipalStatus = async () => {
@@ -62,17 +67,10 @@ export default function VitalDocumentsPage() {
         console.error("❌ Error verifying principal status:", error);
       }
     };
-  
+
     checkPrincipalStatus();
   }, [holographId, userId]);
   
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
 
   // Fetch documents
   useEffect(() => {
@@ -160,7 +158,13 @@ export default function VitalDocumentsPage() {
     if (!confirm("Are you sure you want to delete this document?")) return;
 
     try {
-      await axios.delete(`/api/vital-documents/${documentId}`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/vital-documents/${documentId}`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
+
       setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== documentId));
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -281,7 +285,12 @@ export default function VitalDocumentsPage() {
 
                     {/* ✅ Standardized Download Button */}
                     <button className="ml-2 text-blue-600 hover:text-blue-800 text-sm relative group">
-                      <a href={signedUrls[doc.id] || "#"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                      <a
+                        href={`/api/proxy-download?filePath=${encodeURIComponent(doc.filePath)}&holographId=${holographId}&filename=${encodeURIComponent(doc.filePath.split("/").pop() || "document")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
                         <buttonIcons.link size={18} />
                         <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 transition">
                           Download Vital Document

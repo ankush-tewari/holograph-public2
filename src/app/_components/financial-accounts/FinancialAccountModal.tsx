@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
 import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
-import { importAesKeyFromRaw, encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
+import { encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
 import { fetchAesKey } from "@/utils/fetchAesKey";
 
 
@@ -86,7 +86,6 @@ export default function FinancialAccountModal({
           "x-csrf-token": csrfToken,
         },
       });
-
   
       // ✅ Clear local file and filePath state
       setFormData((prev) => ({

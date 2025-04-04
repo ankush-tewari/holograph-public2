@@ -5,13 +5,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { uploadBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
+import { uploadEncryptedBufferToGCS, deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { personalPropertySchema } from "@/validators/personalPropertySchema";
 import { ZodError } from "zod";
-
+import { encryptBuffer } from "@/lib/encryption/crypto";
+import Tokens from "csrf";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -87,6 +88,15 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // csrf check
+  const tokens = new Tokens();
+  const csrfToken = req.headers.get("x-csrf-token");
+  const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+  if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
   const userId = session.user.id;
@@ -190,11 +200,18 @@ export async function POST(req: NextRequest) {
       const section = "personal-properties"; // <- change as needed per section
       const gcsFileName = `${holographId}/${section}/${timestampedFileName}`;
     
+      const isAlreadyEncrypted = formData.get("fileEncrypted") === "true";
       debugLog("🟢 Uploading new file:", gcsFileName);
-      const uploadedPath = await uploadBufferToGCS(buffer, gcsFileName, file.type);
+      if (isAlreadyEncrypted) {
+        debugLog("🛡️ Skipping server-side encryption — file already encrypted on client");
+        await uploadEncryptedBufferToGCS(buffer, gcsFileName, file.type || "application/octet-stream");
+      } else {
+        const encryptedBuffer = await encryptBuffer(buffer, holographId);
+        await uploadEncryptedBufferToGCS(encryptedBuffer, gcsFileName, file.type || "application/octet-stream");
+      }
     
       const normalizedExistingFilePath = filePath;
-      const normalizedNewFilePath = uploadedPath;
+      const normalizedNewFilePath = gcsFileName;
     
       if (!isNewDocument && normalizedExistingFilePath && normalizedExistingFilePath !== normalizedNewFilePath) {
         debugLog("🗑️ Deleting old file from GCS:", normalizedExistingFilePath);
@@ -204,7 +221,7 @@ export async function POST(req: NextRequest) {
           console.warn("⚠️ Error deleting old file:", err);
         }
       }
-      newFilePath = uploadedPath;
+      newFilePath = gcsFileName;
       relativeFilePath = newFilePath ? newFilePath.replace(GCS_PREFIX, "") : null;
 
     } else {

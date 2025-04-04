@@ -218,7 +218,7 @@ export default function PropertiesPage() {
                   <td className="p-3 border border-gray-300 flex gap-3">
                     {acc.filePath && (
                       <a
-                        href={signedUrls[acc.id] || "#"}
+                        href={`/api/proxy-download?filePath=${encodeURIComponent(acc.filePath)}&holographId=${holographId}&filename=${encodeURIComponent(acc.filePath.split("/").pop() || "document")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 text-sm"

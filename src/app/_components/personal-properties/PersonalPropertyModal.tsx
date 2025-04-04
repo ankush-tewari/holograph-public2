@@ -7,6 +7,8 @@ import axios from "axios";
 import { createPortal } from "react-dom";
 import { debugLog } from "@/utils/debug";
 import { buttonIcons } from "@/config/icons";
+import { encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
+import { fetchAesKey } from "@/utils/fetchAesKey";
 
 interface PersonalProperty {
   id?: string;
@@ -66,10 +68,20 @@ export default function PersonalPropertyModal({
     if (!isConfirmed) return;
   
     try {
-      await axios.delete(`/api/personal-properties/${personalProperty.id}?fileOnly=true`);
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
+      await axios.delete(`/api/personal-properties/${personalProperty.id}?fileOnly=true`, {
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
   
-      // Update local state to reflect that the file is deleted
-      setFormData((prev) => ({ ...prev, filePath: "" }));
+      // ✅ Clear local file and filePath state
+      setFormData((prev) => ({
+        ...prev,
+        file: null,
+        filePath: "",
+      }));
+      
       // ✅ Trigger parent page refresh
       onSuccess(); 
     } catch (error) {
@@ -104,7 +116,16 @@ export default function PersonalPropertyModal({
     }    
 
     if (formData.file) {
-      formDataToSend.append("file", formData.file);
+      try {
+        const aesKey = await fetchAesKey(holographId);
+        const encryptedBlob = await encryptFileInBrowser(formData.file, aesKey);
+      
+        formDataToSend.append("file", encryptedBlob, formData.file.name);
+        formDataToSend.append("fileEncrypted", "true"); // 👈 tell the server it's already encrypted
+      } catch (encryptionError) {
+        console.error("❌ Failed to encrypt file in browser:", encryptionError);
+        return;
+      }
     }
 
     if (userId) {
@@ -117,13 +138,17 @@ export default function PersonalPropertyModal({
     debugLog("🟢 Sending Personal Property FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
+      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
       await axios.post(`/api/personal-properties`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-csrf-token": csrfToken,
+        },
       });
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("❌ Error saving personalproperty:", error);
+      console.error("❌ Error saving personal property:", error);
     }
   };
 

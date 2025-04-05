@@ -1,5 +1,7 @@
 // /src/api/auth/logout/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server'
 import { debugLog } from '@/utils/debug'
 

@@ -1,5 +1,7 @@
 // /src/app/api/vital-documents/route.ts GET and POST Methods
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { uploadEncryptedBufferToGCS, deleteFileFromGCS, bucket } from "@/lib/gcs";

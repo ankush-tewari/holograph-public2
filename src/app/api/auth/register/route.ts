@@ -1,5 +1,7 @@
 // /src/app/api/auth/register/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
 import { prisma } from '@/lib/db'

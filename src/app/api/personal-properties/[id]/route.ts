@@ -1,6 +1,8 @@
 // /src/app/api/personal-properties/[id]/route.ts 
 // - PUT and DELETE methods
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFileFromGCS } from "@/lib/gcs";

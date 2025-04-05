@@ -1,6 +1,8 @@
 // /src/app/api/holograph/[id]/principals/remove/[removalId]/route.ts 
 // sends a removal request to a principal who can accept (be removed) or decline (remain a Principal of the Holograph)
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

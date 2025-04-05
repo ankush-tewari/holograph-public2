@@ -1,5 +1,7 @@
 // /src/app/api/csrf-token/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server';
 import Tokens from 'csrf';
 import { debugLog } from '@/utils/debug';

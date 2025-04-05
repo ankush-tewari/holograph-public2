@@ -1,5 +1,7 @@
 // /src/app/api/invitations/[id]/route.ts - Accept or Decline an Invitation
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";

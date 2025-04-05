@@ -1,6 +1,8 @@
 // /src/app/api/invitations/route.ts - send invitations.  see your invitations. 
 // ** accept or decline invitations is in /src/app/api/invitations/[id]/route.ts 
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";

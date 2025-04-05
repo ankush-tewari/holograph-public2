@@ -1,5 +1,7 @@
 // /src/app/api/holograph/[id]/principals/remove/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

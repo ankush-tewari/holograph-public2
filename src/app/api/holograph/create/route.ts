@@ -1,6 +1,8 @@
 // /src/app/api/holograph/create/route.ts  
 // POST Method
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';

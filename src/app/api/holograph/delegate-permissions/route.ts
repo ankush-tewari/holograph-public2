@@ -1,5 +1,7 @@
 // /src/app/api/holograph/delegate-permissions/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { prisma } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from "@/lib/auth"; // ✅ Ensure this is correctly imported

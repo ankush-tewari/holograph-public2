@@ -1,5 +1,7 @@
 // /src/app/api/vital-documents/[id]/route.ts - PUT & DELETE for Updating & Deleting Documents
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFileFromGCS } from "@/lib/gcs";

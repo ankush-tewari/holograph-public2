@@ -1,5 +1,7 @@
 // /src/app/api/holograph/delegates/route.ts - GET function
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';

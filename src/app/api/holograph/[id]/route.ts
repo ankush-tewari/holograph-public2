@@ -1,6 +1,8 @@
 // src/app/api/holograph/[id]/route.ts
 // GET, PUT and DELETE functions 
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';

@@ -62,8 +62,17 @@ export async function POST(req: Request) {
       }
     })
 
-  } catch (error) {
-    console.error('Registration error:', error)
+  } catch (error: any) {
+    console.error('❌ Registration error:', error)
+  
+    // Log known Prisma issue, if any
+    if (error.code) {
+      console.error('🧠 Prisma Error Code:', error.code)
+    }
+  
+    // Full stack (in case it's a logic or connection issue)
+    console.error('📛 Stack trace:', error.stack)
+  
     return NextResponse.json(
       { error: 'Registration failed' },
       { status: 500 }

@@ -28,10 +28,29 @@ if (!process.env.GCS_BUCKET_NAME) {
 }
 
 // ✅ Initialize Google Cloud Storage
-const storage = new Storage({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
-  projectId: process.env.GOOGLE_CLOUD_PROJECT,
-});
+const isProduction = process.env.NODE_ENV === "production";
+
+// ✅ Initialize Google Cloud Storage
+const storage = isProduction
+  ? new Storage({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT, // uses Cloud Run's default credentials
+    })
+  : new Storage({
+      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || "./gcs-key.json",
+      projectId: process.env.GOOGLE_CLOUD_PROJECT,
+    });
+
+// ✅ Log once on startup for debugging
+if (!isProduction) {
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error("❌ GOOGLE_APPLICATION_CREDENTIALS is missing.");
+  } else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+    console.error("❌ Service account key file does not exist at:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  } else {
+    debugLog("🟢 Found local service account key file:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  }
+}
+
 
 export { storage };
 

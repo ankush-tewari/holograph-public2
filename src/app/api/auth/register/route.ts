@@ -9,6 +9,8 @@ import { debugLog } from '@/utils/debug'
 import { userRegistrationSchema } from '@/validators/userSchema';
 import { ZodError } from "zod";
 
+debugLog("🧪 /api/auth/register handler file loaded");
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

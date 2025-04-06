@@ -8,17 +8,27 @@ import { debugLog } from "../utils/debug";
 // ✅ Initialize Google Cloud Storage
 const isProduction = process.env.NODE_ENV === "production";
 
-// ✅ Ensure environment variables are correctly set
-if (!isProduction) {
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    console.error("❌ GOOGLE_APPLICATION_CREDENTIALS is missing.");
-  } else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
-    console.error("❌ Service account key file does not exist at:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  } else {
-    debugLog("🟢 Found local service account key file:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  }
-}
+// ✅ Initialize Google Cloud Storage 
+// ✅ Determine how to initialize Google Cloud Storage
+const storage = new Storage(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS
+    ? {
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        projectId: process.env.GOOGLE_CLOUD_PROJECT,
+      }
+    : {
+        projectId: process.env.GOOGLE_CLOUD_PROJECT,
+      }
+);
 
+// ✅ Ensure environment variables are correctly set
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  debugLog("🟢 Using default GCP credentials (likely running on Cloud Run)");
+} else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+  console.error("❌ Local service account key file does not exist:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+} else {
+  debugLog("🟢 Found local service account key file:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+}
 
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
   console.error('❌ GOOGLE_CLOUD_PROJECT is missing.');
@@ -32,16 +42,6 @@ if (!process.env.GCS_BUCKET_NAME) {
   debugLog('🟢 Using Google Cloud Storage Bucket:', process.env.GCS_BUCKET_NAME);
 }
 
-
-// ✅ Initialize Google Cloud Storage
-const storage = isProduction
-  ? new Storage({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT, // uses Cloud Run's default credentials
-    })
-  : new Storage({
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || "./gcs-key.json",
-      projectId: process.env.GOOGLE_CLOUD_PROJECT,
-    });
 
 export { storage };
 

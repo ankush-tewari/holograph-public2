@@ -5,15 +5,20 @@ import fs from 'fs';
 import { Readable } from 'stream';
 import { debugLog } from "../utils/debug";
 
+// ✅ Initialize Google Cloud Storage
+const isProduction = process.env.NODE_ENV === "production";
 
 // ✅ Ensure environment variables are correctly set
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('❌ GOOGLE_APPLICATION_CREDENTIALS is missing.');
-} else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
-  console.error('❌ Service account key file does not exist at:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-} else {
-  debugLog('🟢 Found service account key file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+if (!isProduction) {
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error("❌ GOOGLE_APPLICATION_CREDENTIALS is missing.");
+  } else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+    console.error("❌ Service account key file does not exist at:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  } else {
+    debugLog("🟢 Found local service account key file:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  }
 }
+
 
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
   console.error('❌ GOOGLE_CLOUD_PROJECT is missing.');
@@ -27,8 +32,6 @@ if (!process.env.GCS_BUCKET_NAME) {
   debugLog('🟢 Using Google Cloud Storage Bucket:', process.env.GCS_BUCKET_NAME);
 }
 
-// ✅ Initialize Google Cloud Storage
-const isProduction = process.env.NODE_ENV === "production";
 
 // ✅ Initialize Google Cloud Storage
 const storage = isProduction
@@ -40,20 +43,11 @@ const storage = isProduction
       projectId: process.env.GOOGLE_CLOUD_PROJECT,
     });
 
-// ✅ Log once on startup for debugging
-if (!isProduction) {
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    console.error("❌ GOOGLE_APPLICATION_CREDENTIALS is missing.");
-  } else if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
-    console.error("❌ Service account key file does not exist at:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  } else {
-    debugLog("🟢 Found local service account key file:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  }
-}
-
-
 export { storage };
 
+if (isProduction) {
+  debugLog("🟢 Running in production — using default Cloud credentials");
+}
 
 // ✅ Select the bucket
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME as string);

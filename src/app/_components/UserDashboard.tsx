@@ -12,6 +12,8 @@ import { useHolograph } from '@/hooks/useHolograph';
 import { format } from "date-fns";
 import { userIcons, buttonIcons } from '@/config/icons';
 import { debugLog } from '@/utils/debug';
+import { apiFetch } from "@/lib/apiClient";
+
 
 // Define types for our data
 interface User {
@@ -112,7 +114,7 @@ const UserDashboard = () => {
   // fetch removal requests
   const fetchRemovalRequests = async () => {
     try {
-      const response = await fetch(`/api/holograph/principal-removal-requests`);
+      const response = await apiFetch(`/api/holograph/principal-removal-requests`);
       if (!response.ok) throw new Error("Failed to fetch removal requests");
       const data = await response.json();
       setRemovalRequests(data);
@@ -133,8 +135,8 @@ const UserDashboard = () => {
         setIsLoading(true);
         debugLog("🔍 Fetching holographs for user:", userId);
         
-        const ownedResponse = await fetch(`/api/holograph/principals`);
-        const delegatedResponse = await fetch(`/api/holograph/delegates`);
+        const ownedResponse = await apiFetch(`/api/holograph/principals`);
+        const delegatedResponse = await apiFetch(`/api/holograph/delegates`);
         
         if (!ownedResponse.ok || !delegatedResponse.ok) {
           throw new Error("Failed to fetch holographs");
@@ -190,7 +192,7 @@ const UserDashboard = () => {
     const fetchInvitations = async () => {
       debugLog("🔍 Fetching invitations for user:", userId);
       try {
-        const response = await fetch(`/api/invitations?userId=${userId}`);
+        const response = await apiFetch(`/api/invitations?userId=${userId}`);
         if (!response.ok) throw new Error("Failed to fetch invitations");
 
         let invitationsData = await response.json();
@@ -217,13 +219,12 @@ const UserDashboard = () => {
   // Handle accepting invitation
   const handleAcceptInvite = async (inviteId: string, holographId: string) => {
     try {
-      const response = await fetch(`/api/invitations/${inviteId}`, {
+      const response = await apiFetch(`/api/invitations/${inviteId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Accepted' }),
       });
+      
 
       if (response.ok) {
         setInvitations(prev => prev.filter(invite => invite.id !== inviteId));
@@ -238,14 +239,12 @@ const UserDashboard = () => {
   // Handle declining invitation
   const handleDeclineInvite = async (inviteId: string) => {
     try {
-      const response = await fetch(`/api/invitations/${inviteId}`, {
+      const response = await apiFetch(`/api/invitations/${inviteId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Declined' }),
       });
-
+      
       if (response.ok) {
         setInvitations(prev => prev.filter(invite => invite.id !== inviteId));
       }
@@ -261,11 +260,12 @@ const UserDashboard = () => {
     if (!window.confirm(confirmMsg)) return;
   
     try {
-      const response = await fetch(`/api/holograph/${holographId}/principals/remove/${removalId}`, {
+      const response = await apiFetch(`/api/holograph/${holographId}/principals/remove/${removalId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
+      
   
       const result = await response.json();
       if (response.ok) {

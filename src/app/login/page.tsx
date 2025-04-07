@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/apiClient";
 import { debugLog } from "@/utils/debug";
 
 export default function LoginPage() {
@@ -32,25 +33,29 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
-    debugLog("Attempting to sign in with email:", email);
-
+  
+    debugLog("Attempting login with:", email);
+  
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
+      const response = await apiFetch("/api/auth/callback/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Required for cookies/session
+        body: JSON.stringify({ email, password }),
       });
-
-      debugLog("Sign in result:", result);
-
-      if (result?.error) {
-        setError(result.error);
-      } else if (result?.ok) {
-        router.push("/dashboard");
+  
+      debugLog("Login response:", response);
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData?.message || "Login failed");
+        return;
       }
-    } catch (error) {
-      console.error("Login error:", error);
+  
+      // Login successful → redirect to dashboard
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Login error:", err);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);

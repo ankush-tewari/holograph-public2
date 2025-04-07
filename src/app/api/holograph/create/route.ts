@@ -120,17 +120,17 @@ export async function POST(request: Request) {
     } catch (sslError) {
       console.error("❌ SSL Generation Failed:", sslError);
     }
-
-    // ✅ Step 3: Update Holograph with all key paths
-    if (sslCertPath && sslKeyPath && aesKeyPath) {
-      await tx.holograph.update({
-        where: { id: holograph.id },
-        data: { sslCertPath, sslKeyPath, aesKeyPath },
-      });
-      debugLog("✅ Holograph updated with SSL and AES key paths.");
-    } else {
-      console.warn("⚠️ SSL or AES key was not created. Holograph saved without complete key paths.");
+    
+    // ✅ Step 3: Update Holograph with all key paths — fail if not generated
+    if (!sslCertPath || !sslKeyPath || !aesKeyPath) {
+      throw new Error("❌ SSL or AES key was not created. Aborting Holograph creation.");
     }
+
+    await tx.holograph.update({
+      where: { id: holograph.id },
+      data: { sslCertPath, sslKeyPath, aesKeyPath },
+    });
+    debugLog("✅ Holograph updated with SSL and AES key paths.");
 
 
     // ✅ Step 4: Attach Default Sections to the New Holograph

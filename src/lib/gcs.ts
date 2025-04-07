@@ -8,6 +8,10 @@ import { debugLog } from "../utils/debug";
 // ✅ Initialize Google Cloud Storage
 const isProduction = process.env.NODE_ENV === "production";
 
+
+debugLog("🔑 GCS Key Path (dev):", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+debugLog("🔍 Does key file exist?", fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS || "missing"));
+
 // ✅ Initialize Google Cloud Storage 
 // ✅ Determine how to initialize Google Cloud Storage
 const storage = new Storage(

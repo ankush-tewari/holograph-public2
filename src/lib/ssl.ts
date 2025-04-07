@@ -39,13 +39,19 @@ export async function generateSSLCertificate(holographId: string): Promise<{ ssl
         await bucket.file(`${sslBasePath}/.placeholder`).save("");
 
         // ✅ Upload cert + RSA key
+        debugLog("📤 Uploading public cert to GCS...");
         await bucket.upload(certPath, { destination: `${sslBasePath}/public.crt` });
+
+        debugLog("📤 Uploading private key to GCS...");
         await bucket.upload(keyPath, { destination: `${sslBasePath}/private.key` });
 
         // ✅ Generate and upload 32-byte AES key
+        debugLog("📤 Writing AES key and uploading to GCS...");
         const aesKey = crypto.randomBytes(32);
         fs.writeFileSync(aesKeyPath, aesKey);
         await bucket.upload(aesKeyPath, { destination: `${sslBasePath}/aes.key` });
+
+        debugLog("✅ SSL + AES keys uploaded successfully:", sslBasePath);
 
         // ✅ Cleanup
         fs.unlinkSync(certPath);

@@ -3,12 +3,16 @@
 export const dynamic = "force-dynamic";
 import NextAuth from 'next-auth';
 import { debugLog } from '@/utils/debug';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 
-if (!authOptions) {
+if (!getAuthOptions) {
   console.error("❌ authOptions is undefined! Check if `src/lib/auth.ts` exists.");
 }
 
-const handler = NextAuth(authOptions);
+const handler = async (...args: any[]) => {
+  debugLog("📦 Loading auth handler dynamically");
+  const authOptions = await getAuthOptions();
+  return NextAuth(authOptions)(...args);
+};
 
 export { handler as GET, handler as POST };

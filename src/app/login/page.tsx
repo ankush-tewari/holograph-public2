@@ -30,33 +30,30 @@ export default function LoginPage() {
   }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    alert("Form submitted!"); // ← add this
     e.preventDefault();
     setIsLoading(true);
     setError("");
   
-    debugLog("Attempting login with:", email);
+    console.log("Attempting login with:", email);
   
     try {
-      const response = await apiFetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // Required for cookies/session
-        body: JSON.stringify({ email, password }),
+      const result = await signIn("credentials", {
+        redirect: false,        // prevents full page reload
+        email,
+        password,
       });
   
-      debugLog("Login response:", response);
+      console.log("🧪 Login result:", result);
   
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData?.message || "Login failed");
-        return;
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.ok) {
+        router.push("/dashboard");
       }
-  
-      // Login successful → redirect to dashboard
-      router.push("/dashboard");
     } catch (err) {
-      console.error("Login error:", err);
-      setError("An unexpected error occurred. Please try again.");
+      console.error("❌ Login error:", err);
+      setError("An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }

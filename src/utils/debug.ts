@@ -32,7 +32,11 @@ function redactString(str: string): string {
     : str;
 }
 
-export const DEBUG_MODE = process.env.ENABLE_DEBUG_LOGGING === "true";
+export const DEBUG_MODE =
+  typeof window !== "undefined"
+    ? process.env.NEXT_PUBLIC_ENABLE_DEBUG_LOGGING === "true" // frontend
+    : process.env.ENABLE_DEBUG_LOGGING === "true";            // backend
+
 
 export const debugLog = (...args: any[]) => {
   if (!DEBUG_MODE) return;

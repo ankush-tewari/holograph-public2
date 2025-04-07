@@ -3,12 +3,7 @@
 export const dynamic = "force-dynamic";
 import NextAuth from 'next-auth';
 import { debugLog } from '@/utils/debug';
-
-// ✅ Try absolute import first (Preferred)
- //import { authOptions } from '@/lib/auth';
-
-// ✅ If absolute import fails, uncomment and use relative import:
-import { authOptions } from '../../../../lib/auth';
+import { authOptions } from '@/lib/auth';
 
 if (!authOptions) {
   console.error("❌ authOptions is undefined! Check if `src/lib/auth.ts` exists.");

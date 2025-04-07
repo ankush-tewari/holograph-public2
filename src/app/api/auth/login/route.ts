@@ -16,8 +16,28 @@ export async function POST(req: Request) {
     const { email, password } = await req.json();
     debugLog("🔍 Received credentials:", email);
 
+    
+
     // ✅ Check if user exists
     const { prisma } = await import("@/lib/db");
+
+    //debug
+    console.log("🔌 About to make Prisma query with DATABASE_URL:", !!process.env.DATABASE_URL);
+
+    try {
+      // Test connection
+      await prisma.$connect();
+      console.log("✅ Prisma connection successful");
+    } catch (error) {
+      console.error("❌ Prisma connection failed:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    // end debug
+
     const user = await prisma.user.findUnique({ where: { email } });
 
 

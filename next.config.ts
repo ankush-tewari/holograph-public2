@@ -5,9 +5,11 @@ import type { NextConfig } from "next";
 // ✅ Prevent Prisma from failing during `next build` when env is missing
 //process.env.DATABASE_URL ||= "file:skip-prisma-validation";
 
-//trying something else:
-if (process.env.NODE_ENV !== "production") {
+// ✅ Prevent Prisma + GCS from crashing `next build`  -trying something new
+if (process.env.NODE_ENV === "production") {
   process.env.DATABASE_URL ||= "file:skip-prisma-validation";
+  process.env.GCS_BUCKET_NAME ||= "fake-bucket-for-build";
+  process.env.GOOGLE_CLOUD_PROJECT ||= "fake-project-for-build";
 }
 
 const nextConfig: NextConfig = {

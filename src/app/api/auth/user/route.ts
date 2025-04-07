@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { debugLog } from "../../../../utils/debug";
 
@@ -13,7 +13,7 @@ export async function GET() {
     debugLog("API Request: /api/auth/user");
     
     // Get session using NextAuth
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     
     if (!session || !session.user) {
       console.error("❌ No authenticated session found");

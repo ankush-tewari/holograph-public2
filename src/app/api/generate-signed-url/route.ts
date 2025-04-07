@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { Storage } from "@google-cloud/storage";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "@/lib/db"; // ✅ Import Prisma to check permissions
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
     debugLog("🟢 Retrieved Cookies: ", authToken);
 
     // ✅ Authenticate user with NextAuth
-    let session = await getServerSession(authOptions);
+    const authOptions = await getAuthOptions(); // ⬅️ get the resolved options
+    let session = await getServerSession(authOptions); // ⬅️ now you can pass it
     debugLog("✅ Retrieved session:", session);
 
     // 🔴 If no session, attempt manual JWT verification

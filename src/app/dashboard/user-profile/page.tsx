@@ -1,7 +1,7 @@
 // /src/app/dashboard/user-profile/page.tsx
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import UserProfileForm from "@/app/_components/UserProfileForm";
@@ -9,7 +9,7 @@ import { debugLog } from "@/utils/debug";
 
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
 
   if (!session) {
     redirect("/login");

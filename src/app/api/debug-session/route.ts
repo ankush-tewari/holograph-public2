@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { debugLog } from '@/utils/debug';
 
 export async function GET(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     debugLog("🔍 API Route: Getting session debug info");
     
     // Get the current session on the server side
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     debugLog("🔍 Session in debug API:", session);
     
     // Return the session data for debugging

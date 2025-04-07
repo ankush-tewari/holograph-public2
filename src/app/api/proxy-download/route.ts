@@ -4,14 +4,14 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { decryptBuffer } from "@/lib/encryption/crypto";
 import { getFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   const userId = session?.user?.id;
 
   const { searchParams } = new URL(req.url);

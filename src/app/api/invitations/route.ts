@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { debugLog } from '@/utils/debug';
 
 // POST: Send an invitation
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     debugLog("🚀 /api/invitations endpoint hit!"); 
 
     // make sure the person sending the invitation is the user logged in
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
 // GET: Fetch invitations for a user
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

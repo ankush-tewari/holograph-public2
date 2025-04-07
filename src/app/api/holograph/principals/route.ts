@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { removePrincipal } from '@/utils/principalHelpers';
 import { debugLog } from '@/utils/debug';
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     debugLog("🔍 API Route: Getting holographs where user is a principal");
     
     // Get authenticated user from session
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     
     if (!session || !session.user || !session.user.id) {
       debugLog("❌ No authenticated user found in session");
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user from session
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -4,14 +4,14 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions } from "@/lib/auth"; // ✅ Ensure this is correctly imported
+import { getAuthOptions } from "@/lib/auth"; // ✅ Ensure this is correctly imported
 import { getServerSession } from "next-auth";
 import { debugLog } from '@/utils/debug';
 import { updateDelegatePermissionSchema } from "@/validators/delegatePermissionsSchema";
 import { ZodError } from "zod";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 }
     
 export async function POST(req: NextRequest) {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

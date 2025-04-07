@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { debugLog } from '@/utils/debug';
 import { deleteFileFromGCS } from "@/lib/gcs"; // Import Google Cloud Storage delete function
@@ -20,7 +20,7 @@ const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
     // Get session using NextAuth
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user) {
       console.error("❌ No authenticated session found");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -147,7 +147,7 @@ export async function GET(request: Request, context: { params: { id: string } })
 
 // for editing a Holograph Name
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -196,7 +196,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

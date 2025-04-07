@@ -9,7 +9,7 @@ import { deleteFileFromGCS } from "@/lib/gcs";
 import { debugLog } from "@/utils/debug";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { financialAccountSchema } from "@/validators/financialAccountSchema"; // ✅ Import schema
 import { ZodError } from "zod"; // ✅ Zod error type
 import { encryptBuffer } from "@/lib/encryption/crypto";
@@ -19,7 +19,7 @@ import Tokens from 'csrf';
 
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -140,7 +140,7 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
 
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

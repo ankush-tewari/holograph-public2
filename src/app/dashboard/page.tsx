@@ -2,7 +2,7 @@
 // /_components\UserDashboard.tsx where a user sees all of their owned and delegated holographs, invitations, etc.
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import React from 'react'
 import UserDashboard from "../_components/UserDashboard";
@@ -19,7 +19,7 @@ interface User {
 
 export default async function Dashboard() {
   // checking if session exists if not redirect to login
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session) {
     redirect("/login");
   }

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { verify, JwtPayload } from 'jsonwebtoken';
 import { debugLog } from '@/utils/debug';
 import { Storage } from "@google-cloud/storage";
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     // ✅ Fallback: Try NextAuth session if JWT failed
     if (!session) {
       debugLog("🔄 Trying getServerSession as a fallback...");
+      const authOptions = await getAuthOptions();
       session = await getServerSession(authOptions);
     }
 

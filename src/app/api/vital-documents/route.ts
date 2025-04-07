@@ -10,7 +10,7 @@ import { Storage } from "@google-cloud/storage";
 import { encryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { decryptFieldWithHybridEncryption } from "@/utils/encryption";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { vitalDocumentSchema } from "@/validators/vitalDocumentSchema";
 import { ZodError } from "zod";
 import { encryptBuffer } from "@/lib/encryption/crypto";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing holographId" }, { status: 400 });
   }
 
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
 // ✅ Handle POST Requests for Uploading & Updating Vital Documents
 export async function POST(req: Request) {
 
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

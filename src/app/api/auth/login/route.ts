@@ -45,7 +45,14 @@ export async function POST(req: Request) {
     const response = NextResponse.json({ success: true });
 
     response.headers.append("Access-Control-Allow-Credentials", "true");
-    response.headers.append("Access-Control-Allow-Origin", "http://localhost:3000"); // ✅ Allow frontend in dev
+    const origin =
+      process.env.NODE_ENV === "production"
+        ? "https://holographcompany.com"
+        : "http://localhost:3000";
+
+    response.headers.append("Access-Control-Allow-Origin", origin);
+    response.headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    response.headers.append("Vary", "Origin");
 
     response.cookies.set("auth-token", token, {
       httpOnly: true,

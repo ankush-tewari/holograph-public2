@@ -30,7 +30,6 @@ export default function LoginPage() {
   }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    alert("Form submitted!"); // ← add this
     e.preventDefault();
     setIsLoading(true);
     setError("");

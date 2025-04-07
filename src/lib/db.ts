@@ -2,6 +2,8 @@
 import { PrismaClient } from '@prisma/client';
 import { debugLog } from '@/utils/debug';
 
+console.log("🌐 NODE_ENV:", process.env.NODE_ENV);
+console.log("🌐 DATABASE_URL at runtime:", process.env.DATABASE_URL);
 
 debugLog("🌐 NODE_ENV:", process.env.NODE_ENV);
 debugLog("🌐 DATABASE_URL at runtime:", process.env.DATABASE_URL);

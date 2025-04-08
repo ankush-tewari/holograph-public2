@@ -32,6 +32,19 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         async authorize(credentials) {
           if (!credentials?.email) throw new Error("Invalid credentials");
           const { prisma } = await import("@/lib/db");
+
+          // Test connection explicitly DEBUG DELETE
+          console.log("🔌 About to make Prisma query with DATABASE_URL:", !!process.env.DATABASE_URL);
+          try {
+            // Test connection
+            await prisma.$connect();
+            console.log("✅ Prisma connection successful");
+          } catch (error) {
+            console.error("❌ Prisma connection failed:", error);
+            throw new Error("Database connection failed");
+          }
+          // DEBUG END
+          
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
           });

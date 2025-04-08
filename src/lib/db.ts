@@ -34,8 +34,10 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
   if (process.env.NODE_ENV === 'development') {
     debugLog("🔌 Prisma Client initialized in development mode");
+    console.log("🔌 Prisma Client initialized in development mode");
   } else {
     debugLog("🔌 Prisma Client initialized in production mode");
+    console.log("🔌 Prisma Client initialized in production mode");
   }
 }
 console.log("🔌 Prisma Client initialized with explicit DATABASE_URL:", !!databaseUrl);

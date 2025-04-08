@@ -9,6 +9,13 @@ import { getAuthOptions } from '@/lib/auth';
 // ✅ ADD this line:
 export const runtime = "nodejs"; //again for debugging
 
+// More debugging
+console.log("🔑 NextAuth Route Handler - Environment Check:", {
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL || "Not set",
+  NODE_ENV: process.env.NODE_ENV,
+  HAS_DATABASE_URL: !!process.env.DATABASE_URL
+});
+
 
 const handler = async () => {
   debugLog("📦 Loading auth handler dynamically");

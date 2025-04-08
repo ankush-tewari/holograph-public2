@@ -22,6 +22,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Add the rewrites configuration here
+  async rewrites() {
+    if (process.env.NODE_ENV === 'production') {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'https://holograph-backend-139747840015.us-south1.run.app/api/:path*',
+        },
+      ];
+    }
+    return [];
+  },
   eslint: {
     ignoreDuringBuilds: true, // ✅ Ignore ESLint errors during build
   },

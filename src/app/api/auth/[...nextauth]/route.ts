@@ -20,6 +20,7 @@ console.log("🔑 NextAuth Route Handler - Environment Check:", {
 const handler = async () => {
   debugLog("📦 Loading auth handler dynamically");
   const authOptions = await getAuthOptions();
+
   return NextAuth(authOptions);
 };
 

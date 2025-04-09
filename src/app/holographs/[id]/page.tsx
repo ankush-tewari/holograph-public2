@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { sectionIcons, buttonIcons } from "@/config/icons"; // Import the dynamic icons
 import AccessDeniedModalDashboardRedirect from '@/app/_components/AccessDeniedModalDashboardRedirect';
 import HolographForm from "@/app/_components/holograph/HolographForm";
+import { apiFetch } from "@/lib/apiClient";
+
 
 
 interface HolographUser {
@@ -82,9 +84,7 @@ const HolographDetailPage = () => {
       try {
         if (!params.id || !userId) return;
         debugLog(`🚀 Fetching Holograph Details for ID: ${params.id}`);
-        const response = await fetch(`/api/holograph/${params.id}`, {
-          credentials: "include",
-        });
+        const response = await apiFetch(`/api/holograph/${params.id}`);
         
         if (!response.ok) {
           debugLog("⛔ Unauthorized or Holograph not found — redirecting.");
@@ -121,9 +121,8 @@ const HolographDetailPage = () => {
       try {
         if (!params.id || !isAuthorized) return; // ✅ Skip fetch if not authorized
         debugLog(`🚀 Fetching Sections for Holograph ID: ${params.id}`);
-        const response = await fetch(`/api/holograph/${params.id}/sections`, {
-          credentials: "include",
-        });
+        const response = await apiFetch(`/api/holograph/${params.id}/sections`);
+
         
         if (!response.ok) {
           debugLog("❌ Failed to fetch sections");
@@ -180,12 +179,12 @@ const HolographDetailPage = () => {
 
   const handleEdit = async () => {
     if (!holograph) return;
-    await fetch(`/api/holograph/${holograph.id}`, {
+    await apiFetch(`/api/holograph/${holograph.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle }),
-      credentials: "include",
-    });    
+    });
+       
     setHolograph((prev) => prev ? { ...prev, title: newTitle } : prev);
     setIsEditing(false);
   };
@@ -197,9 +196,8 @@ const HolographDetailPage = () => {
     ) return;
 
     try {
-      const response = await fetch(`/api/holograph/${holograph.id}`, {
+      const response = await apiFetch(`/api/holograph/${holograph.id}`, {
         method: "DELETE",
-        credentials: "include",
       });
 
       if (!response.ok) {
@@ -348,7 +346,7 @@ const HolographDetailPage = () => {
               onSuccess={async (updated) => {
                 debugLog("✅ Holograph updated:", updated);
               
-                const res = await fetch(`/api/holograph/${holograph.id}`);
+                const res = await apiFetch(`/api/holograph/${holograph.id}`);
                 const fresh = await res.json();
                 setHolograph(fresh); // ✅ update local state with new data
               

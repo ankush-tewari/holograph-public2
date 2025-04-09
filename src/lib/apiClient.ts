@@ -7,9 +7,13 @@ if (!API_BASE_URL) {
 }
 
 /**
- * Makes a full API call to your backend.
+ * Makes a full API call to your backend, including credentials (cookies).
  */
-export async function apiFetch(path: string, options?: RequestInit) {
+export async function apiFetch(path: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${path}`;
-  return fetch(url, options);
+
+  return fetch(url, {
+    ...options,
+    credentials: "include", // ✅ always send session cookies
+  });
 }

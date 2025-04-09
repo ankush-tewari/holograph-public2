@@ -68,6 +68,13 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     },
     secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
+      async signIn({ user, account, profile, email, credentials }) {
+        if (!user) {
+          console.error("❌ Sign-in failed — no user returned from authorize()");
+          if (email) console.error("Email attempted:", email);
+        }
+        return true;
+      },
       async jwt({ token, user, trigger, session }) {
         debugLog("✅ JWT Callback Triggered");
         if (user) {

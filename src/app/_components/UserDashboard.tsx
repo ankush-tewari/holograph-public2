@@ -192,7 +192,7 @@ const UserDashboard = () => {
     const fetchInvitations = async () => {
       debugLog("🔍 Fetching invitations for user:", userId);
       try {
-        const response = await apiFetch(`/api/invitations?userId=${userId}`);
+        const response = await apiFetch(`/api/invitations`);
         if (!response.ok) throw new Error("Failed to fetch invitations");
 
         let invitationsData = await response.json();

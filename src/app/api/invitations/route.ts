@@ -171,8 +171,7 @@ export const GET = withCors(async (request: Request) => {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const userId = session.user.id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });

@@ -2,13 +2,15 @@
 
 export const dynamic = "force-dynamic";
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { debugLog } from '@/utils/debug';
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export const PATCH = withCors(async (request: NextRequest, { params }: { params: { id: string } }) => {
+
   try {
  
     const session = await getServerSession(await getAuthOptions());
@@ -89,4 +91,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     console.error('Error updating invitation:', error);
     return NextResponse.json({ error: 'Failed to update invitation' }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }
+

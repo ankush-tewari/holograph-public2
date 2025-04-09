@@ -21,18 +21,19 @@ export function getCorsHeaders(origin: string): Record<string, string> {
 }
 
 export function withCors<T extends Request | NextRequest>(
-    handler: (req: T) => Promise<Response | NextResponse>
-  ) {
-    return async function wrappedHandler(req: T): Promise<Response | NextResponse> {
-      const res = await handler(req);
+  handler: (...args: any[]) => Promise<Response | NextResponse>
+) {
+    return async function wrappedHandler(...args: any[]): Promise<Response | NextResponse> {
+      const req = args[0]; // first argument is always the request
+      const res = await handler(...args);
       const origin = req.headers.get("origin") || "";
       const headers = getCorsHeaders(origin);
-  
+    
       for (const [key, value] of Object.entries(headers)) {
         res.headers.set(key, value);
       }
-  
+    
       return res;
-    };
+    };  
   }
   

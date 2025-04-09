@@ -9,8 +9,9 @@ import { getAuthOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { removePrincipal } from '@/utils/principalHelpers';
 import { debugLog } from '@/utils/debug';
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string, removalId: string } }) {
+export const PATCH = withCors(async (req: NextRequest, { params }: { params: { id: string, removalId: string } }) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -71,4 +72,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     console.error('Error processing removal request:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
+  return NextResponse.json({ error: "Unexpected error occurred" }, { status: 500 });
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

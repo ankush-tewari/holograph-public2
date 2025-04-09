@@ -7,8 +7,9 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { debugLog } from "@/utils/debug";
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
 
-export async function GET(request: NextRequest) {
+export const GET = withCors(async (request: NextRequest) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,4 +71,16 @@ export async function GET(request: NextRequest) {
     console.error("❌ Error fetching delegates:", error);
     return NextResponse.json({ error: "Failed to fetch delegates" }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

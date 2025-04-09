@@ -62,6 +62,10 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         },
       }),
     ],
+    pages: {
+      signIn: "/login",
+      error: "/auth/error", // ✅ This tells NextAuth to redirect to your custom error page
+    },
     session: {
       strategy: "jwt",
       maxAge: 60 * 60,

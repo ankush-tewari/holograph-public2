@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const allowedOrigins = [
   "http://localhost:3000",
-  "https://holograph-git-migrate-auth-to-vercel-ankushs-projects-31477be9.vercel.app",
   "https://www.holographcompany.com",
 ];
 
 export function getCorsHeaders(origin: string): Record<string, string> {
-  const allowOrigin = allowedOrigins.includes(origin) ? origin : "";
+  const allowOrigin =
+    allowedOrigins.includes(origin) || origin?.endsWith(".vercel.app") ? origin : "";
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,

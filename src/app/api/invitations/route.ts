@@ -8,9 +8,11 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { debugLog } from '@/utils/debug';
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
+
 
 // POST: Send an invitation
-export async function POST(request: Request) {
+export const POST = withCors(async (request: NextRequest) => {
   try {
     debugLog("🚀 /api/invitations endpoint hit!"); 
 
@@ -158,11 +160,11 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ error: error.message || "Failed to send invitation" }, { status: 500 });
   }
-}
+})
 
 
 // GET: Fetch invitations for a user
-export async function GET(request: Request) {
+export const GET = withCors(async (request: Request) => {
   try {
     const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
@@ -213,4 +215,17 @@ export async function GET(request: Request) {
     console.error("❌ Error fetching invitations:", error);
     return NextResponse.json({ error: error.message || 'Failed to fetch invitations' }, { status: 500 });
   }
+})
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }
+

@@ -8,8 +8,9 @@ import { getAuthOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { removePrincipal } from '@/utils/principalHelpers';
 import { debugLog } from '@/utils/debug';
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
 
-export async function GET(request: NextRequest) {
+export const GET = withCors(async (request: NextRequest) => {
   try {
     debugLog("🔍 API Route: Getting holographs where user is a principal");
     
@@ -90,9 +91,9 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withCors(async (request: NextRequest) => {
   try {
     // Get authenticated user from session
     const session = await getServerSession(await getAuthOptions());
@@ -167,9 +168,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withCors(async (request: NextRequest) => {
   try {
     const session = await getServerSession(await getAuthOptions());
     if (!session?.user?.id) {
@@ -196,4 +197,16 @@ export async function DELETE(request: NextRequest) {
     console.error('Error removing principal:', error);
     return NextResponse.json({ error: 'Failed to remove principal' }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

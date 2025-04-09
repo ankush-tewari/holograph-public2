@@ -82,7 +82,10 @@ const HolographDetailPage = () => {
       try {
         if (!params.id || !userId) return;
         debugLog(`🚀 Fetching Holograph Details for ID: ${params.id}`);
-        const response = await fetch(`/api/holograph/${params.id}`);
+        const response = await fetch(`/api/holograph/${params.id}`, {
+          credentials: "include",
+        });
+        
         if (!response.ok) {
           debugLog("⛔ Unauthorized or Holograph not found — redirecting.");
           setError("You are not authorized to view this Holograph.");
@@ -118,7 +121,10 @@ const HolographDetailPage = () => {
       try {
         if (!params.id || !isAuthorized) return; // ✅ Skip fetch if not authorized
         debugLog(`🚀 Fetching Sections for Holograph ID: ${params.id}`);
-        const response = await fetch(`/api/holograph/${params.id}/sections`);
+        const response = await fetch(`/api/holograph/${params.id}/sections`, {
+          credentials: "include",
+        });
+        
         if (!response.ok) {
           debugLog("❌ Failed to fetch sections");
           return; // ✅ Don't throw — just exit
@@ -142,7 +148,10 @@ const HolographDetailPage = () => {
           userId,
           holographId: params.id,
         });
-        const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`);
+        const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`, {
+          credentials: "include",
+        });
+        
         if (!response.ok) throw new Error("Failed to fetch delegate permissions");
         const data = await response.json(); // Expected: [{ sectionId, accessLevel }]
         debugLog("✅ Delegate Permissions Fetched:", data);
@@ -175,7 +184,8 @@ const HolographDetailPage = () => {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle }),
-    });
+      credentials: "include",
+    });    
     setHolograph((prev) => prev ? { ...prev, title: newTitle } : prev);
     setIsEditing(false);
   };
@@ -187,7 +197,10 @@ const HolographDetailPage = () => {
     ) return;
 
     try {
-      const response = await fetch(`/api/holograph/${holograph.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/holograph/${holograph.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const errorData = await response.json();

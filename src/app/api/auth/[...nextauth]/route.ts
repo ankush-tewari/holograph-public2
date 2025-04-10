@@ -21,11 +21,11 @@ debugLog("🔑 NextAuth Route Handler - Environment Check:", {
 
 const handler = async (...args: any[]) => {
   try {
-    debugLog("📦 Loading auth handler dynamically");
     const authOptions = await getAuthOptions();
-    return NextAuth(authOptions)(...args);
-  } catch (err) {
-    console.error("❌ AUTH ROUTE FAILED:", err);
+    const nextAuthHandler = NextAuth(authOptions);
+    return nextAuthHandler(...args); // ✅ this passes the request
+  } catch (error) {
+    console.error("❌ [AUTH ROUTE] Failed to initialize:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
 };

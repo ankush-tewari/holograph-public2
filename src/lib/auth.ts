@@ -1,5 +1,5 @@
 import CredentialsProvider from "next-auth/providers/credentials";
-import { NextAuthOptions } from "next-auth";
+import { type NextAuthOptions } from "next-auth";
 
 export async function getAuthOptions(): Promise<NextAuthOptions> {
   return {
@@ -17,12 +17,10 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             firstName: "Test",
             lastName: "User",
           };
-        }        
+        },
       }),
     ],
-    session: {
-      strategy: "jwt",
-    },
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: "test-secret", // Hardcoded, not using env var
+    session: { strategy: "jwt" }, // simplest session config
   };
 }

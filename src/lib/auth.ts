@@ -30,35 +30,54 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           password: { label: "Password", type: "password" },
         },
         async authorize(credentials) {
-          if (!credentials?.email) throw new Error("Invalid credentials");
-          const { prisma } = await import("@/lib/db");
-
-          // Test connection explicitly DEBUG DELETE
-          console.log("🔌 About to make Prisma query with DATABASE_URL:", !!process.env.DATABASE_URL);
           try {
-            // Test connection
-            await prisma.$connect();
-            console.log("✅ Prisma connection successful");
-          } catch (error) {
-            console.error("❌ Prisma connection failed:", error);
-            throw new Error("Database connection failed");
+            if (!credentials || !credentials.email || !credentials.password) {
+              console.error("❌ Missing credentials:", credentials);
+              throw new Error("Missing email or password");
+            }
+  
+            const { prisma } = await import("@/lib/db");
+  
+            // Test connection explicitly DEBUG DELETE
+            console.log(
+              "🔌 About to make Prisma query with DATABASE_URL:",
+              !!process.env.DATABASE_URL
+            );
+            try {
+              // Test connection
+              await prisma.$connect();
+              console.log("✅ Prisma connection successful");
+            } catch (error) {
+              console.error("❌ Prisma connection failed:", error);
+              throw new Error("Database connection failed");
+            }
+            // DEBUG END
+  
+            const user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+  
+            if (!user) {
+              console.error("❌ No user found for email:", credentials.email);
+              throw new Error("No user found");
+            }
+  
+            const isValid = await bcrypt.compare(
+              credentials.password,
+              user.password
+            );
+            if (!isValid) throw new Error("Invalid password");
+  
+            return {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            };
+          } catch (err) {
+            console.error("❌ Credentials authorization error:", err);
+            return null; // 👈 important: return null to avoid crashing NextAuth
           }
-          // DEBUG END
-          
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-          if (!user) throw new Error("No user found");
-
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isValid) throw new Error("Invalid password");
-
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          };
         },
       }),
     ],
@@ -122,7 +141,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       },
     },
     debug: process.env.NODE_ENV !== "production",
-  };
+  };  
 }
 
 debugLog("AUTH OPTIONS LOADED SUCCESSFULLY");

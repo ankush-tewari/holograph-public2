@@ -84,6 +84,8 @@ export function OPTIONS(request: Request) {
   const origin = request.headers.get("origin") || "";
   const headers = getCorsHeaders(origin);
   const res = new Response(null, { status: 204 });
+  console.log("🧪 Rebuilding POST test route");
+
 
   for (const [key, value] of Object.entries(headers)) {
     res.headers.set(key, value);

@@ -73,6 +73,13 @@ export const GET = withCors(async (req: NextRequest) => {
   }
 });
 
+export const POST = withCors(async (req: Request) => {
+  const body = await req.text(); // Just raw string for now
+  console.log("📨 POST /debug-session body:", body);
+  return NextResponse.json({ message: "POST received", body });
+});
+
+
 export function OPTIONS(request: Request) {
   const origin = request.headers.get("origin") || "";
   const headers = getCorsHeaders(origin);

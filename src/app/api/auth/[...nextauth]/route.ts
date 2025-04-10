@@ -19,19 +19,12 @@ debugLog("🔑 NextAuth Route Handler - Environment Check:", {
   HAS_DATABASE_URL: !!process.env.DATABASE_URL,
 });
 
-const handler = async (req: Request) => {
+export async function GET(req: Request) {
   const options = await getAuthOptions();
-  const { pathname } = new URL(req.url);
-  const method = req.method;
+  return await NextAuth(options).GET!(req);
+}
 
-  // Manually forward request to correct method handler
-  if (method === "GET") {
-    return NextAuth(options).GET!(req);
-  } else if (method === "POST") {
-    return NextAuth(options).POST!(req);
-  } else {
-    return new Response("Method not allowed", { status: 405 });
-  }
-};
-
-export { handler as GET, handler as POST };
+export async function POST(req: Request) {
+  const options = await getAuthOptions();
+  return await NextAuth(options).POST!(req);
+}

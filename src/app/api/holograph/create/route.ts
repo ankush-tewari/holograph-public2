@@ -17,6 +17,7 @@ import fs from "fs";
 import { holographSchema } from '@/validators/holographSchema';
 import { ZodError } from "zod"; // ✅ For safe error handling
 import { withCors, getCorsHeaders } from "@/utils/withCORS";
+import Tokens from "csrf"; 
 
 
 const storage = new Storage();
@@ -70,6 +71,15 @@ export const POST = withCors(async (request: Request) => {
     }
 
     debugLog("✅ Session verified. User ID:", session.user.id);
+
+    // ✅ CSRF Verification (add after session.user.id check)
+    const tokens = new Tokens();
+    const csrfToken = request.headers.get("x-csrf-token");
+    const csrfSecret = request.headers.get("cookie")?.match(/csrfSecret=([^;]+)/)?.[1];
+
+    if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+      return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+    }
 
     // Extract request data
     const formData = await request.formData();

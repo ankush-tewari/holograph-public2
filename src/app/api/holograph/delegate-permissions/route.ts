@@ -9,8 +9,10 @@ import { getServerSession } from "next-auth";
 import { debugLog } from '@/utils/debug';
 import { updateDelegatePermissionSchema } from "@/validators/delegatePermissionsSchema";
 import { ZodError } from "zod";
+import Tokens from "csrf";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
-export async function GET(req: NextRequest) {
+export const GET = withCors(async (req) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -75,12 +77,20 @@ export async function GET(req: NextRequest) {
     console.error("❌ Error fetching delegate permissions:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+});
     
-export async function POST(req: NextRequest) {
+export const POST = withCors(async (req) => {
   const session = await getServerSession(await getAuthOptions());
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // ✅ CSRF check
+    const tokens = new Tokens();
+    const csrfToken = req.headers.get("x-csrf-token");
+    const csrfSecret = req.cookies.get("csrfSecret")?.value;
+
+    if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
+      return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
     }
     try {
       const body = await req.json();
@@ -120,4 +130,15 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+  });
+
+  export function OPTIONS(request: Request) {
+    const origin = request.headers.get("origin") || "";
+    const headers = getCorsHeaders(origin);
+    const res = new Response(null, { status: 204 });
+    for (const [key, value] of Object.entries(headers)) {
+      res.headers.set(key, value);
+    }
+    return res;
   }
+  

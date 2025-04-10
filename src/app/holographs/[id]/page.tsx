@@ -147,11 +147,10 @@ const HolographDetailPage = () => {
           userId,
           holographId: params.id,
         });
-        const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`, {
-          credentials: "include",
-        });
-        
+        const response = await apiFetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`);
+
         if (!response.ok) throw new Error("Failed to fetch delegate permissions");
+        
         const data = await response.json(); // Expected: [{ sectionId, accessLevel }]
         debugLog("✅ Delegate Permissions Fetched:", data);
         const permissionsMap: Record<string, string> = {};

@@ -8,10 +8,11 @@ import { prisma } from '@/lib/db'
 import { debugLog } from '@/utils/debug'
 import { userRegistrationSchema } from '@/validators/userSchema';
 import { ZodError } from "zod";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
 debugLog("🧪 /api/auth/register handler file loaded");
 
-export async function POST(req: Request) {
+export const POST = withCors(async (req: Request) => {
   try {
     const body = await req.json();
 
@@ -80,4 +81,16 @@ export async function POST(req: Request) {
       { status: 500 }
     )
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

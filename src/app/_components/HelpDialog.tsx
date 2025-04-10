@@ -3,6 +3,15 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/apiClient";
+
+const getCsrfToken = async () => {
+  const res = await apiFetch("/api/csrf-token");
+  const { csrfToken } = await res.json();
+  return csrfToken;
+};
+
+
 
 export default function HelpDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,11 +26,16 @@ export default function HelpDialog() {
     setResponse("");
 
     try {
-      const res = await fetch("/api/ai-helper", {
+      const csrfToken = await getCsrfToken();
+      const res = await apiFetch("/api/ai-helper", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
         body: JSON.stringify({ question }),
       });
+
 
       const data = await res.json();
       setResponse(data.answer);

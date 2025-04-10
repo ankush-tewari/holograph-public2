@@ -11,6 +11,15 @@ import { useRouter, useParams } from "next/navigation";
 import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
 import { userIcons, buttonIcons } from "@/config/icons";
 import { debugLog } from "@/utils/debug";
+import { apiFetch } from "@/lib/apiClient";
+
+const getCsrfToken = async () => {
+  const res = await apiFetch("/api/csrf-token");
+  const { csrfToken } = await res.json();
+  return csrfToken;
+};
+
+
 
 // ✅ Define a type for users
 interface User {
@@ -52,39 +61,53 @@ export default function ManageUsers() {
       setError("No Holograph selected.");
       return;
     }
-
-    fetch(`/api/holograph/users?holographId=${currentHolographId}`)
-      .then((res) => res.json())
-      .then((data: User[]) => { // ✅ Explicitly tell TypeScript this API returns an array of User
+  
+    const loadUsers = async () => {
+      try {
+        const res = await apiFetch(`/api/holograph/users?holographId=${currentHolographId}`);
+        const data: User[] = await res.json();
+  
         if (Array.isArray(data)) {
           setUsers(data);
         } else {
           console.error("Unexpected API response:", data);
           setUsers([]);
         }
-      })
-      .catch(() => setError("Failed to load users."));
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setError("Failed to load users.");
+      }
+    };
+  
+    loadUsers();
   }, [currentHolographId]);
+  
 
   // checks whether or not the user has access to this page
   useEffect(() => {
     if (!currentHolographId || !userId) return;
   
-    fetch(`/api/holograph/${currentHolographId}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const checkPrincipalStatus = async () => {
+      try {
+        const res = await apiFetch(`/api/holograph/${currentHolographId}`);
+        const data = await res.json();
+  
         const principals = data.principals || [];
         const isCurrentPrincipal = principals.some((p: any) => p.id === userId);
         setIsPrincipal(isCurrentPrincipal);
-        debugLog("Fetched ownerId:", data.ownerId); // 🔍 Log the fetched value
-        setOwnerId(data.owner?.id);  // ✅ Fix: access nested owner.id
-        setIsLoading(false);
-      })
-      .catch(() => {
+        debugLog("Fetched ownerId:", data.ownerId);
+        setOwnerId(data.owner?.id);
+      } catch (err) {
+        console.error("Failed to verify user role:", err);
         setError("Failed to verify user role.");
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+  
+    checkPrincipalStatus();
   }, [currentHolographId, userId]);
+  
 
   const handleRemoveDelegate = async (delegateId: string) => {
     // Confirm the removal action
@@ -92,9 +115,16 @@ export default function ManageUsers() {
     if (!confirmation) return;
 
     try {
-      const response = await fetch(`/api/holograph/delegates?holographId=${currentHolographId}&delegateId=${delegateId}`, {
-        method: 'DELETE',
-      });      
+      const csrfToken = await getCsrfToken();
+      const response = await apiFetch(
+        `/api/holograph/delegates?holographId=${currentHolographId}&delegateId=${delegateId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'x-csrf-token': csrfToken,
+          },
+        }
+      );
 
       if (response.ok) {
         // Remove the delegate from the UI
@@ -122,9 +152,17 @@ export default function ManageUsers() {
     try {
       if (isSelf) {
         // Self-removal → DELETE
-        const response = await fetch(`/api/holograph/principals?holographId=${currentHolographId}&userId=${userId}`, {
-          method: 'DELETE',
-        });
+        const csrfToken = await getCsrfToken();
+        const response = await apiFetch(
+          `/api/holograph/principals?holographId=${currentHolographId}&userId=${userId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'x-csrf-token': csrfToken,
+            },
+          }
+        );
+
   
         if (response.ok) {
           alert("You have been removed from the Holograph.");
@@ -135,11 +173,16 @@ export default function ManageUsers() {
         }
       } else {
         // Remove another Principal → POST pending removal
-        const response = await fetch(`/api/holograph/${currentHolographId}/principals/remove`, {
+        const csrfToken = await getCsrfToken();
+        const response = await apiFetch(`/api/holograph/${currentHolographId}/principals/remove`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
           body: JSON.stringify({ targetUserId: principalId }),
         });
+
   
         if (response.ok) {
           alert("Removal request sent successfully.");
@@ -159,11 +202,16 @@ export default function ManageUsers() {
     if (!confirmTransfer) return;
   
     try {
-      const response = await fetch(`/api/holograph/${currentHolographId}/transfer-ownership`, {
+      const csrfToken = await getCsrfToken();
+      const response = await apiFetch(`/api/holograph/${currentHolographId}/transfer-ownership`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
         body: JSON.stringify({ newOwnerId }),
       });
+
   
       if (response.ok) {
         alert("Ownership transferred.");

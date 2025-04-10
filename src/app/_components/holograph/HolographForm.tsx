@@ -6,6 +6,8 @@ import React, { useState } from 'react';
 import { debugLog } from "../../../utils/debug";
 import { buttonIcons } from '@/config/icons';
 import { US_STATES } from '@/config/dropdowns';
+import { apiFetch } from "@/lib/apiClient";
+
 
 interface Holograph {
   id: string;
@@ -50,14 +52,20 @@ const HolographForm: React.FC<HolographFormProps> = ({
         mode === 'create'
           ? '/api/holograph/create'
           : `/api/holograph/${holographId}/edit`;
+
+      const csrfRes = await apiFetch("/api/csrf-token");
+      const { csrfToken } = await csrfRes.json();
   
       // ✅ Use FormData
       const formData = new FormData();
       formData.append("title", title);
       formData.append("geography", geography);
   
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: mode === 'create' ? 'POST' : 'PATCH',
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
         body: formData,
       });
   

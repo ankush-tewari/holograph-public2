@@ -5,8 +5,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
 import { debugLog } from '@/utils/debug';
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
-export async function GET(req: NextRequest) {
+
+export const GET = withCors(async (req: NextRequest) => {
   // Remove the production block to allow testing in production
   try {
     debugLog("🔍 API Route: Getting session and DB connection debug info");
@@ -69,4 +71,16 @@ export async function GET(req: NextRequest) {
       stack: error.stack
     }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

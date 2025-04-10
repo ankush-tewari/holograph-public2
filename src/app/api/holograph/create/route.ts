@@ -16,11 +16,13 @@ import path from "path";
 import fs from "fs";
 import { holographSchema } from '@/validators/holographSchema';
 import { ZodError } from "zod"; // ✅ For safe error handling
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
+
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 
-export async function POST(request: Request) {
+export const POST = withCors(async (request: Request) => {
   try {
     debugLog("🚀 Received request to create holograph");
 
@@ -178,11 +180,12 @@ export async function POST(request: Request) {
     lastModified: result.updatedAt.toISOString(),
   });
   
-
+/*
   response.headers.append('Access-Control-Allow-Credentials', 'true');
   response.headers.append('Access-Control-Allow-Origin', 'http://localhost:3000'); // Adjust for production
   response.headers.append('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   response.headers.append('Access-Control-Allow-Methods', 'POST, OPTIONS');
+*/
 
   return response;
   } catch (error: any) {
@@ -192,4 +195,15 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+  return res;
 }
+

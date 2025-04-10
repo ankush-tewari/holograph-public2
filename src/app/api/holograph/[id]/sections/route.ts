@@ -7,9 +7,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { debugLog } from "@/utils/debug";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+
+export const GET = withCors(async (req, { params }) => {
 
   const holographId = params.id;
 
@@ -78,4 +80,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     console.error("❌ Server Error fetching sections:", error);
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

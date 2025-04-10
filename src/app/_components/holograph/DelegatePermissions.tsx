@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useHolograph } from "@/hooks/useHolograph";
 import AccessDeniedModalDashboardRedirect from "@/app/_components/AccessDeniedModalDashboardRedirect";
 import { debugLog } from "@/utils/debug";
+import { apiFetch } from "@/lib/apiClient";
+
 
 export default function DelegatePermissions({ holographId }) {
   interface Delegate {
@@ -21,92 +23,133 @@ export default function DelegatePermissions({ holographId }) {
 
 
   // Principal check
-  useEffect(() => {
-    if (!holographId || !userId) return;
-  
-    fetch(`/api/holograph/${holographId}`)
-      .then(res => res.json())
-      .then(data => {
-        const principals = data.principals || [];
-        const isCurrentPrincipal = principals.some((p) => p.id === userId);
-        setIsPrincipal(isCurrentPrincipal);
-      })
-      .catch(err => console.error("Failed to verify principal status:", err))
-      .finally(() => setIsCheckingPrincipal(false));  // ✅ Done checking
-  }, [holographId, userId]);
-  
-  
-  useEffect(() => {
-    fetch(`/api/holograph/delegates/list?holographId=${holographId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("✅ Delegates loaded:", data); // Debug
-        setDelegates(data);
-      });
-  }, [holographId]);  
+useEffect(() => {
+  if (!holographId || !userId) return;
 
-  useEffect(() => {
-    if (!holographId || !userId) return;
-  
-    fetch(`/api/holograph/delegate-permissions?holographId=${holographId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) {
-          console.error("❌ Expected an array but got:", data);
-          return;
-        }
-  
-        const permissionsMap = {};
-        data.forEach(({ delegateId, sectionId, accessLevel }) => {
-          if (!permissionsMap[delegateId]) {
-            permissionsMap[delegateId] = {};
-          }
-          permissionsMap[delegateId][sectionId] = accessLevel;
-        });
-        setPermissions(permissionsMap);
-        debugLog("🗺️ Permissions Map:", permissionsMap); // ✅ Moved here
-      })
-      .catch((err) => console.error("❌ Error fetching permissions:", err));
-  }, [holographId, userId]);
-
-
-  useEffect(() => {
-    fetch(`/api/holograph/${holographId}/sections`) // ✅ New API call to get sections
-      .then((res) => res.json())
-      .then((data) => {
-        setSections(data);
-        debugLog("📦 Sections Loaded:", data);  // ✅ Logs correctly
-      })      
-      .catch((err) => console.error("Error loading sections:", err));
-  }, [holographId]);
-  
-
-  const handlePermissionChange = (delegateId, sectionId, newLevel) => {
-    setPermissions((prev) => ({
-      ...prev,
-      [delegateId]: { ...prev[delegateId], [sectionId]: newLevel },
-    }));
-
-    const payload = {
-      holographId,
-      delegateId,
-      sectionId,
-      accessLevel: newLevel,
-    };
-
-    debugLog("📤 Sending permission update:", payload); // Add this debug log
-   
-    fetch("/api/holograph/delegate-permissions", {
-      method: "POST",
-      body: JSON.stringify({
-        holographId,
-        delegateId,
-        sectionId,
-        accessLevel: newLevel,
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+  const checkPrincipal = async () => {
+    try {
+      const res = await apiFetch(`/api/holograph/${holographId}`);
+      const data = await res.json();
+      const principals = data.principals || [];
+      const isCurrentPrincipal = principals.some((p) => p.id === userId);
+      setIsPrincipal(isCurrentPrincipal);
+    } catch (err) {
+      console.error("Failed to verify principal status:", err);
+    } finally {
+      setIsCheckingPrincipal(false);
+    }
   };
+
+  checkPrincipal();
+}, [holographId, userId]);
+
+  
+  
+useEffect(() => {
+  if (!holographId) return;
+
+  const loadDelegates = async () => {
+    try {
+      const res = await apiFetch(`/api/holograph/delegates/list?holographId=${holographId}`);
+      const data = await res.json();
+      console.log("✅ Delegates loaded:", data); // Debug
+      setDelegates(data);
+    } catch (err) {
+      console.error("❌ Failed to load delegates:", err);
+    }
+  };
+
+  loadDelegates();
+}, [holographId]);
+
+
+useEffect(() => {
+  if (!holographId || !userId) return;
+
+  const loadPermissions = async () => {
+    try {
+      const res = await apiFetch(`/api/holograph/delegate-permissions?holographId=${holographId}`);
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        console.error("❌ Expected an array but got:", data);
+        return;
+      }
+
+      const permissionsMap = {};
+      data.forEach(({ delegateId, sectionId, accessLevel }) => {
+        if (!permissionsMap[delegateId]) {
+          permissionsMap[delegateId] = {};
+        }
+        permissionsMap[delegateId][sectionId] = accessLevel;
+      });
+
+      setPermissions(permissionsMap);
+      debugLog("🗺️ Permissions Map:", permissionsMap);
+    } catch (err) {
+      console.error("❌ Error fetching permissions:", err);
+    }
+  };
+
+  loadPermissions();
+}, [holographId, userId]);
+
+
+
+useEffect(() => {
+  if (!holographId) return;
+
+  const loadSections = async () => {
+    try {
+      const res = await apiFetch(`/api/holograph/${holographId}/sections`);
+      const data = await res.json();
+      setSections(data);
+      debugLog("📦 Sections Loaded:", data);
+    } catch (err) {
+      console.error("❌ Error loading sections:", err);
+    }
+  };
+
+  loadSections();
+}, [holographId]);
+
+  
+
+const handlePermissionChange = async (delegateId, sectionId, newLevel) => {
+  setPermissions((prev) => ({
+    ...prev,
+    [delegateId]: { ...prev[delegateId], [sectionId]: newLevel },
+  }));
+
+  const payload = {
+    holographId,
+    delegateId,
+    sectionId,
+    accessLevel: newLevel,
+  };
+
+  debugLog("📤 Sending permission update:", payload);
+
+  try {
+    // ✅ Get CSRF token first
+    const csrfRes = await apiFetch("/api/csrf-token");
+    const { csrfToken } = await csrfRes.json();
+
+    // ✅ Send the update with CSRF token included
+    await apiFetch("/api/holograph/delegate-permissions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": csrfToken,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("❌ Failed to update delegate permission:", err);
+    // Optional: revert optimistic state or show a UI error
+  }
+};
+
 
   if (isSessionLoading || isCheckingPrincipal) {
     return <p className="text-center text-gray-500">Loading...</p>;

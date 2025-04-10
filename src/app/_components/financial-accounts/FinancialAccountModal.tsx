@@ -10,7 +10,7 @@ import { buttonIcons } from "@/config/icons";
 import { FINANCIAL_ACCOUNT_TYPES } from "@/config/financialAccountType";
 import { encryptFileInBrowser } from "@/utils/encryptionClient"; // ✅
 import { fetchAesKey } from "@/utils/fetchAesKey";
-
+import { apiFetch } from "@/lib/apiClient";
 
 
 interface FinancialAccount {
@@ -80,12 +80,15 @@ export default function FinancialAccountModal({
     if (!isConfirmed) return;
   
     try {
-      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
-      await axios.delete(`/api/financial-accounts/${account.id}?fileOnly=true`, {
+      const csrfRes = await apiFetch("/api/csrf-token");
+      const { csrfToken } = await csrfRes.json();
+      await apiFetch(`/api/financial-accounts/${account.id}?fileOnly=true`, {
+        method: "DELETE",
         headers: {
           "x-csrf-token": csrfToken,
         },
       });
+      
   
       // ✅ Clear local file and filePath state
       setFormData((prev) => ({
@@ -163,13 +166,16 @@ export default function FinancialAccountModal({
     debugLog("🟢 Sending Financial Account FormData:", Object.fromEntries(formDataToSend.entries()));
 
     try {
-      const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
-      await axios.post(`/api/financial-accounts`, formDataToSend, {
+      const csrfRes = await apiFetch("/api/csrf-token");
+      const { csrfToken } = await csrfRes.json();
+      await apiFetch(`/api/financial-accounts`, {
+        method: "POST",
         headers: {
-          "Content-Type": "multipart/form-data",
           "x-csrf-token": csrfToken,
         },
+        body: formDataToSend,
       });
+      
 
       onSuccess();
       onClose();

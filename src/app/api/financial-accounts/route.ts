@@ -15,10 +15,12 @@ import { financialAccountSchema } from "@/validators/financialAccountSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
 import { encryptBuffer } from "@/lib/encryption/crypto";
 import Tokens from "csrf";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
 
 
-export async function GET(req: NextRequest) {
+
+export const GET = withCors(async (req) => {
   const { searchParams } = new URL(req.url);
   const holographId = searchParams.get("holographId");
 
@@ -96,9 +98,9 @@ export async function GET(req: NextRequest) {
     console.error("❌ Failed to fetch financial accounts:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withCors(async (req) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -307,4 +309,4 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

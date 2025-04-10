@@ -10,8 +10,10 @@ import { prisma } from "@/lib/db";
 import { debugLog } from "@/utils/debug";
 import { holographSchema } from "@/validators/holographSchema";
 import { ZodError } from "zod";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+
+export const PATCH = withCors(async (req, { params }) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -64,4 +66,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       { status: 500 }
     );
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+  return res;
 }

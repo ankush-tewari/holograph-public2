@@ -4,6 +4,8 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { debugLog } from "@/utils/debug";
+import { apiFetch } from "@/lib/apiClient";
+
 
 export default function SessionDebugger() {
   const { data: session, status } = useSession();
@@ -24,7 +26,7 @@ export default function SessionDebugger() {
     // Also check server-side session
     const checkServerSession = async () => {
       try {
-        const response = await fetch("/api/debug-session");
+        const response = await apiFetch("/api/debug-session");
         if (response.ok) {
           const data = await response.json();
           debugLog("Server session:", data.session);

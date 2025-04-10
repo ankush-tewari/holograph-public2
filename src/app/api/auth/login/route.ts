@@ -7,8 +7,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs"; // ✅ Use consistent bcrypt import
 import jwt from "jsonwebtoken"; // ✅ Ensure jsonwebtoken is imported
 import { debugLog } from "@/utils/debug";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
-export async function POST(req: Request) {
+export const POST = withCors(async (req) => {
   try {
     debugLog("API Request: /api/auth/login");
 
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
     // ✅ Set HTTP-only Secure Cookie
     const response = NextResponse.json({ success: true });
 
+    /*
     response.headers.append("Access-Control-Allow-Credentials", "true");
     const origin =
       process.env.NODE_ENV === "production"
@@ -75,6 +77,7 @@ export async function POST(req: Request) {
     response.headers.append("Access-Control-Allow-Origin", origin);
     response.headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
     response.headers.append("Vary", "Origin");
+    */
 
     response.cookies.set("auth-token", token, {
       httpOnly: true,
@@ -88,4 +91,16 @@ export async function POST(req: Request) {
     console.error("❌ Login error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

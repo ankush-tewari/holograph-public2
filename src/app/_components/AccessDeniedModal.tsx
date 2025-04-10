@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/apiClient";
+
 
 interface AccessDeniedModalProps {
   holographId: string;
@@ -14,20 +16,19 @@ interface AccessDeniedModalProps {
 export default function AccessDeniedModal({ holographId, holographTitle, sectionName }: AccessDeniedModalProps) {
   const router = useRouter();
 
-  const handleClose = () => {
-    // Redirect user to Holograph or Dashboard based on access
-    fetch(`/api/holograph/${holographId}`)
-      .then(res => {
-        if (res.ok) {
-          router.push(`/holographs/${holographId}`);
-        } else {
-          router.push("/dashboard");
-        }
-      })
-      .catch(() => {
+  const handleClose = async () => {
+    try {
+      const res = await apiFetch(`/api/holograph/${holographId}`);
+      if (res.ok) {
+        router.push(`/holographs/${holographId}`);
+      } else {
         router.push("/dashboard");
-      });
+      }
+    } catch {
+      router.push("/dashboard");
+    }
   };
+  
 
   // Optional: Prevent background scrolling
   useEffect(() => {

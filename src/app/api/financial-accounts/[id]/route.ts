@@ -15,10 +15,11 @@ import { ZodError } from "zod"; // ✅ Zod error type
 import { encryptBuffer } from "@/lib/encryption/crypto";
 import { uploadEncryptedBufferToGCS } from "@/lib/gcs";
 import Tokens from 'csrf';
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
 
 
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+export const PUT = withCors(async (req, context) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -136,9 +137,9 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     console.error("❌ Error updating financial account:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export const DELETE = withCors(async (req, context) => {
 
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
@@ -231,4 +232,16 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     console.error("❌ Error deleting financial account:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+
+  return res;
 }

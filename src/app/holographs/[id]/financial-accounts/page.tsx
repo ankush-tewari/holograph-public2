@@ -12,6 +12,7 @@ import { useSectionAccess } from "@/hooks/useSectionAccess";
 import AccessDeniedModal from "@/app/_components/AccessDeniedModal";
 import { buttonIcons } from "@/config/icons";
 import { debugLog } from "@/utils/debug";
+import { apiFetch } from "@/lib/apiClient";
 
 interface FinancialAccount {
   id: string;
@@ -47,8 +48,9 @@ export default function FinancialAccountsPage() {
   useEffect(() => {
     async function fetchAccounts() {
       try {
-        const response = await axios.get(`/api/financial-accounts?holographId=${holographId}`, { withCredentials: true });
-        setAccounts(response.data);
+        const response = await apiFetch(`/api/financial-accounts?holographId=${holographId}`);
+        const data = await response.json();
+        setAccounts(data);
       } catch (err) {
         console.error("❌ Failed to load accounts", err);
       } finally {
@@ -65,13 +67,10 @@ export default function FinancialAccountsPage() {
       for (const acc of accounts) {
         if (acc.filePath) {
           try {
-            const res = await axios.get(
-              `/api/generate-signed-url?filePath=${encodeURIComponent(acc.filePath)}&holographId=${encodeURIComponent(
-                holographId as string
-              )}&section=financial-accounts`,
-              { withCredentials: true }
-            );
-            urls[acc.id] = res.data.url;
+            const res = await apiFetch(`/api/generate-signed-url?filePath=${encodeURIComponent(acc.filePath)}&holographId=${encodeURIComponent(holographId)}&section=financial-accounts`);
+            const data = await res.json();
+            urls[acc.id] = data.url;
+
           } catch (err: any) {
             const message =
               err?.response?.data?.error ||
@@ -118,11 +117,10 @@ export default function FinancialAccountsPage() {
     if (!confirm("Are you sure you want to delete this financial account?")) return;
     try {
       const csrfToken = (await axios.get("/api/csrf-token")).data.csrfToken;
-      await axios.delete(`/api/financial-accounts/${id}`, {
-        headers: {
-          "x-csrf-token": csrfToken,
-        },
-      });
+      await apiFetch(`/api/financial-accounts/${id}`, {
+        method: "DELETE",
+        headers: { "x-csrf-token": csrfToken }
+      });      
       
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {

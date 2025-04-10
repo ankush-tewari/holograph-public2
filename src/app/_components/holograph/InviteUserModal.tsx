@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { debugLog } from '@/utils/debug';
 import { useSession } from "next-auth/react";
 import { buttonIcons } from '@/config/icons';
+import { apiFetch } from "@/lib/apiClient";
+
 
 
 interface InviteUserModalProps {
@@ -38,11 +40,18 @@ const InviteUserModal = ({ holographId, role, onClose }: InviteUserModalProps) =
   
       debugLog("📤 Sending Invitation API Request:", requestBody);
   
-      const response = await fetch('/api/invitations', {
+      const csrfRes = await apiFetch("/api/csrf-token");
+      const { csrfToken } = await csrfRes.json();
+
+      const response = await apiFetch('/api/invitations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify(requestBody),
       });
+
   
       debugLog("📩 Raw Response:", response); // ✅ Log response
   

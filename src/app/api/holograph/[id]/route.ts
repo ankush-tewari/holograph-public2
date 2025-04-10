@@ -12,12 +12,14 @@ import { deleteFileFromGCS } from "@/lib/gcs"; // Import Google Cloud Storage de
 import { Storage } from "@google-cloud/storage";
 import { holographSchema } from "@/validators/holographSchema";
 import { ZodError } from "zod"; // ✅ For safe error handling
+import { withCors, getCorsHeaders } from '@/utils/withCORS';
+
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
 
 
-export async function GET(request: Request, context: { params: { id: string } }) {
+export const GET = withCors(async (request, context) => {
   try {
     // Get session using NextAuth
     const session = await getServerSession(await getAuthOptions());
@@ -143,10 +145,10 @@ export async function GET(request: Request, context: { params: { id: string } })
     console.error("❌ API Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
 // for editing a Holograph Name
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export const PUT = withCors(async (req, context) => {
   const session = await getServerSession(await getAuthOptions());
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -191,9 +193,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     console.error("❌ Failed to update Holograph:", error);
     return NextResponse.json({ error: "Failed to update Holograph" }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export const DELETE = withCors(async (req, context) => {
   try {
 
     const session = await getServerSession(await getAuthOptions());
@@ -379,4 +381,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     console.error("Error deleting Holograph:", error);
     return NextResponse.json({ error: "Failed to delete Holograph" }, { status: 500 });
   }
+});
+
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = getCorsHeaders(origin);
+  const res = new Response(null, { status: 204 });
+  for (const [key, value] of Object.entries(headers)) {
+    res.headers.set(key, value);
+  }
+  return res;
 }
+

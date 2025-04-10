@@ -1,6 +1,6 @@
 // /src/lib/apiClient.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ""; // same-origin if not set
 
 if (!API_BASE_URL) {
   console.warn("⚠️ Warning: NEXT_PUBLIC_API_URL is not defined!");

@@ -7,11 +7,10 @@ import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { getHolographFileEncryptionKey } from "@/utils/encryption";
 import { prisma } from "@/lib/db";
+import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+
+export const GET = withCors(async (req, { params }) => {
   const session = await getServerSession(await getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,4 +51,4 @@ export async function GET(
     console.error("❌ Failed to load AES key:", err);
     return NextResponse.json({ error: "Failed to fetch AES key" }, { status: 500 });
   }
-}
+});

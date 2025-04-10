@@ -219,6 +219,7 @@ export function OPTIONS(request: Request) {
 
 // DELETE
 export const GET = withCors(async () =>
-  NextResponse.json({ message: "GET method working fine!" })
+  NextResponse.json({ message: "GET method alive!" }) // <- change message
 );
+
 

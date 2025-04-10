@@ -13,7 +13,12 @@ import { getDocumentBySection } from "@/utils/getDocumentBySection";
 import { debugLog } from "@/utils/debug";
 
 const storage = new Storage();
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME as string);
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+if (!BUCKET_NAME) {
+  throw new Error("❌ GCS_BUCKET_NAME is not set in environment variables");
+}
+const bucket = storage.bucket(BUCKET_NAME);
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -66,8 +71,13 @@ export async function GET(req: NextRequest) {
     }
 
     // ✅ Ensure filePath is stored correctly in DB
-    if (filePath.startsWith("https://storage.googleapis.com/holograph-user-documents/")) {
-      filePath = filePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
+    //if (filePath.startsWith("https://storage.googleapis.com/holograph-user-documents/")) {
+    //  filePath = filePath.replace("https://storage.googleapis.com/holograph-user-documents/", "");
+    //}
+
+    const publicPrefix = `https://storage.googleapis.com/${bucketName}/`;
+    if (filePath.startsWith(publicPrefix)) {
+      filePath = filePath.replace(publicPrefix, "");
     }
 
     debugLog("🟢 Corrected filePath for DB lookup:", filePath);

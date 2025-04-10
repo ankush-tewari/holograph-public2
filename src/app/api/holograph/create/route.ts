@@ -21,7 +21,13 @@ import Tokens from "csrf";
 
 
 const storage = new Storage();
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+
+if (!BUCKET_NAME) {
+  throw new Error("❌ GCS_BUCKET_NAME is not defined in environment variables");
+}
+
+
 
 export const POST = withCors(async (request: Request) => {
   try {
@@ -207,6 +213,7 @@ export const POST = withCors(async (request: Request) => {
   }
 });
 
+
 export function OPTIONS(request: Request) {
   const origin = request.headers.get("origin") || "";
   const headers = getCorsHeaders(origin);
@@ -221,5 +228,6 @@ export function OPTIONS(request: Request) {
 export const GET = withCors(async () =>
   NextResponse.json({ message: "GET method alive!" }) // <- change message
 );
+
 
 

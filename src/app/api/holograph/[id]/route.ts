@@ -16,7 +16,11 @@ import { withCors, getCorsHeaders } from '@/utils/withCORS';
 
 
 const storage = new Storage();
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "holograph-user-documents";
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+if (!BUCKET_NAME) {
+  throw new Error("❌ GCS_BUCKET_NAME is not set in environment variables");
+}
+
 
 
 export const GET = withCors(async (request, context) => {

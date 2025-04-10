@@ -104,8 +104,16 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           token.userId = user.id;
           token.firstName = user.firstName;
           token.lastName = user.lastName;
-          const tokens = new Tokens();
-          token.csrfSecret = tokens.secretSync();
+          if (user && !token.csrfSecret) {
+            try {
+              const { default: Tokens } = await import("csrf");
+              const tokens = new Tokens();
+              token.csrfSecret = tokens.secretSync();
+            } catch (err) {
+              console.error("❌ Failed to generate csrfSecret:", err);
+              token.csrfSecret = null;
+            }
+          }
         }
         if (trigger === "update" && session?.currentHolographId) {
           token.currentHolographId = session.currentHolographId;

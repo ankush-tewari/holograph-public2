@@ -217,3 +217,8 @@ export function OPTIONS(request: Request) {
   return res;
 }
 
+// DELETE
+export const GET = withCors(async () =>
+  NextResponse.json({ message: "GET method working fine!" })
+);
+

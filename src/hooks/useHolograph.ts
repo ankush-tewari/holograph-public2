@@ -12,6 +12,7 @@ export function useHolograph() {
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
     setIsHydrated(true);
+    debugLog("🧠 Client has hydrated. Session status:", status);
   }, []);
 
   const setCurrentHolographId = useCallback(async (holographId: string) => {
@@ -27,10 +28,10 @@ export function useHolograph() {
   }, [update]);
 
   return {
-    currentHolographId: session?.user?.currentHolographId,
-    userId: session?.user?.id,
-    isLoading: status === "loading",
-    isAuthenticated: status === "authenticated",
+    currentHolographId: isHydrated ? session?.user?.currentHolographId : null,
+    userId: isHydrated ? session?.user?.id : null,
+    isLoading: !isHydrated || status === "loading",
+    isAuthenticated: isHydrated && status === "authenticated",
     setCurrentHolographId
-  };
+  };  
 }

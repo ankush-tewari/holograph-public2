@@ -66,12 +66,16 @@ const HolographDetailPage = () => {
   const CloseIcon = buttonIcons.close;
 
 
+  const [didSetHolographId, setDidSetHolographId] = useState(false);
+
   useEffect(() => {
-    if (params.id && currentHolographId !== params.id) {
+    if (!didSetHolographId && params.id && currentHolographId !== params.id) {
       debugLog(`🔄 Setting currentHolographId to ${params.id}`);
       setCurrentHolographId(params.id as string);
+      setDidSetHolographId(true);
     }
-  }, [params.id, currentHolographId, setCurrentHolographId]);
+  }, [params.id, currentHolographId, didSetHolographId, setCurrentHolographId]);
+
 
   useEffect(() => {
     if (!isSessionLoading && !isAuthenticated) {
@@ -147,10 +151,11 @@ const HolographDetailPage = () => {
           userId,
           holographId: params.id,
         });
-        const response = await apiFetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`);
-
-        if (!response.ok) throw new Error("Failed to fetch delegate permissions");
+        const response = await fetch(`/api/holograph/delegate-permissions?userId=${userId}&holographId=${params.id}`, {
+          credentials: "include",
+        });
         
+        if (!response.ok) throw new Error("Failed to fetch delegate permissions");
         const data = await response.json(); // Expected: [{ sectionId, accessLevel }]
         debugLog("✅ Delegate Permissions Fetched:", data);
         const permissionsMap: Record<string, string> = {};

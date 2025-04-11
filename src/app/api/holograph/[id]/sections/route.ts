@@ -1,4 +1,4 @@
-// /src/app/api/holograph/[id]/route.ts
+// /src/app/api/holograph/[id]/sections/route.ts
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +9,9 @@ import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { withCors, getCorsHeaders } from "@/utils/withCORS";
 
+export const GET = withCors(async (req: NextRequest, context: { params: { id: string } }) => {
+  const holographId = context?.params?.id;
 
-
-export const GET = withCors(async (req, { params }) => {
-
-  const holographId = params.id;
 
   // ✅ 1. Authenticate user
   const session = await getServerSession(await getAuthOptions());
@@ -30,46 +28,40 @@ export const GET = withCors(async (req, { params }) => {
       delegates: { select: { userId: true } },
     },
   });
-  
+
   if (!holograph) {
     return NextResponse.json({ error: "Holograph not found" }, { status: 404 });
   }
-  
+
   const isAuthorizedPrincipal = holograph.principals.some(p => p.userId === userId);
   const isAuthorizedDelegate = holograph.delegates.some(d => d.userId === userId);
-  
+
   if (!isAuthorizedPrincipal && !isAuthorizedDelegate) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  
 
-  console.log("📢 API called with holographId:", params.id);
+  debugLog("📢 API called with holographId:", holographId);
 
-  if (!params.id) {
+  if (!holographId) {
     console.log("❌ Missing holograph ID");
     return NextResponse.json({ error: "Holograph ID is required" }, { status: 400 });
   }
-  
 
   try {
+    debugLog("🔍 Fetching sections linked to Holograph ID:", holographId);
 
-    debugLog("🔍 Fetching sections linked to Holograph ID:", params.id)
-
-    // ✅ 3. Fetch and return sections (only if authorized)
     const holographSections = await prisma.holographSection.findMany({
-      where: { holographId: params.id },
+      where: { holographId },
       include: { section: true },
     });
 
     if (!holographSections.length) {
-      console.log("❌ No sections found for Holograph ID:", params.id);
+      console.log("❌ No sections found for Holograph ID:", holographId);
       return NextResponse.json({ error: "No sections found for this Holograph" }, { status: 404 });
     }
 
-    //debugLog("✅ Sections found:", holographSections);
-
     return NextResponse.json(holographSections.map(s => ({
-      sectionId: s.id, // ✅ Added sectionId (Primary key in HolographSection)
+      sectionId: s.id,
       id: s.section.id,
       name: s.section.name,
       slug: s.section.slug,
@@ -81,6 +73,7 @@ export const GET = withCors(async (req, { params }) => {
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
 });
+
 
 export function OPTIONS(request: Request) {
   const origin = request.headers.get("origin") || "";

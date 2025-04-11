@@ -6,5 +6,10 @@ import { ReactNode } from "react";
 import { debugLog } from "@/utils/debug";
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+      {children}
+    </SessionProvider>
+  );
+  
 }

@@ -1,18 +1,22 @@
-import NextAuth from "next-auth";
+import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { NextRequest } from "next/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 export async function GET(req: NextRequest) {
-  console.log("🟢 [auth route] GET", req.nextUrl.pathname);
-  const options = await getAuthOptions();
-  return await NextAuth(options).GET!(req);
-}
+  try {
+    console.log("🔍 debug-session handler called");
+    const session = await getServerSession(await getAuthOptions());
+    console.log("✅ Session loaded:", session);
 
-export async function POST(req: NextRequest) {
-  console.log("🟠 [auth route] POST", req.nextUrl.pathname);
-  const options = await getAuthOptions();
-  return await NextAuth(options).POST!(req);
+    return new Response(JSON.stringify({ session }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    console.error("❌ debug-session crashed:", err.message, err.stack);
+    return new Response(
+      JSON.stringify({ error: err.message, stack: err.stack }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }
